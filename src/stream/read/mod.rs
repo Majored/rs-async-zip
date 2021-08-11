@@ -8,7 +8,7 @@ use std::marker::{Send, Unpin};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use async_compression::tokio::bufread::DeflateDecoder;
+use async_compression::tokio::bufread::{DeflateDecoder, BzDecoder, LzmaDecoder, ZstdDecoder, XzDecoder};
 use tokio::io::{AsyncBufRead, AsyncRead, AsyncReadExt, ReadBuf, Take};
 
 pub type AsyncReader = dyn AsyncBufRead + Unpin + Send;
@@ -16,6 +16,10 @@ pub type AsyncReader = dyn AsyncBufRead + Unpin + Send;
 pub enum CompressionReader<'a> {
     Stored(Take<&'a mut AsyncReader>),
     Deflate(DeflateDecoder<Take<&'a mut AsyncReader>>),
+    Bz(BzDecoder<Take<&'a mut AsyncReader>>),
+    Lzma(LzmaDecoder<Take<&'a mut AsyncReader>>),
+    Zstd(ZstdDecoder<Take<&'a mut AsyncReader>>),
+    Xz(XzDecoder<Take<&'a mut AsyncReader>>),
 }
 
 pub struct ZIPStreamReader<'a> {
@@ -36,6 +40,10 @@ impl<'a> AsyncRead for ZIPStreamFile<'a> {
         match self.reader {
             CompressionReader::Stored(ref mut inner) => Pin::new(inner).poll_read(cx, buf),
             CompressionReader::Deflate(ref mut inner) => Pin::new(inner).poll_read(cx, buf),
+            CompressionReader::Bz(ref mut inner) => Pin::new(inner).poll_read(cx, buf),
+            CompressionReader::Lzma(ref mut inner) => Pin::new(inner).poll_read(cx, buf),
+            CompressionReader::Zstd(ref mut inner) => Pin::new(inner).poll_read(cx, buf),
+            CompressionReader::Xz(ref mut inner) => Pin::new(inner).poll_read(cx, buf),
         }
     }
 }
@@ -126,6 +134,10 @@ impl<'a> ZIPStreamReader<'a> {
         let file_reader = match compression {
             0 => CompressionReader::Stored(limit_reader),
             8 => CompressionReader::Deflate(DeflateDecoder::new(limit_reader)),
+            12 => CompressionReader::Bz(BzDecoder::new(limit_reader)),
+            14 => CompressionReader::Lzma(LzmaDecoder::new(limit_reader)),
+            93 => CompressionReader::Zstd(ZstdDecoder::new(limit_reader)),
+            95 => CompressionReader::Xz(XzDecoder::new(limit_reader)),
             _ => return Err(ZipError::UnsupportedCompressionError(compression)),
         };
 
