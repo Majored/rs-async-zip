@@ -8,3 +8,4 @@ edition = "2018"
 [dependencies]
 async-compression = { version = "0.3.8", features = ["tokio", "deflate", "bzip2", "lzma", "zstd", "xz"]}
 tokio = { version = "1.4.0", features = ["full"] }
+chrono = "0.4.19"

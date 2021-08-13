@@ -27,6 +27,7 @@ use std::task::{Context, Poll};
 
 use async_compression::tokio::bufread::{DeflateDecoder, BzDecoder, LzmaDecoder, ZstdDecoder, XzDecoder};
 use tokio::io::{AsyncBufRead, AsyncRead, AsyncReadExt, ReadBuf, Take};
+use chrono::{DateTime, Utc, TimeZone};
 
 /// A type accepted as input to ZipStreamReader.
 pub(crate) type AsyncReader = dyn AsyncBufRead + Unpin + Send;
@@ -49,6 +50,7 @@ pub struct ZipStreamFile<'a> {
     file_name: String,
     compressed_size: u32,
     uncompressed_size: u32,
+    last_modified: DateTime<Utc>,
     crc: u32,
     extra: Vec<u8>,
     bytes_read: u32,
@@ -95,6 +97,16 @@ impl<'a> ZipStreamFile<'a> {
     /// Returns a reference to the file's extra field data.
     pub fn extra(&self) -> &Vec<u8> {
         &self.extra
+    }
+
+    /// Returns a reference to the file's last modified date and time.
+    pub fn last_modified(&self) -> &DateTime<Utc> {
+        &self.last_modified
+    }
+
+    /// Returns a UNIX timestamp of the file's last modified date and time.
+    pub fn last_modified_timestamp(&self) -> i64 {
+        self.last_modified.timestamp()
     }
 
     /// Returns whether or not the file has been fully read.
@@ -197,6 +209,7 @@ impl<'a> ZipStreamReader<'a> {
             uncompressed_size,
             crc,
             extra,
+            last_modified: zip_date_to_chrono(mod_date, mod_time),
             bytes_read: 0,
             reader: file_reader,
         };
@@ -227,4 +240,16 @@ async fn read_u32(reader: &mut AsyncReader) -> Result<u32> {
 
 async fn read_u16(reader: &mut AsyncReader) -> Result<u16> {
     Ok(reader.read_u16_le().await.map_err(|_| ZipError::ReadFailed)?)
+}
+
+fn zip_date_to_chrono(date: u16, time: u16) -> DateTime<Utc> {
+    let years = (((date & 0xFE00) >> 9) + 1980).into();
+    let months = ((date & 0x1E0) >> 5).into();
+    let days = (date & 0x1F).into();
+
+    let hours = ((time & 0x1F) >> 11).into();
+    let mins = ((time & 0x7E0) >> 5).into();
+    let secs = ((time & 0x1F) << 1).into();
+
+    Utc.ymd(years, months, days).and_hms(hours, mins, secs)
 }
