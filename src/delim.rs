@@ -6,3 +6,6 @@ pub const LFHD: u32 = 0x04034b50;
 
 /// Central directory file header delim
 pub const CDFHD: u32 = 0x02014b50;
+
+/// Data descriptor delim
+pub const DDD: u32 = 0x08074b50;

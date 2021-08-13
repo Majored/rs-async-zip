@@ -4,3 +4,4 @@
 //! A module which supports the streaming of ZIP archives.
 
 pub mod read;
+pub mod write;

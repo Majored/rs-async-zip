@@ -18,6 +18,7 @@
 //! }
 //! ```
 
+use crate::header::LocalFileHeader;
 use crate::error::ZipError;
 use crate::error::Result;
 
@@ -127,15 +128,20 @@ impl<'a> ZipStreamFile<'a> {
     pub async fn consume(&mut self) -> Result<()> {
         let mut buffer = vec![0; 8192];
 
+        // Read into a buffer continuously until the Take reaches its limit (EOF) and discard the bytes.
         loop {
             match self.read(&mut buffer).await {
-                Ok(read) => {
-                    if read == 0 {
-                        break;
-                    }
+                Ok(read) => match read {
+                    0 => break,
+                    _ => (),
                 }
                 Err(_) => return Err(ZipError::ReadFailed),
             };
+        }
+
+        // Additional check to ensure we're actually EOF.
+        if !self.is_eof() {
+            return Err(ZipError::ReadFailed);
         }
 
         Ok(())
@@ -144,8 +150,8 @@ impl<'a> ZipStreamFile<'a> {
 
 impl<'a> ZipStreamReader<'a> {
     /// Constructs a new instance from a mutable reference to a buffered reader.
-    pub fn new(reader: &'a mut AsyncReader) -> Result<ZipStreamReader<'a>> {
-        Ok(ZipStreamReader { reader })
+    pub fn new(reader: &'a mut AsyncReader) -> Self {
+        Self { reader }
     }
 
     /// Returns the next file in the archive.
@@ -170,46 +176,44 @@ impl<'a> ZipStreamReader<'a> {
     /// }
     /// ```
     pub async fn next_entry<'b>(&'b mut self) -> Result<Option<ZipStreamFile<'b>>> {
-        let flhd = read_u32(self.reader).await?;
-
-        match flhd {
+        match read_u32(self.reader).await? {
             crate::delim::LFHD => (),
             crate::delim::CDFHD => return Ok(None),
-            _ => return Err(ZipError::LocalFileHeaderError(flhd)),
+            actual => return Err(ZipError::LocalFileHeaderError(actual)),
         };
 
-        let version = read_u16(self.reader).await?;
-        let flags = read_u16(self.reader).await?;
-        let compression = read_u16(self.reader).await?;
-        let mod_time = read_u16(self.reader).await?;
-        let mod_date = read_u16(self.reader).await?;
-        let crc = read_u32(self.reader).await?;
-        let compressed_size = read_u32(self.reader).await?;
-        let uncompressed_size = read_u32(self.reader).await?;
-        let file_name_length = read_u16(self.reader).await?;
-        let extra_field_length = read_u16(self.reader).await?;
+        let header = read_header(self.reader).await?;
 
-        let file_name = read_string(self.reader, file_name_length).await?;
-        let extra = read(self.reader, extra_field_length).await?;
+        if header.flags.encrypted {
+            return Err(ZipError::FeatureNotSupported("file encryption"))
+        }
+        if header.flags.data_descriptor {
+            // Being able to support stream-written ZIP archives is a big task.
+            // Focus on spec compliance in other areas before tackling this.
+            return Err(ZipError::FeatureNotSupported("file data descriptors"))
+        }
 
-        let limit_reader = self.reader.take(compressed_size.into());
-        let file_reader = match compression {
+        let file_name = read_string(self.reader, header.file_name_length).await?;
+        let extra = read(self.reader, header.extra_field_length).await?;
+
+        let limit_reader = self.reader.take(header.compressed_size.into());
+        let file_reader = match header.compression {
             0 => CompressionReader::Stored(limit_reader),
             8 => CompressionReader::Deflate(DeflateDecoder::new(limit_reader)),
             12 => CompressionReader::Bz(BzDecoder::new(limit_reader)),
             14 => CompressionReader::Lzma(LzmaDecoder::new(limit_reader)),
             93 => CompressionReader::Zstd(ZstdDecoder::new(limit_reader)),
             95 => CompressionReader::Xz(XzDecoder::new(limit_reader)),
-            _ => return Err(ZipError::UnsupportedCompressionError(compression)),
+            _ => return Err(ZipError::UnsupportedCompressionError(header.compression)),
         };
 
         let zip_file = ZipStreamFile {
             file_name,
-            compressed_size,
-            uncompressed_size,
-            crc,
+            compressed_size: header.compressed_size,
+            uncompressed_size: header.uncompressed_size,
+            crc: header.crc,
             extra,
-            last_modified: zip_date_to_chrono(mod_date, mod_time),
+            last_modified: zip_date_to_chrono(header.mod_date, header.mod_time),
             bytes_read: 0,
             reader: file_reader,
         };
@@ -238,7 +242,17 @@ async fn read_u32(reader: &mut AsyncReader) -> Result<u32> {
     Ok(reader.read_u32_le().await.map_err(|_| ZipError::ReadFailed)?)
 }
 
-async fn read_u16(reader: &mut AsyncReader) -> Result<u16> {
+async fn read_header(reader: &mut AsyncReader) -> Result<LocalFileHeader> {
+    let mut buffer: [u8; 26] = [0; 26];
+
+    if reader.read(&mut buffer).await.map_err(|_| ZipError::ReadFailed)? != 26 {
+        return Err(ZipError::ReadFailed);
+    }
+
+    Ok(LocalFileHeader::from(buffer))
+}
+
+async fn _read_u16(reader: &mut AsyncReader) -> Result<u16> {
     Ok(reader.read_u16_le().await.map_err(|_| ZipError::ReadFailed)?)
 }
 

@@ -8,6 +8,7 @@ pub enum ZipError {
     LocalFileHeaderError(u32),
     UnsupportedCompressionError(u16),
     ReadFailed,
+    FeatureNotSupported(&'static str),
 }
 
 impl ZipError {
@@ -21,6 +22,9 @@ impl ZipError {
             ),
             ZipError::ReadFailed => format!(
                 "Read failed."
+            ),
+            ZipError::FeatureNotSupported(feature) => format!(
+                "Feature not currently supported: '{}'.", feature
             ),
         }
     }

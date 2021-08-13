@@ -11,5 +11,6 @@
 //! - Aims for resonable [specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) compliance.
 
 pub(crate) mod delim;
+pub(crate) mod header;
 pub mod error;
 pub mod stream;

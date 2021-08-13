@@ -9,3 +9,4 @@ edition = "2018"
 async-compression = { version = "0.3.8", features = ["tokio", "deflate", "bzip2", "lzma", "zstd", "xz"]}
 tokio = { version = "1.4.0", features = ["full"] }
 chrono = "0.4.19"
+crc32fast = "1.2.1"
