@@ -1,5 +1,5 @@
 # rs-async-zip
-[![GitHub license](https://img.shields.io/badge/license-MIT-007ec6)](https://github.com/Majored/mcm-js-api-wrapper/blob/main/LICENSE)
+[![GitHub license](https://img.shields.io/badge/license-MIT-007ec6)](https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/async_zip)](https://crates.io/crates/async_zip)
 
 An asynchronous ZIP archive reading/writing crate with a heavy focus on streaming support.
@@ -13,7 +13,7 @@ An asynchronous ZIP archive reading/writing crate with a heavy focus on streamin
 
 ```toml
 [dependencies]
-async_zip = 0.0.1
+async_zip = "0.0.1"
 ```
 ## Contributions
 Whilst I will be continuing to maintain this crate myself, reasonable specification compliance is a huge undertaking for a single individual. As such, contributions will always be encouraged.
