@@ -9,3 +9,6 @@ pub const CDFHD: u32 = 0x02014b50;
 
 /// Data descriptor delim
 pub const DDD: u32 = 0x08074b50;
+
+/// End of central directory delim
+pub const EOCDD: u32 = 0x06054b50;
