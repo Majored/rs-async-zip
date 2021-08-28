@@ -10,6 +10,7 @@
 
 use crate::error::{Result, ZipError};
 use crate::header::{LocalFileHeader, GeneralPurposeFlag};
+use crate::Compression;
 
 use std::convert::TryInto;
 
@@ -29,6 +30,19 @@ pub(crate) enum CompressionWriter<'a, 'b> {
     Lzma(LzmaEncoder<WriteAdapter<'b, 'a>>),
     Zstd(ZstdEncoder<WriteAdapter<'b, 'a>>),
     Xz(XzEncoder<WriteAdapter<'b, 'a>>),
+}
+
+impl<'a, 'b> CompressionWriter<'a, 'b> {
+    pub fn to_writer(adapter: WriteAdapter<'b, 'a>, compression: Compression) -> Self {
+        match compression {
+            Compression::Stored => CompressionWriter::Stored(adapter),
+            Compression::Deflate => CompressionWriter::Deflate(DeflateEncoder::new(adapter)),
+            Compression::Bz => CompressionWriter::Bz(BzEncoder::new(adapter)),
+            Compression::Lzma => CompressionWriter::Lzma(LzmaEncoder::new(adapter)),
+            Compression::Zstd => CompressionWriter::Zstd(ZstdEncoder::new(adapter)),
+            Compression::Xz => CompressionWriter::Xz(XzEncoder::new(adapter)),
+        }
+    }
 }
 
 /// A type accepted as output to ZipStreamWriter.
@@ -122,10 +136,55 @@ pub struct ZipStreamWriterGuard<'a, 'b> {
     uncompressed_size: u32,
 }
 
+impl<'b, 'a> AsyncWrite for ZipStreamWriterGuard<'a, 'b> {
+    fn poll_write(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context,
+        buf: &[u8]
+    ) -> Poll<std::result::Result<usize, tokio::io::Error>> {
+        self.uncompressed_size += buf.len() as u32;
+        self.crc_hasher.update(buf);
+
+        match &mut self.compressed_writer {
+            CompressionWriter::Stored(inner) => Pin::new(inner).poll_write(cx, buf),
+            CompressionWriter::Deflate(inner) => Pin::new(inner).poll_write(cx, buf),
+            CompressionWriter::Bz(inner) => Pin::new(inner).poll_write(cx, buf),
+            CompressionWriter::Lzma(inner) => Pin::new(inner).poll_write(cx, buf),
+            CompressionWriter::Zstd(inner) => Pin::new(inner).poll_write(cx, buf),
+            CompressionWriter::Xz(inner) => Pin::new(inner).poll_write(cx, buf),
+        }
+    }
+
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<std::result::Result<(), tokio::io::Error>> {
+        match &mut self.compressed_writer {
+            CompressionWriter::Stored(inner) => Pin::new(inner).poll_flush(cx),
+            CompressionWriter::Deflate(inner) => Pin::new(inner).poll_flush(cx),
+            CompressionWriter::Bz(inner) => Pin::new(inner).poll_flush(cx),
+            CompressionWriter::Lzma(inner) => Pin::new(inner).poll_flush(cx),
+            CompressionWriter::Zstd(inner) => Pin::new(inner).poll_flush(cx),
+            CompressionWriter::Xz(inner) => Pin::new(inner).poll_flush(cx),
+        }
+    }
+
+    fn poll_shutdown(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context
+    ) -> Poll<std::result::Result<(), tokio::io::Error>> {
+        match &mut self.compressed_writer {
+            CompressionWriter::Stored(inner) => Pin::new(inner).poll_shutdown(cx),
+            CompressionWriter::Deflate(inner) => Pin::new(inner).poll_shutdown(cx),
+            CompressionWriter::Bz(inner) => Pin::new(inner).poll_shutdown(cx),
+            CompressionWriter::Lzma(inner) => Pin::new(inner).poll_shutdown(cx),
+            CompressionWriter::Zstd(inner) => Pin::new(inner).poll_shutdown(cx),
+            CompressionWriter::Xz(inner) => Pin::new(inner).poll_shutdown(cx),
+        }
+    }
+}
+
 impl<'a, 'b> ZipStreamWriterGuard<'a, 'b> {
-    pub fn from_writer(raw_writer: &'b mut ZipStreamWriter<'a>, header: LocalFileHeader, start_offset: usize, file_name: String) -> Self {
+    pub fn from_writer(raw_writer: &'b mut ZipStreamWriter<'a>, header: LocalFileHeader, start_offset: usize, file_name: String, compression: Compression) -> Self {
         Self {
-            compressed_writer: CompressionWriter::Deflate(DeflateEncoder::new(WriteAdapter {inner: &mut raw_writer.writer, written: 0 })),
+            compressed_writer: CompressionWriter::to_writer(WriteAdapter {inner: &mut raw_writer.writer, written: 0 }, compression),
             state: &mut raw_writer.state,
             header,
             start_offset,
@@ -133,26 +192,6 @@ impl<'a, 'b> ZipStreamWriterGuard<'a, 'b> {
             crc_hasher: Hasher::new(),
             uncompressed_size: 0,
         }
-    }
-
-    pub async fn write(&mut self, data: &[u8]) -> Result<()> {
-        self.uncompressed_size += data.len() as u32;
-
-        match &mut self.compressed_writer {
-            CompressionWriter::Deflate(inner) => match inner.write(data).await {
-                Ok(_) => (),
-                Err(_) => return Err(ZipError::ReadFailed),
-            }
-            CompressionWriter::Stored(inner) => match inner.write(data).await {
-                Ok(_) => (),
-                Err(_) => return Err(ZipError::ReadFailed),
-            }
-            _ => panic!("Unsupported")
-        };
-
-        self.crc_hasher.update(data);
-
-        Ok(())
     }
 
     pub async fn close(mut self) -> Result<()> {
@@ -223,7 +262,7 @@ impl<'a> ZipStreamWriter<'a> {
     /// actual file's data.
     /// 
     /// This function will return Err if we're currently already writing a file and haven't closed the entry.
-    pub async fn new_entry<'b>(&'b mut self, file_name: String) -> Result<ZipStreamWriterGuard<'a, 'b>> {
+    pub async fn new_entry<'b>(&'b mut self, file_name: String, compression: Compression) -> Result<ZipStreamWriterGuard<'a, 'b>> {
         let start_offset = self.state.written;
         // Add check to see if we're already writing.
 
@@ -233,7 +272,7 @@ impl<'a> ZipStreamWriter<'a> {
             compressed_size: 0,
             uncompressed_size: 0,
             crc: 0,
-            compression: 8,
+            compression: compression.to_u16(),
             flags: GeneralPurposeFlag {
                 data_descriptor: true,
                 encrypted: false,
@@ -261,7 +300,7 @@ impl<'a> ZipStreamWriter<'a> {
         };
 
         self.state.written += 30 + file_name.as_bytes().len();
-        Ok(ZipStreamWriterGuard::from_writer(self, header, start_offset, file_name))
+        Ok(ZipStreamWriterGuard::from_writer(self, header, start_offset, file_name, compression))
     }
 
     pub async fn close(self) -> Result<()>{
