@@ -14,6 +14,7 @@ pub(crate) mod delim;
 pub(crate) mod header;
 pub mod error;
 pub mod stream;
+pub mod opts;
 
 use error::{Result, ZipError};
 
