@@ -1,4 +1,4 @@
-use std::convert::{TryInto};
+use std::convert::TryInto;
 
 pub struct LocalFileHeader {
     pub version: u16,
@@ -73,13 +73,16 @@ impl From<u16> for GeneralPurposeFlag {
     fn from(value: u16) -> GeneralPurposeFlag {
         let encrypted = match (value & 0x8000) >> 14 {
             0 => false,
-            _ => true
+            _ => true,
         };
         let data_descriptor = match (value & 0x1000) >> 12 {
             0 => false,
-            _ => true
+            _ => true,
         };
 
-        GeneralPurposeFlag { encrypted, data_descriptor }
+        GeneralPurposeFlag {
+            encrypted,
+            data_descriptor,
+        }
     }
 }

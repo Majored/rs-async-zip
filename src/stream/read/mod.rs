@@ -2,10 +2,10 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 //! A module which supports stream reading ZIP files.
-//! 
+//!
 //! # Note
-//! 
-//! 
+//!
+//!
 //! # Example
 //! ```
 //! let mut reader = BufReader::new(File::open("Archive.zip").await.unwrap());
@@ -18,17 +18,17 @@
 //! }
 //! ```
 
-use crate::header::LocalFileHeader;
-use crate::error::ZipError;
 use crate::error::Result;
+use crate::error::ZipError;
+use crate::header::LocalFileHeader;
 
 use std::marker::{Send, Unpin};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use async_compression::tokio::bufread::{DeflateDecoder, BzDecoder, LzmaDecoder, ZstdDecoder, XzDecoder};
+use async_compression::tokio::bufread::{BzDecoder, DeflateDecoder, LzmaDecoder, XzDecoder, ZstdDecoder};
+use chrono::{DateTime, TimeZone, Utc};
 use tokio::io::{AsyncBufRead, AsyncRead, AsyncReadExt, ReadBuf, Take};
-use chrono::{DateTime, Utc, TimeZone};
 
 /// A type accepted as input to ZipStreamReader.
 pub(crate) type AsyncReader = dyn AsyncBufRead + Unpin + Send;
@@ -134,7 +134,7 @@ impl<'a> ZipStreamFile<'a> {
                 Ok(read) => match read {
                     0 => break,
                     _ => (),
-                }
+                },
                 Err(_) => return Err(ZipError::ReadFailed),
             };
         }
@@ -155,12 +155,12 @@ impl<'a> ZipStreamReader<'a> {
     }
 
     /// Returns the next file in the archive.
-    /// 
+    ///
     /// # Note
     /// This function requries the reader already be placed at the start of the next local file header. Ensure that any
     /// previous files constrcuted before this call have fully read their data. This can be done by calling
     /// ZipStreamFile::consume().
-    /// 
+    ///
     /// # Example
     /// ```
     /// loop {
@@ -168,7 +168,7 @@ impl<'a> ZipStreamReader<'a> {
     ///         Ok(entry) => entry,
     ///         Err(_) => break,
     ///     };
-    /// 
+    ///
     ///     match entry_opt {
     ///         Some(entry) => println!("Name: {}", entry.file_name()),
     ///         None => break,
@@ -185,12 +185,12 @@ impl<'a> ZipStreamReader<'a> {
         let header = read_header(self.reader).await?;
 
         if header.flags.encrypted {
-            return Err(ZipError::FeatureNotSupported("file encryption"))
+            return Err(ZipError::FeatureNotSupported("file encryption"));
         }
         if header.flags.data_descriptor {
             // Being able to support stream-written ZIP archives is a big task.
             // Focus on spec compliance in other areas before tackling this.
-            return Err(ZipError::FeatureNotSupported("file data descriptors"))
+            return Err(ZipError::FeatureNotSupported("file data descriptors"));
         }
 
         let file_name = read_string(self.reader, header.file_name_length).await?;

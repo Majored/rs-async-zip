@@ -2,19 +2,19 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 //! # async_zip
-//! 
+//!
 //! An asynchronous ZIP archive reading/writing crate with a heavy focus on streaming support.
-//! 
+//!
 //! ## Features
 //! - Asynchronous design powered by `tokio`.
 //! - Support for Stored, Deflate, Bzip2, LZMA, zstd, and xz compression methods.
 //! - Aims for resonable [specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) compliance.
 
 pub(crate) mod delim;
-pub(crate) mod header;
 pub mod error;
-pub mod stream;
+pub(crate) mod header;
 pub mod opts;
+pub mod stream;
 
 use error::{Result, ZipError};
 
@@ -50,7 +50,7 @@ impl Compression {
             14 => Ok(Compression::Lzma),
             93 => Ok(Compression::Zstd),
             95 => Ok(Compression::Xz),
-            _ => Err(ZipError::UnsupportedCompressionError(value))
+            _ => Err(ZipError::UnsupportedCompressionError(value)),
         }
     }
 }

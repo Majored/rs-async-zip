@@ -14,18 +14,12 @@ pub enum ZipError {
 impl ZipError {
     pub fn description(&self) -> String {
         match self {
-            ZipError::LocalFileHeaderError(actual) => format!(
-                "{} != {} or any supported ZIP delimiter.", actual, crate::delim::LFHD
-            ),
-            ZipError::UnsupportedCompressionError(actual) => format!(
-                "{} is not a supported compression type.", actual
-            ),
-            ZipError::ReadFailed => format!(
-                "Read failed."
-            ),
-            ZipError::FeatureNotSupported(feature) => format!(
-                "Feature not currently supported: '{}'.", feature
-            ),
+            ZipError::LocalFileHeaderError(actual) => {
+                format!("{} != {} or any supported ZIP delimiter.", actual, crate::delim::LFHD)
+            }
+            ZipError::UnsupportedCompressionError(actual) => format!("{} is not a supported compression type.", actual),
+            ZipError::ReadFailed => format!("Read failed."),
+            ZipError::FeatureNotSupported(feature) => format!("Feature not currently supported: '{}'.", feature),
         }
     }
 }
