@@ -8,9 +8,10 @@
 //! 
 //! # Example
 
-use crate::error::{Result, ZipError};
+use crate::error::{Result};
 use crate::header::{LocalFileHeader, GeneralPurposeFlag};
 use crate::Compression;
+use crate::opts::ZipEntryOptions;
 
 use std::convert::TryInto;
 
@@ -182,16 +183,45 @@ impl<'b, 'a> AsyncWrite for ZipStreamWriterGuard<'a, 'b> {
 }
 
 impl<'a, 'b> ZipStreamWriterGuard<'a, 'b> {
-    pub fn from_writer(raw_writer: &'b mut ZipStreamWriter<'a>, header: LocalFileHeader, start_offset: usize, file_name: String, compression: Compression) -> Self {
-        Self {
-            compressed_writer: CompressionWriter::to_writer(WriteAdapter {inner: &mut raw_writer.writer, written: 0 }, compression),
+    pub async fn from_writer(raw_writer: &'b mut ZipStreamWriter<'a>, entry_opts: ZipEntryOptions) -> Result<ZipStreamWriterGuard<'a, 'b>> {
+        let start_offset = raw_writer.state.written;
+        // Add check to see if we're already writing.
+
+        let (mod_time, mod_date) = chrono_to_zip_time(&Utc::now());
+
+        let header = LocalFileHeader {
+            compressed_size: 0,
+            uncompressed_size: 0,
+            crc: 0,
+            compression: entry_opts.compression.to_u16(),
+            flags: GeneralPurposeFlag {
+                data_descriptor: true,
+                encrypted: false,
+            },
+            file_name_length: entry_opts.filename.as_bytes().len() as u16,
+            extra_field_length: 0,
+            mod_time,
+            mod_date,
+            version: 0,
+        };
+
+        raw_writer.writer.write(&crate::delim::LFHD.to_le_bytes()).await?;
+        raw_writer.writer.write(&header.to_slice()).await?;
+        raw_writer.writer.write(entry_opts.filename.as_bytes()).await?;
+
+        raw_writer.state.written += 30 + entry_opts.filename.as_bytes().len();
+        
+        Ok(Self {
+            compressed_writer: CompressionWriter::to_writer(
+                WriteAdapter {inner: &mut raw_writer.writer, written: 0 }, entry_opts.compression
+            ),
             state: &mut raw_writer.state,
             header,
             start_offset,
-            file_name,
+            file_name: entry_opts.filename,
             crc_hasher: Hasher::new(),
             uncompressed_size: 0,
-        }
+        })
     }
 
     pub async fn close(mut self) -> Result<()> {
@@ -215,10 +245,7 @@ impl<'a, 'b> ZipStreamWriterGuard<'a, 'b> {
         data_descriptor.append(&mut inner_borrow.written.to_le_bytes().to_vec());
         data_descriptor.append(&mut self.uncompressed_size.to_le_bytes().to_vec());
 
-        let data_descriptior_size = match inner_borrow.inner.write(&data_descriptor).await {
-            Ok(written) => written,
-            Err(_) => return Err(ZipError::ReadFailed),
-        };
+        let data_descriptior_size = inner_borrow.inner.write(&data_descriptor).await?;
 
         let central_entry = CentralDirectoryEntry {
             file_name: self.file_name,
@@ -262,45 +289,8 @@ impl<'a> ZipStreamWriter<'a> {
     /// actual file's data.
     /// 
     /// This function will return Err if we're currently already writing a file and haven't closed the entry.
-    pub async fn new_entry<'b>(&'b mut self, file_name: String, compression: Compression) -> Result<ZipStreamWriterGuard<'a, 'b>> {
-        let start_offset = self.state.written;
-        // Add check to see if we're already writing.
-
-        let (mod_time, mod_date) = chrono_to_zip_time(&Utc::now());
-
-        let header = LocalFileHeader {
-            compressed_size: 0,
-            uncompressed_size: 0,
-            crc: 0,
-            compression: compression.to_u16(),
-            flags: GeneralPurposeFlag {
-                data_descriptor: true,
-                encrypted: false,
-            },
-            file_name_length: file_name.as_bytes().len() as u16,
-            extra_field_length: 0,
-            mod_time,
-            mod_date,
-            version: 0,
-        };
-
-        match self.writer.write(&crate::delim::LFHD.to_le_bytes()).await {
-            Ok(_) => (),
-            Err(_) => return Err(ZipError::ReadFailed),
-        };
-
-        match self.writer.write(&header.to_slice()).await {
-            Ok(_) => (),
-            Err(_) => return Err(ZipError::ReadFailed),
-        };
-
-        match self.writer.write(file_name.as_bytes()).await {
-            Ok(_) => (),
-            Err(_) => return Err(ZipError::ReadFailed),
-        };
-
-        self.state.written += 30 + file_name.as_bytes().len();
-        Ok(ZipStreamWriterGuard::from_writer(self, header, start_offset, file_name, compression))
+    pub async fn new_entry<'b>(&'b mut self, entry_opts: ZipEntryOptions) -> Result<ZipStreamWriterGuard<'a, 'b>> {
+        ZipStreamWriterGuard::from_writer(self, entry_opts).await
     }
 
     pub async fn close(self) -> Result<()>{
@@ -308,15 +298,10 @@ impl<'a> ZipStreamWriter<'a> {
         let mut cd_size: u32 = 0;
 
         for entry in &self.state.entries {
-            if let Err(_) = self.writer.write(&crate::delim::CDFHD.to_le_bytes()).await {
-                return Err(ZipError::ReadFailed);
-            }
-            if let Err(_) = self.writer.write(&entry.to_slice()).await {
-                return Err(ZipError::ReadFailed);
-            }
-            if let Err(_) = self.writer.write(&entry.file_name.as_bytes()).await {
-                return Err(ZipError::ReadFailed);
-            }
+            self.writer.write(&crate::delim::CDFHD.to_le_bytes()).await?;
+            self.writer.write(&entry.to_slice()).await?;
+            self.writer.write(&entry.file_name.as_bytes()).await?;
+            
             cd_size += 4 + 42 + entry.file_name.as_bytes().len() as u32;
         }
 
@@ -330,12 +315,8 @@ impl<'a> ZipStreamWriter<'a> {
             file_comm_length: 0,
         };
 
-        if let Err(_) = self.writer.write(&crate::delim::EOCDD.to_le_bytes()).await {
-            return Err(ZipError::ReadFailed);
-        }
-        if let Err(_) = self.writer.write(&header.to_slice()).await {
-            return Err(ZipError::ReadFailed);
-        }
+        self.writer.write(&crate::delim::EOCDD.to_le_bytes()).await?;
+        self.writer.write(&header.to_slice()).await?;
 
         Ok(())
     }

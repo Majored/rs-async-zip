@@ -29,3 +29,9 @@ impl ZipError {
         }
     }
 }
+
+impl From<tokio::io::Error> for ZipError {
+    fn from(_err: tokio::io::Error) -> Self {
+        ZipError::ReadFailed
+    }
+}
