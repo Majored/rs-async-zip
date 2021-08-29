@@ -1,3 +1,4 @@
+use crate::array_push;
 use std::convert::TryInto;
 
 pub struct LocalFileHeader {
@@ -15,20 +16,21 @@ pub struct LocalFileHeader {
 
 impl LocalFileHeader {
     pub fn to_slice(&self) -> [u8; 26] {
-        let mut data: Vec<u8> = Vec::with_capacity(26);
+        let mut array = [0; 26];
+        let mut cursor = 0;
 
-        data.append(&mut self.version.to_ne_bytes().to_vec());
-        data.append(&mut self.flags.to_slice().to_vec());
-        data.append(&mut self.compression.to_ne_bytes().to_vec());
-        data.append(&mut self.mod_time.to_ne_bytes().to_vec());
-        data.append(&mut self.mod_date.to_ne_bytes().to_vec());
-        data.append(&mut self.crc.to_ne_bytes().to_vec());
-        data.append(&mut self.compressed_size.to_ne_bytes().to_vec());
-        data.append(&mut self.uncompressed_size.to_ne_bytes().to_vec());
-        data.append(&mut self.file_name_length.to_ne_bytes().to_vec());
-        data.append(&mut self.extra_field_length.to_ne_bytes().to_vec());
+        array_push!(array, cursor, self.version.to_le_bytes());
+        array_push!(array, cursor, self.flags.to_slice());
+        array_push!(array, cursor, self.compression.to_le_bytes());
+        array_push!(array, cursor, self.mod_time.to_le_bytes());
+        array_push!(array, cursor, self.mod_date.to_le_bytes());
+        array_push!(array, cursor, self.crc.to_le_bytes());
+        array_push!(array, cursor, self.compressed_size.to_le_bytes());
+        array_push!(array, cursor, self.uncompressed_size.to_le_bytes());
+        array_push!(array, cursor, self.file_name_length.to_le_bytes());
+        array_push!(array, cursor, self.extra_field_length.to_le_bytes());
 
-        data.try_into().unwrap()
+        array
     }
 }
 
@@ -85,4 +87,14 @@ impl From<u16> for GeneralPurposeFlag {
             data_descriptor,
         }
     }
+}
+
+/// Replace elements of an array at a given cursor index for use with a zero-initialised array.
+macro_rules! array_push {
+    ($arr:ident, $cursor:ident, $value:expr) => {{
+        for entry in $value {
+            $arr[$cursor] = entry;
+            $cursor += 1;
+        }
+    }};
 }

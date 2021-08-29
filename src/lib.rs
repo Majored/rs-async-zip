@@ -12,9 +12,12 @@
 
 pub(crate) mod delim;
 pub mod error;
+#[macro_use]
 pub(crate) mod header;
 pub mod opts;
 pub mod stream;
+
+pub(crate) use array_push;
 
 use error::{Result, ZipError};
 
