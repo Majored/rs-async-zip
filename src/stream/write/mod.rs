@@ -9,7 +9,7 @@
 //! # Example
 
 use crate::error::Result;
-use crate::header::{GeneralPurposeFlag, LocalFileHeader};
+use crate::header::{GeneralPurposeFlag, LocalFileHeader, CentralDirectoryHeader};
 use crate::opts::ZipEntryOptions;
 use crate::Compression;
 
@@ -73,55 +73,10 @@ impl<'b, 'a> AsyncWrite for WriteAdapter<'b, 'a> {
     }
 }
 
-pub struct CentralDirectoryEntry {
-    file_name: String,
-    v_made_by: u16,
-    v_needed: u16,
-    flags: GeneralPurposeFlag,
-    compression: u16,
-    mod_time: u16,
-    mod_date: u16,
-    crc: u32,
-    compressed_size: u32,
-    uncompressed_size: u32,
-    file_name_length: u16,
-    extra_field_length: u16,
-    file_comment_length: u16,
-    disk_start: u16,
-    inter_attr: u16,
-    exter_attr: u32,
-    lh_offset: u32,
-}
-
-impl CentralDirectoryEntry {
-    pub fn to_slice(&self) -> [u8; 42] {
-        let mut data: Vec<u8> = Vec::with_capacity(42);
-
-        data.append(&mut self.v_made_by.to_ne_bytes().to_vec());
-        data.append(&mut self.v_needed.to_ne_bytes().to_vec());
-        data.append(&mut self.flags.to_slice().to_vec());
-        data.append(&mut self.compression.to_ne_bytes().to_vec());
-        data.append(&mut self.mod_time.to_ne_bytes().to_vec());
-        data.append(&mut self.mod_date.to_ne_bytes().to_vec());
-        data.append(&mut self.crc.to_ne_bytes().to_vec());
-        data.append(&mut self.compressed_size.to_ne_bytes().to_vec());
-        data.append(&mut self.uncompressed_size.to_ne_bytes().to_vec());
-        data.append(&mut self.file_name_length.to_ne_bytes().to_vec());
-        data.append(&mut self.extra_field_length.to_ne_bytes().to_vec());
-        data.append(&mut self.file_comment_length.to_ne_bytes().to_vec());
-        data.append(&mut self.disk_start.to_ne_bytes().to_vec());
-        data.append(&mut self.inter_attr.to_ne_bytes().to_vec());
-        data.append(&mut self.exter_attr.to_ne_bytes().to_vec());
-        data.append(&mut self.lh_offset.to_ne_bytes().to_vec());
-
-        data.try_into().unwrap()
-    }
-}
-
 #[derive(Default)]
 pub struct WriterInnerState {
     written: usize,
-    entries: Vec<CentralDirectoryEntry>,
+    entries: Vec<(CentralDirectoryHeader, String)>,
 }
 
 pub struct ZipStreamWriterGuard<'a, 'b> {
@@ -248,8 +203,7 @@ impl<'a, 'b> ZipStreamWriterGuard<'a, 'b> {
 
         let data_descriptior_size = inner_borrow.inner.write(&data_descriptor).await?;
 
-        let central_entry = CentralDirectoryEntry {
-            file_name: self.file_name,
+        let central_entry = CentralDirectoryHeader {
             v_made_by: 0,
             v_needed: 0,
             flags: self.header.flags,
@@ -268,7 +222,7 @@ impl<'a, 'b> ZipStreamWriterGuard<'a, 'b> {
             lh_offset: self.start_offset as u32,
         };
 
-        self.state.entries.push(central_entry);
+        self.state.entries.push((central_entry, self.file_name));
         self.state.written += inner_borrow.written as usize + data_descriptior_size;
 
         Ok(())
@@ -303,10 +257,10 @@ impl<'a> ZipStreamWriter<'a> {
 
         for entry in &self.state.entries {
             self.writer.write(&crate::delim::CDFHD.to_le_bytes()).await?;
-            self.writer.write(&entry.to_slice()).await?;
-            self.writer.write(&entry.file_name.as_bytes()).await?;
+            self.writer.write(&entry.0.to_slice()).await?;
+            self.writer.write(&entry.1.as_bytes()).await?;
 
-            cd_size += 4 + 42 + entry.file_name.as_bytes().len() as u32;
+            cd_size += 4 + 42 + entry.1.as_bytes().len() as u32;
         }
 
         let header = EndOfCentralDirectoryHeader {

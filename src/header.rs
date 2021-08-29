@@ -89,6 +89,51 @@ impl From<u16> for GeneralPurposeFlag {
     }
 }
 
+pub struct CentralDirectoryHeader {
+    pub v_made_by: u16,
+    pub v_needed: u16,
+    pub flags: GeneralPurposeFlag,
+    pub compression: u16,
+    pub mod_time: u16,
+    pub mod_date: u16,
+    pub crc: u32,
+    pub compressed_size: u32,
+    pub uncompressed_size: u32,
+    pub file_name_length: u16,
+    pub extra_field_length: u16,
+    pub file_comment_length: u16,
+    pub  disk_start: u16,
+    pub inter_attr: u16,
+    pub exter_attr: u32,
+    pub lh_offset: u32,
+}
+
+impl CentralDirectoryHeader {
+    pub fn to_slice(&self) -> [u8; 42] {
+        let mut array = [0; 42];
+        let mut cursor = 0;
+
+        array_push!(array, cursor, self.v_made_by.to_le_bytes());
+        array_push!(array, cursor, self.v_needed.to_le_bytes());
+        array_push!(array, cursor, self.flags.to_slice());
+        array_push!(array, cursor, self.compression.to_le_bytes());
+        array_push!(array, cursor, self.mod_time.to_le_bytes());
+        array_push!(array, cursor, self.mod_date.to_le_bytes());
+        array_push!(array, cursor, self.crc.to_le_bytes());
+        array_push!(array, cursor, self.compressed_size.to_le_bytes());
+        array_push!(array, cursor, self.uncompressed_size.to_le_bytes());
+        array_push!(array, cursor, self.file_name_length.to_le_bytes());
+        array_push!(array, cursor, self.extra_field_length.to_le_bytes());
+        array_push!(array, cursor, self.file_comment_length.to_le_bytes());
+        array_push!(array, cursor, self.disk_start.to_le_bytes());
+        array_push!(array, cursor, self.inter_attr.to_le_bytes());
+        array_push!(array, cursor, self.exter_attr.to_le_bytes());
+        array_push!(array, cursor, self.lh_offset.to_le_bytes());
+
+        array
+    }
+}
+
 /// Replace elements of an array at a given cursor index for use with a zero-initialised array.
 macro_rules! array_push {
     ($arr:ident, $cursor:ident, $value:expr) => {{
