@@ -9,7 +9,7 @@
 //! # Example
 
 use crate::error::Result;
-use crate::header::{GeneralPurposeFlag, LocalFileHeader, CentralDirectoryHeader};
+use crate::header::{GeneralPurposeFlag, LocalFileHeader, CentralDirectoryHeader, EndOfCentralDirectoryHeader};
 use crate::opts::ZipEntryOptions;
 use crate::Compression;
 
@@ -277,32 +277,6 @@ impl<'a> ZipStreamWriter<'a> {
         self.writer.write(&header.to_slice()).await?;
 
         Ok(())
-    }
-}
-
-pub struct EndOfCentralDirectoryHeader {
-    disk_num: u16,
-    start_cent_dir_disk: u16,
-    num_of_entries_disk: u16,
-    num_of_entries: u16,
-    size_cent_dir: u32,
-    cent_dir_offset: u32,
-    file_comm_length: u32,
-}
-
-impl EndOfCentralDirectoryHeader {
-    pub fn to_slice(&self) -> [u8; 20] {
-        let mut data: Vec<u8> = Vec::with_capacity(42);
-
-        data.append(&mut self.disk_num.to_ne_bytes().to_vec());
-        data.append(&mut self.start_cent_dir_disk.to_ne_bytes().to_vec());
-        data.append(&mut self.num_of_entries_disk.to_ne_bytes().to_vec());
-        data.append(&mut self.num_of_entries.to_ne_bytes().to_vec());
-        data.append(&mut self.size_cent_dir.to_ne_bytes().to_vec());
-        data.append(&mut self.cent_dir_offset.to_ne_bytes().to_vec());
-        data.append(&mut self.file_comm_length.to_ne_bytes().to_vec());
-
-        data.try_into().unwrap()
     }
 }
 

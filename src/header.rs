@@ -1,6 +1,10 @@
+// Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
+// MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
+
 use crate::array_push;
 use std::convert::TryInto;
 
+/* structs */
 pub struct LocalFileHeader {
     pub version: u16,
     pub flags: GeneralPurposeFlag,
@@ -14,6 +18,42 @@ pub struct LocalFileHeader {
     pub extra_field_length: u16,
 }
 
+pub struct GeneralPurposeFlag {
+    pub encrypted: bool,
+    pub data_descriptor: bool,
+}
+
+pub struct CentralDirectoryHeader {
+    pub v_made_by: u16,
+    pub v_needed: u16,
+    pub flags: GeneralPurposeFlag,
+    pub compression: u16,
+    pub mod_time: u16,
+    pub mod_date: u16,
+    pub crc: u32,
+    pub compressed_size: u32,
+    pub uncompressed_size: u32,
+    pub file_name_length: u16,
+    pub extra_field_length: u16,
+    pub file_comment_length: u16,
+    pub disk_start: u16,
+    pub inter_attr: u16,
+    pub exter_attr: u32,
+    pub lh_offset: u32,
+}
+
+pub struct EndOfCentralDirectoryHeader {
+    pub(crate) disk_num: u16,
+    pub(crate) start_cent_dir_disk: u16,
+    pub(crate) num_of_entries_disk: u16,
+    pub(crate) num_of_entries: u16,
+    pub(crate) size_cent_dir: u32,
+    pub(crate) cent_dir_offset: u32,
+    pub(crate) file_comm_length: u32,
+}
+/* end structs */
+
+/* to array */
 impl LocalFileHeader {
     pub fn to_slice(&self) -> [u8; 26] {
         let mut array = [0; 26];
@@ -34,28 +74,6 @@ impl LocalFileHeader {
     }
 }
 
-impl From<[u8; 26]> for LocalFileHeader {
-    fn from(value: [u8; 26]) -> LocalFileHeader {
-        LocalFileHeader {
-            version: u16::from_le_bytes(value[0..2].try_into().unwrap()),
-            flags: GeneralPurposeFlag::from(u16::from_le_bytes(value[2..4].try_into().unwrap())),
-            compression: u16::from_le_bytes(value[4..6].try_into().unwrap()),
-            mod_time: u16::from_le_bytes(value[6..8].try_into().unwrap()),
-            mod_date: u16::from_le_bytes(value[8..10].try_into().unwrap()),
-            crc: u32::from_le_bytes(value[10..14].try_into().unwrap()),
-            compressed_size: u32::from_le_bytes(value[14..18].try_into().unwrap()),
-            uncompressed_size: u32::from_le_bytes(value[18..22].try_into().unwrap()),
-            file_name_length: u16::from_le_bytes(value[22..24].try_into().unwrap()),
-            extra_field_length: u16::from_le_bytes(value[24..26].try_into().unwrap()),
-        }
-    }
-}
-
-pub struct GeneralPurposeFlag {
-    pub encrypted: bool,
-    pub data_descriptor: bool,
-}
-
 impl GeneralPurposeFlag {
     pub fn to_slice(&self) -> [u8; 2] {
         let encrypted: u16 = match self.encrypted {
@@ -69,43 +87,6 @@ impl GeneralPurposeFlag {
 
         (encrypted | data_descriptor).to_le_bytes()
     }
-}
-
-impl From<u16> for GeneralPurposeFlag {
-    fn from(value: u16) -> GeneralPurposeFlag {
-        let encrypted = match (value & 0x8000) >> 14 {
-            0 => false,
-            _ => true,
-        };
-        let data_descriptor = match (value & 0x1000) >> 12 {
-            0 => false,
-            _ => true,
-        };
-
-        GeneralPurposeFlag {
-            encrypted,
-            data_descriptor,
-        }
-    }
-}
-
-pub struct CentralDirectoryHeader {
-    pub v_made_by: u16,
-    pub v_needed: u16,
-    pub flags: GeneralPurposeFlag,
-    pub compression: u16,
-    pub mod_time: u16,
-    pub mod_date: u16,
-    pub crc: u32,
-    pub compressed_size: u32,
-    pub uncompressed_size: u32,
-    pub file_name_length: u16,
-    pub extra_field_length: u16,
-    pub file_comment_length: u16,
-    pub  disk_start: u16,
-    pub inter_attr: u16,
-    pub exter_attr: u32,
-    pub lh_offset: u32,
 }
 
 impl CentralDirectoryHeader {
@@ -133,6 +114,61 @@ impl CentralDirectoryHeader {
         array
     }
 }
+
+impl EndOfCentralDirectoryHeader {
+    pub fn to_slice(&self) -> [u8; 20] {
+        let mut array = [0; 20];
+        let mut cursor = 0;
+
+        array_push!(array, cursor, self.disk_num.to_le_bytes());
+        array_push!(array, cursor, self.start_cent_dir_disk.to_le_bytes());
+        array_push!(array, cursor, self.num_of_entries_disk.to_le_bytes());
+        array_push!(array, cursor, self.num_of_entries.to_le_bytes());
+        array_push!(array, cursor, self.size_cent_dir.to_le_bytes());
+        array_push!(array, cursor, self.cent_dir_offset.to_le_bytes());
+        array_push!(array, cursor, self.file_comm_length.to_le_bytes());
+
+        array
+    }
+}
+/* end to array */
+
+/* from array */
+impl From<[u8; 26]> for LocalFileHeader {
+    fn from(value: [u8; 26]) -> LocalFileHeader {
+        LocalFileHeader {
+            version: u16::from_le_bytes(value[0..2].try_into().unwrap()),
+            flags: GeneralPurposeFlag::from(u16::from_le_bytes(value[2..4].try_into().unwrap())),
+            compression: u16::from_le_bytes(value[4..6].try_into().unwrap()),
+            mod_time: u16::from_le_bytes(value[6..8].try_into().unwrap()),
+            mod_date: u16::from_le_bytes(value[8..10].try_into().unwrap()),
+            crc: u32::from_le_bytes(value[10..14].try_into().unwrap()),
+            compressed_size: u32::from_le_bytes(value[14..18].try_into().unwrap()),
+            uncompressed_size: u32::from_le_bytes(value[18..22].try_into().unwrap()),
+            file_name_length: u16::from_le_bytes(value[22..24].try_into().unwrap()),
+            extra_field_length: u16::from_le_bytes(value[24..26].try_into().unwrap()),
+        }
+    }
+}
+
+impl From<u16> for GeneralPurposeFlag {
+    fn from(value: u16) -> GeneralPurposeFlag {
+        let encrypted = match (value & 0x8000) >> 14 {
+            0 => false,
+            _ => true,
+        };
+        let data_descriptor = match (value & 0x1000) >> 12 {
+            0 => false,
+            _ => true,
+        };
+
+        GeneralPurposeFlag {
+            encrypted,
+            data_descriptor,
+        }
+    }
+}
+/* end from array */
 
 /// Replace elements of an array at a given cursor index for use with a zero-initialised array.
 macro_rules! array_push {
