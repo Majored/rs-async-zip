@@ -16,6 +16,7 @@ pub mod error;
 pub(crate) mod header;
 pub mod opts;
 pub mod stream;
+pub mod concurrent;
 
 pub(crate) use array_push;
 
