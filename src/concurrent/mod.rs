@@ -12,13 +12,14 @@
 //! # Example
 
 use crate::header::CentralDirectoryHeader;
-use crate::error::Result;
+use crate::error::{Result, ZipError};
 
 use std::collections::HashMap;
+use std::io::SeekFrom;
+use std::convert::TryInto;
 
 use tokio::fs::File;
-use tokio::io::AsyncSeekExt;
-use std::io::SeekFrom;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeekExt};
 
 pub struct ZipStreamReader<'a> {
     pub(crate) file_name: &'a str,
@@ -27,23 +28,31 @@ pub struct ZipStreamReader<'a> {
 
 impl<'a> ZipStreamReader<'a> {
     pub async fn new(file_name: &'a str) -> Result<ZipStreamReader<'a>> {
-        let file = ZipStreamReader {
+        let mut file = ZipStreamReader {
             file_name,
             entries: HashMap::default(),
         };
 
+        // We assume no ZIP file comment is present so we can seek to the central directory offset directly.
         let mut fs_file = File::open(file_name).await?;
-        let len = fs_file.metadata().await?.len();
-        let mut seek_to = 0;
+        fs_file.seek(SeekFrom::End(6)).await?;
 
-        if len > 65557 {
-            seek_to = len - 65557;
+        let start_offset = read_u32(&mut fs_file).await?.into();
+        fs_file.seek(SeekFrom::Start(start_offset)).await?;
+
+        loop {
+            match read_u32(&mut fs_file).await? {
+                crate::delim::CDFHD => (),
+                crate::delim::EOCDD => break,
+                actual => return Err(ZipError::LocalFileHeaderError(actual)),
+            };
+
+            let header: [u8; 42] = read(&mut fs_file, 42).await?.try_into().unwrap();
+            let header = CentralDirectoryHeader::from(header);
+
+            let file_name = read_string(&mut fs_file, header.file_name_length).await?;
+            file.entries.insert(file_name, header);
         }
-
-        fs_file.seek(SeekFrom::Start(seek_to)).await?;
-
-        // TODO:
-        // Find end of central directory, seek to start of central directory, read all entries.
 
         Ok(file)
     }
@@ -56,6 +65,11 @@ impl<'a> ZipStreamReader<'a> {
         
         let mut fs_file = File::open(&self.file_name).await?;
         fs_file.seek(SeekFrom::Start(header.lh_offset.into())).await?;
+
+        match read_u32(&mut fs_file).await? {
+            crate::delim::LFHD => (),
+            actual => return Err(ZipError::LocalFileHeaderError(actual)),
+        };
 
         // TODO:
         // Read local file header and position at start of data.
@@ -70,4 +84,24 @@ impl<'a> ZipStreamReader<'a> {
 pub struct ZipEntry<'b> {
     header: &'b CentralDirectoryHeader,
     file: File,
+}
+
+async fn read_u32<R: AsyncRead + Unpin>(reader: &mut R) -> Result<u32> {
+    Ok(reader.read_u32_le().await.map_err(|_| ZipError::ReadFailed)?)
+}
+
+async fn read<R: AsyncRead + Unpin>(reader: &mut R, length: u16) -> Result<Vec<u8>> {
+    let mut buffer = vec![0; length as usize];
+    reader.read(&mut buffer).await.map_err(|_| ZipError::ReadFailed)?;
+    Ok(buffer)
+}
+
+async fn read_string<R: AsyncRead + Unpin>(reader: &mut R, length: u16) -> Result<String> {
+    let mut buffer = String::with_capacity(length as usize);
+    reader
+        .take(length as u64)
+        .read_to_string(&mut buffer)
+        .await
+        .map_err(|_| ZipError::ReadFailed)?;
+    Ok(buffer)
 }

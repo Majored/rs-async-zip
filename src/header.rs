@@ -168,6 +168,29 @@ impl From<u16> for GeneralPurposeFlag {
         }
     }
 }
+
+impl From<[u8; 42]> for CentralDirectoryHeader {
+    fn from(value: [u8; 42]) -> CentralDirectoryHeader {
+        CentralDirectoryHeader {
+            v_made_by: u16::from_le_bytes(value[0..2].try_into().unwrap()),
+            v_needed: u16::from_le_bytes(value[2..4].try_into().unwrap()),
+            flags: GeneralPurposeFlag::from(u16::from_le_bytes(value[4..6].try_into().unwrap())),
+            compression: u16::from_le_bytes(value[6..8].try_into().unwrap()),
+            mod_time: u16::from_le_bytes(value[8..10].try_into().unwrap()),
+            mod_date: u16::from_le_bytes(value[10..12].try_into().unwrap()),
+            crc: u32::from_le_bytes(value[12..16].try_into().unwrap()),
+            compressed_size: u32::from_le_bytes(value[16..20].try_into().unwrap()),
+            uncompressed_size: u32::from_le_bytes(value[20..24].try_into().unwrap()),
+            file_name_length: u16::from_le_bytes(value[24..26].try_into().unwrap()),
+            extra_field_length: u16::from_le_bytes(value[26..28].try_into().unwrap()),
+            file_comment_length: u16::from_le_bytes(value[28..30].try_into().unwrap()),
+            disk_start: u16::from_le_bytes(value[30..32].try_into().unwrap()),
+            inter_attr: u16::from_le_bytes(value[32..34].try_into().unwrap()),
+            exter_attr: u32::from_le_bytes(value[34..38].try_into().unwrap()),
+            lh_offset: u32::from_le_bytes(value[38..42].try_into().unwrap()),
+        }
+    }
+}
 /* end from array */
 
 /// Replace elements of an array at a given cursor index for use with a zero-initialised array.
