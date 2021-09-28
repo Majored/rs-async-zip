@@ -49,7 +49,7 @@ pub struct EndOfCentralDirectoryHeader {
     pub(crate) num_of_entries: u16,
     pub(crate) size_cent_dir: u32,
     pub(crate) cent_dir_offset: u32,
-    pub(crate) file_comm_length: u32,
+    pub(crate) file_comm_length: u16,
 }
 /* end structs */
 
@@ -116,8 +116,8 @@ impl CentralDirectoryHeader {
 }
 
 impl EndOfCentralDirectoryHeader {
-    pub fn to_slice(&self) -> [u8; 20] {
-        let mut array = [0; 20];
+    pub fn to_slice(&self) -> [u8; 18] {
+        let mut array = [0; 18];
         let mut cursor = 0;
 
         array_push!(array, cursor, self.disk_num.to_le_bytes());
@@ -188,6 +188,20 @@ impl From<[u8; 42]> for CentralDirectoryHeader {
             inter_attr: u16::from_le_bytes(value[32..34].try_into().unwrap()),
             exter_attr: u32::from_le_bytes(value[34..38].try_into().unwrap()),
             lh_offset: u32::from_le_bytes(value[38..42].try_into().unwrap()),
+        }
+    }
+}
+
+impl From<[u8; 18]> for EndOfCentralDirectoryHeader {
+    fn from(value: [u8; 18]) -> EndOfCentralDirectoryHeader {
+        EndOfCentralDirectoryHeader {
+            disk_num: u16::from_le_bytes(value[0..2].try_into().unwrap()),
+            start_cent_dir_disk: u16::from_le_bytes(value[2..4].try_into().unwrap()),
+            num_of_entries_disk: u16::from_le_bytes(value[4..6].try_into().unwrap()),
+            num_of_entries: u16::from_le_bytes(value[6..8].try_into().unwrap()),
+            size_cent_dir: u32::from_le_bytes(value[8..12].try_into().unwrap()),
+            cent_dir_offset: u32::from_le_bytes(value[12..16].try_into().unwrap()),
+            file_comm_length: u16::from_le_bytes(value[16..18].try_into().unwrap()),
         }
     }
 }
