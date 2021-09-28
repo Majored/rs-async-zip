@@ -18,11 +18,14 @@ pub mod opts;
 pub mod stream;
 pub mod concurrent;
 
+pub mod read;
+
 pub(crate) use array_push;
 
 use error::{Result, ZipError};
 
 /// A compression method supported by this crate.
+#[derive(Clone)]
 pub enum Compression {
     Stored,
     Deflate,
