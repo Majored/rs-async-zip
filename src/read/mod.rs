@@ -3,6 +3,7 @@
 
 pub mod concurrent;
 pub mod seek;
+pub mod stream;
 
 use crate::error::{Result, ZipError};
 use crate::header::CentralDirectoryHeader;

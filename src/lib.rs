@@ -10,15 +10,13 @@
 //! - Support for Stored, Deflate, Bzip2, LZMA, zstd, and xz compression methods.
 //! - Aims for resonable [specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) compliance.
 
-pub(crate) mod delim;
-pub mod error;
 #[macro_use]
 pub(crate) mod header;
-pub mod concurrent;
+pub(crate) mod delim;
+pub mod error;
 pub mod opts;
-pub mod stream;
-
 pub mod read;
+pub mod write;
 
 pub(crate) use array_push;
 
