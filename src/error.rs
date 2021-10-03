@@ -9,6 +9,7 @@ pub enum ZipError {
     UnsupportedCompressionError(u16),
     ReadFailed,
     FeatureNotSupported(&'static str),
+    EntryIndexOutOfBounds
 }
 
 impl ZipError {
@@ -20,6 +21,7 @@ impl ZipError {
             ZipError::UnsupportedCompressionError(actual) => format!("{} is not a supported compression type.", actual),
             ZipError::ReadFailed => format!("Read failed."),
             ZipError::FeatureNotSupported(feature) => format!("Feature not currently supported: '{}'.", feature),
+            ZipError::EntryIndexOutOfBounds => "Entry index was out of bounds.".to_string(),
         }
     }
 }

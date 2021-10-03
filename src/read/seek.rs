@@ -11,7 +11,7 @@ use std::io::SeekFrom;
 
 pub struct ZipFileReader<'a, R: AsyncRead + AsyncSeek + Unpin> {
     pub(crate) reader: &'a mut R,
-    pub(crate) entries: Vec<(u32, ZipEntry)>,
+    pub(crate) entries: Vec<ZipEntry>,
 }
 
 impl<'a, R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<'a, R> {
@@ -21,7 +21,7 @@ impl<'a, R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<'a, R> {
     }
 }
 
-pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) -> Result<Vec<(u32, ZipEntry)>> {
+pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) -> Result<Vec<ZipEntry>> {
     // Assume no ZIP comment exists for the moment so we can seek directly to EOCD header.
     reader.seek(SeekFrom::End(22)).await?;
 
@@ -49,7 +49,7 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
         let offset = header.lh_offset;
         let filename = super::read_string(reader, header.file_name_length).await?;
 
-        entries.push((offset, ZipEntry::from_raw(header, filename)?));
+        entries.push(ZipEntry::from_raw(header, filename)?);
     }
 
     Ok(entries)

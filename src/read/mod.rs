@@ -17,7 +17,6 @@ use chrono::{DateTime, TimeZone, Utc};
 use tokio::io::{AsyncRead, AsyncReadExt, BufReader, ReadBuf};
 
 ///
-#[derive(Clone)]
 pub struct ZipEntry {
     pub(crate) name: String,
     pub(crate) comment: Option<String>,
@@ -28,6 +27,11 @@ pub struct ZipEntry {
     pub(crate) last_modified: DateTime<Utc>,
     pub(crate) extra: Option<Vec<u8>>,
     pub(crate) compression: Compression,
+
+    // Additional fields from EOCDH.
+    pub(crate) offset: Option<u32>,
+    pub(crate) name_length: Option<u16>,
+    pub(crate) extra_length: Option<u16>,
 }
 
 impl ZipEntry {
@@ -42,6 +46,9 @@ impl ZipEntry {
             last_modified: zip_date_to_chrono(header.mod_date, header.mod_time),
             extra: None,
             compression: Compression::from_u16(header.compression)?,
+            offset: Some(header.lh_offset),
+            name_length: Some(header.file_name_length),
+            extra_length: Some(header.extra_field_length),
         })
     }
 
@@ -87,6 +94,10 @@ impl ZipEntry {
     pub fn compression(&self) -> &Compression {
         &self.compression
     }
+
+    pub(crate) fn data_offset(&self) -> u64 {
+        30 + self.offset.unwrap() as u64 + (self.name_length.unwrap() + self.extra_length.unwrap()) as u64
+    }
 }
 
 /// A ZIP entry reader over some generic reader which could implement decompression.
@@ -95,7 +106,7 @@ impl ZipEntry {
 /// This type will never implmement AsyncSeek, even if the underlying implementation from this crate implies seek
 /// capabilities.
 pub struct ZipEntryReader<'a, R: AsyncRead + Unpin> {
-    pub(crate) entry: ZipEntry,
+    pub(crate) entry: &'a ZipEntry,
     pub(crate) reader: CompressionReader<'a, R>,
 }
 
