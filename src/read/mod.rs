@@ -12,10 +12,9 @@ use crate::Compression;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+use async_compression::tokio::bufread::{BzDecoder, DeflateDecoder, LzmaDecoder, XzDecoder, ZstdDecoder};
 use chrono::{DateTime, TimeZone, Utc};
-use tokio::io::{AsyncRead, AsyncReadExt, ReadBuf};
-
-pub(crate) type Reader = dyn AsyncRead + Unpin;
+use tokio::io::{AsyncRead, AsyncReadExt, BufReader, ReadBuf};
 
 ///
 #[derive(Clone)]
@@ -95,18 +94,18 @@ impl ZipEntry {
 /// # Note
 /// This type will never implmement AsyncSeek, even if the underlying implementation from this crate implies seek
 /// capabilities.
-pub struct ZipEntryReader {
+pub struct ZipEntryReader<'a, R: AsyncRead + Unpin> {
     pub(crate) entry: ZipEntry,
-    pub(crate) reader: Box<Reader>,
+    pub(crate) reader: CompressionReader<'a, R>,
 }
 
-impl ZipEntryReader {
+impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     pub fn entry(&self) -> &ZipEntry {
         &self.entry
     }
 }
 
-impl AsyncRead for ZipEntryReader {
+impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
     fn poll_read(mut self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
         Pin::new(&mut self.reader).poll_read(c, b)
     }
@@ -136,4 +135,66 @@ pub(crate) async fn read_string<R: AsyncRead + Unpin>(reader: &mut R, length: u1
         .await
         .map_err(|_| ZipError::ReadFailed)?;
     Ok(buffer)
+}
+
+/// A reader which may implement decompression over its inner type, and of which supports owned inner types or mutable
+/// borrows of them. Implements identical compression types to that of the crate::Compression enum.
+///
+/// This underpins entry reading functionality for all three sub-modules (stream, seek, and concurrent).
+pub(crate) enum CompressionReader<'a, R: AsyncRead + Unpin> {
+    Stored(R),
+    StoredBorrow(&'a mut R),
+    Deflate(DeflateDecoder<BufReader<R>>),
+    DeflateBorrow(DeflateDecoder<BufReader<&'a mut R>>),
+    Bz(BzDecoder<BufReader<R>>),
+    BzBorrow(BzDecoder<BufReader<&'a mut R>>),
+    Lzma(LzmaDecoder<BufReader<R>>),
+    LzmaBorrow(LzmaDecoder<BufReader<&'a mut R>>),
+    Zstd(ZstdDecoder<BufReader<R>>),
+    ZstdBorrow(ZstdDecoder<BufReader<&'a mut R>>),
+    Xz(XzDecoder<BufReader<R>>),
+    XzBorrow(XzDecoder<BufReader<&'a mut R>>),
+}
+
+impl<'a, R: AsyncRead + Unpin> AsyncRead for CompressionReader<'a, R> {
+    fn poll_read(mut self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
+        match *self {
+            CompressionReader::Stored(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            CompressionReader::StoredBorrow(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            CompressionReader::Deflate(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            CompressionReader::DeflateBorrow(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            CompressionReader::Bz(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            CompressionReader::BzBorrow(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            CompressionReader::Lzma(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            CompressionReader::LzmaBorrow(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            CompressionReader::Zstd(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            CompressionReader::ZstdBorrow(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            CompressionReader::Xz(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            CompressionReader::XzBorrow(ref mut inner) => Pin::new(inner).poll_read(c, b),
+        }
+    }
+}
+
+impl<'a, R: AsyncRead + Unpin> CompressionReader<'a, R> {
+    pub(crate) fn from_reader(compression: &Compression, reader: R) -> Self {
+        match compression {
+            Compression::Stored => CompressionReader::Stored(reader),
+            Compression::Deflate => CompressionReader::Deflate(DeflateDecoder::new(BufReader::new(reader))),
+            Compression::Bz => CompressionReader::Bz(BzDecoder::new(BufReader::new(reader))),
+            Compression::Lzma => CompressionReader::Lzma(LzmaDecoder::new(BufReader::new(reader))),
+            Compression::Zstd => CompressionReader::Zstd(ZstdDecoder::new(BufReader::new(reader))),
+            Compression::Xz => CompressionReader::Xz(XzDecoder::new(BufReader::new(reader))),
+        }
+    }
+
+    pub(crate) fn from_reader_borrow(compression: &Compression, reader: &'a mut R) -> Self {
+        match compression {
+            Compression::Stored => CompressionReader::StoredBorrow(reader),
+            Compression::Deflate => CompressionReader::DeflateBorrow(DeflateDecoder::new(BufReader::new(reader))),
+            Compression::Bz => CompressionReader::BzBorrow(BzDecoder::new(BufReader::new(reader))),
+            Compression::Lzma => CompressionReader::LzmaBorrow(LzmaDecoder::new(BufReader::new(reader))),
+            Compression::Zstd => CompressionReader::ZstdBorrow(ZstdDecoder::new(BufReader::new(reader))),
+            Compression::Xz => CompressionReader::XzBorrow(XzDecoder::new(BufReader::new(reader))),
+        }
+    }
 }
