@@ -11,19 +11,19 @@
 //!
 //! # Example
 
-use crate::header::CentralDirectoryHeader;
 use crate::error::{Result, ZipError};
+use crate::header::CentralDirectoryHeader;
 
 use std::collections::HashMap;
-use std::io::SeekFrom;
 use std::convert::TryInto;
+use std::io::SeekFrom;
 
 use tokio::fs::File;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeekExt};
 
 pub struct ZipStreamReader<'a> {
     pub(crate) file_name: &'a str,
-    pub(crate) entries: HashMap<String, CentralDirectoryHeader>
+    pub(crate) entries: HashMap<String, CentralDirectoryHeader>,
 }
 
 impl<'a> ZipStreamReader<'a> {
@@ -61,8 +61,8 @@ impl<'a> ZipStreamReader<'a> {
         let header = match self.entries.get(entry) {
             Some(header) => header,
             None => return Ok(None),
-        }; 
-        
+        };
+
         let mut fs_file = File::open(&self.file_name).await?;
         fs_file.seek(SeekFrom::Start(header.lh_offset.into())).await?;
 
@@ -74,10 +74,7 @@ impl<'a> ZipStreamReader<'a> {
         // TODO:
         // Read local file header and position at start of data.
 
-        Ok(Some(ZipEntry {
-            header,
-            file: fs_file,
-        }))
+        Ok(Some(ZipEntry { header, file: fs_file }))
     }
 }
 

@@ -2,13 +2,12 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::error::{Result, ZipError};
-use crate::header::EndOfCentralDirectoryHeader;
-use crate::read::{ZipEntry, ZipEntryReader};
+use crate::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
+use crate::read::ZipEntry;
 
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt};
+use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt};
 
 use std::io::SeekFrom;
-use std::convert::TryInto;
 
 pub struct ZipFileReader<'a, R: AsyncRead + AsyncSeek + Unpin> {
     pub(crate) reader: &'a mut R,
@@ -26,32 +25,32 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
     // Assume no ZIP comment exists for the moment so we can seek directly to EOCD header.
     reader.seek(SeekFrom::End(22)).await?;
 
-    if read_u32(reader).await? != crate::delim::EOCDD {
+    if super::read_u32(reader).await? != crate::delim::EOCDD {
         return Err(ZipError::FeatureNotSupported("ZIP file comment"));
     }
 
-    let mut buffer: [u8; 18] = [0; 18];
-    reader.read(&mut buffer).await?;
-    let header = EndOfCentralDirectoryHeader::from(buffer);
+    let eocdh = EndOfCentralDirectoryHeader::from_reader(reader).await?;
 
-    if header.disk_num != header.start_cent_dir_disk || header.num_of_entries != header.num_of_entries_disk {
+    // Outdated feature so unlikely to ever make it into this crate.
+    if eocdh.disk_num != eocdh.start_cent_dir_disk || eocdh.num_of_entries != eocdh.num_of_entries_disk {
         return Err(ZipError::FeatureNotSupported("Spanned/split files"));
     }
 
-    reader.seek(SeekFrom::Start(header.cent_dir_offset.into())).await?;
-    let mut entries = Vec::with_capacity(header.num_of_entries.into());
+    reader.seek(SeekFrom::Start(eocdh.cent_dir_offset.into())).await?;
+    let mut entries = Vec::with_capacity(eocdh.num_of_entries.into());
 
-    loop {
-        todo!();
+    for _ in 0..eocdh.num_of_entries {
+        if super::read_u32(reader).await? != crate::delim::CDFHD {
+            return Err(ZipError::ReadFailed); // Alter error message.
+        }
+
+        // Ignore file extra & comment for the moment.
+        let header = CentralDirectoryHeader::from_reader(reader).await?;
+        let offset = header.lh_offset;
+        let filename = super::read_string(reader, header.file_name_length).await?;
+
+        entries.push((offset, ZipEntry::from_raw(header, filename)?));
     }
 
     Ok(entries)
-}
-
-async fn read_u32<R: AsyncRead + Unpin>(reader: &mut R) -> Result<u32> {
-    Ok(reader.read_u32_le().await.map_err(|_| ZipError::ReadFailed)?)
-}
-
-async fn read_u16<R: AsyncRead + Unpin>(reader: &mut R) -> Result<u16> {
-    Ok(reader.read_u16_le().await.map_err(|_| ZipError::ReadFailed)?)
 }

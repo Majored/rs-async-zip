@@ -9,7 +9,7 @@
 //! # Example
 
 use crate::error::Result;
-use crate::header::{GeneralPurposeFlag, LocalFileHeader, CentralDirectoryHeader, EndOfCentralDirectoryHeader};
+use crate::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
 use crate::opts::ZipEntryOptions;
 use crate::Compression;
 

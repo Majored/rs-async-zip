@@ -2,7 +2,11 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::array_push;
+use crate::error::Result;
+
 use std::convert::TryInto;
+
+use tokio::io::{AsyncRead, AsyncReadExt};
 
 /* structs */
 pub struct LocalFileHeader {
@@ -206,6 +210,24 @@ impl From<[u8; 18]> for EndOfCentralDirectoryHeader {
     }
 }
 /* end from array */
+
+/* from reader */
+impl EndOfCentralDirectoryHeader {
+    pub async fn from_reader<R: AsyncRead + Unpin>(reader: &mut R) -> Result<EndOfCentralDirectoryHeader> {
+        let mut buffer: [u8; 18] = [0; 18];
+        reader.read(&mut buffer).await?;
+        Ok(EndOfCentralDirectoryHeader::from(buffer))
+    }
+}
+
+impl CentralDirectoryHeader {
+    pub async fn from_reader<R: AsyncRead + Unpin>(reader: &mut R) -> Result<CentralDirectoryHeader> {
+        let mut buffer: [u8; 42] = [0; 42];
+        reader.read(&mut buffer).await?;
+        Ok(CentralDirectoryHeader::from(buffer))
+    }
+}
+/* end from reader */
 
 /// Replace elements of an array at a given cursor index for use with a zero-initialised array.
 macro_rules! array_push {

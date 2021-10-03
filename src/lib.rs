@@ -14,9 +14,9 @@ pub(crate) mod delim;
 pub mod error;
 #[macro_use]
 pub(crate) mod header;
+pub mod concurrent;
 pub mod opts;
 pub mod stream;
-pub mod concurrent;
 
 pub mod read;
 
