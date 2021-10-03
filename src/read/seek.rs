@@ -31,11 +31,9 @@ impl<'a, R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<'a, R> {
     /// If an entry is found, a tuple containing the index it was found at, as well as a shared reference to the
     /// ZipEntry itself is returned. Else, None is returned.
     pub fn entry(&self, name: &str) -> Option<(usize, &ZipEntry)> {
-        for index in 0..self.entries.len() {
-            let current_entry = self.entries.get(index).unwrap();
-            
-            if current_entry.name() == name {
-                return Some((index, current_entry));
+        for (index, entry) in self.entries().iter().enumerate() {
+            if entry.name() == name {
+                return Some((index, entry));
             }
         }
 
