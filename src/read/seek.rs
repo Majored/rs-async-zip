@@ -3,7 +3,7 @@
 
 use crate::error::{Result, ZipError};
 use crate::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
-use crate::read::ZipEntry;
+use crate::read::{ZipEntry, ZipEntryReader, CompressionReader};
 
 use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt};
 
@@ -15,9 +15,41 @@ pub struct ZipFileReader<'a, R: AsyncRead + AsyncSeek + Unpin> {
 }
 
 impl<'a, R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<'a, R> {
+    /// Constructs a new ZIP file reader from a mutable reference to a reader.
     pub async fn new(reader: &'a mut R) -> Result<ZipFileReader<'a, R>> {
         let entries = read_cd(reader).await?;
         Ok(ZipFileReader { reader, entries })
+    }
+
+    /// Returns a shared reference to a list of the ZIP file's entries.
+    pub fn entries(&self) -> &Vec<ZipEntry> {
+        &self.entries
+    }
+
+    /// Searches for an entry with a specific filename.
+    /// 
+    /// If an entry is found, a tuple containing the index it was found at, as well as a shared reference to the
+    /// ZipEntry itself is returned. Else, None is returned.
+    pub fn entry(&self, name: &str) -> Option<(usize, &ZipEntry)> {
+        for index in 0..self.entries.len() {
+            let current_entry = self.entries.get(index).unwrap();
+            
+            if current_entry.name() == name {
+                return Some((index, current_entry));
+            }
+        }
+
+        None
+    }
+
+    /// Opens an entry at the provided index for reading.
+    pub async fn entry_reader<'b>(&'b mut self, index: usize) -> Result<ZipEntryReader<'b, R>> {
+        let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
+
+        self.reader.seek(SeekFrom::Start(entry.data_offset())).await?;
+        let reader = CompressionReader::from_reader_borrow(entry.compression(), self.reader);
+
+        Ok(ZipEntryReader { entry, reader })
     }
 }
 
@@ -46,7 +78,6 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
 
         // Ignore file extra & comment for the moment.
         let header = CentralDirectoryHeader::from_reader(reader).await?;
-        let offset = header.lh_offset;
         let filename = super::read_string(reader, header.file_name_length).await?;
 
         entries.push(ZipEntry::from_raw(header, filename)?);
