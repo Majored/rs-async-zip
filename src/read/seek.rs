@@ -53,7 +53,7 @@ impl<'a, R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<'a, R> {
 
 pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) -> Result<Vec<ZipEntry>> {
     // Assume no ZIP comment exists for the moment so we can seek directly to EOCD header.
-    reader.seek(SeekFrom::End(22)).await?;
+    reader.seek(SeekFrom::End(-22)).await?;
 
     if super::read_u32(reader).await? != crate::delim::EOCDD {
         return Err(ZipError::FeatureNotSupported("ZIP file comment"));
@@ -77,6 +77,7 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
         // Ignore file extra & comment for the moment.
         let header = CentralDirectoryHeader::from_reader(reader).await?;
         let filename = super::read_string(reader, header.file_name_length).await?;
+        reader.seek(SeekFrom::Current((header.extra_field_length + header.file_comment_length).into())).await?;
 
         entries.push(ZipEntry::from_raw(header, filename)?);
     }
