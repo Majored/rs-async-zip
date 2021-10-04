@@ -2,7 +2,9 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use std::sync::Arc;
+use std::path::Path;
 
+use tokio::io::BufReader;
 use tokio::fs::File;
 use async_zip::read::concurrent::ZipFileReader;
 
@@ -11,14 +13,25 @@ async fn main() {
     let zip = Arc::new(ZipFileReader::new("./Archive.zip").await.unwrap());
     let mut handles = Vec::with_capacity(zip.entries().len());
 
-    for (index, _) in zip.entries().iter().enumerate() {
+    // Tokio no longer includes a `join_all` macro over a vector of futures.
+    // Instead, we need to: spawn new tasks, collect all the join handles, and then .await on those sequentially.
+
+    for (index, entry) in zip.entries().iter().enumerate() {
+        if entry.name().ends_with("/") {
+            continue;
+        }
+
         let local_zip = zip.clone();
-
         handles.push(tokio::spawn(async move {
-            let mut reader = local_zip.entry_reader(index).await.unwrap();
-            let mut output = File::create(format!("./output/{}", reader.entry().name())).await.unwrap();
+            let reader = local_zip.entry_reader(index).await.unwrap();
 
-            tokio::io::copy(&mut reader, &mut output).await.unwrap();
+            let path_str = format!("./output/{}", reader.entry().name());
+            let path = Path::new(&path_str);
+            tokio::fs::create_dir_all(path.parent().unwrap()).await.unwrap();
+            
+            let mut output = File::create(path).await.unwrap();
+            let mut reader = BufReader::with_capacity(65536, reader);
+            tokio::io::copy_buf(&mut reader, &mut output).await.unwrap();
         }));
     }
 
