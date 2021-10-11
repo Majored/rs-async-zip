@@ -13,9 +13,6 @@ async fn main() {
     let zip = Arc::new(ZipFileReader::new("./Archive.zip").await.unwrap());
     let mut handles = Vec::with_capacity(zip.entries().len());
 
-    // Tokio no longer includes a `join_all` macro over a vector of futures.
-    // Instead, we need to: spawn new tasks, collect all the join handles, and then .await on those sequentially.
-
     for (index, entry) in zip.entries().iter().enumerate() {
         if entry.name().ends_with("/") {
             continue;

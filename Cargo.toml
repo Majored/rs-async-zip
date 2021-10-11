@@ -1,6 +1,6 @@
 [package]
 name = "async_zip"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2018"
 authors = ["Harry [hello@majored.pw]"]
 repository = "https://github.com/Majored/rs-async-zip"
