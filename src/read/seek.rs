@@ -1,6 +1,23 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+//! A module for reading ZIP file from a seekable source.
+//! 
+//! # Example
+//! ```
+//! let mut file = File::open("./Archive.zip").await.unwrap();
+//! let mut zip = ZipFileReader::new(&mut file).await.unwrap();
+//! 
+//! assert_eq!(zip.entries().len(), 2);
+//! 
+//! // Consume the entries out-of-order.
+//! let mut reader = zip.entry_reader(1).await.unwrap();
+//! reader.read_to_string(&mut String::new()).await.unwrap();
+//! 
+//! let mut reader = zip.entry_reader(0).await.unwrap();
+//! reader.read_to_string(&mut String::new()).await.unwrap();
+//! ```
+
 use crate::error::{Result, ZipError};
 use crate::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
 use crate::read::{ZipEntry, ZipEntryReader, CompressionReader};
@@ -9,6 +26,7 @@ use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt};
 
 use std::io::SeekFrom;
 
+/// A reader which acts over a seekable source.
 pub struct ZipFileReader<'a, R: AsyncRead + AsyncSeek + Unpin> {
     pub(crate) reader: &'a mut R,
     pub(crate) entries: Vec<ZipEntry>,
@@ -27,9 +45,6 @@ impl<'a, R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<'a, R> {
     }
 
     /// Searches for an entry with a specific filename.
-    /// 
-    /// If an entry is found, a tuple containing the index it was found at, as well as a shared reference to the
-    /// ZipEntry itself is returned. Else, None is returned.
     pub fn entry(&self, name: &str) -> Option<(usize, &ZipEntry)> {
         for (index, entry) in self.entries().iter().enumerate() {
             if entry.name() == name {

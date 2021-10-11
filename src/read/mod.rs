@@ -1,6 +1,8 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+//! A module which supports reading ZIP files using various approaches.
+
 pub mod concurrent;
 pub mod seek;
 pub mod stream;
@@ -16,7 +18,7 @@ use async_compression::tokio::bufread::{BzDecoder, DeflateDecoder, LzmaDecoder, 
 use chrono::{DateTime, TimeZone, Utc};
 use tokio::io::{AsyncRead, AsyncReadExt, BufReader, ReadBuf};
 
-///
+/// An entry within a larger ZIP file reader.
 pub struct ZipEntry {
     pub(crate) name: String,
     pub(crate) comment: Option<String>,
@@ -35,7 +37,8 @@ pub struct ZipEntry {
 }
 
 impl ZipEntry {
-    pub fn from_raw(header: CentralDirectoryHeader, filename: String) -> Result<Self> {
+    /// Construct an entry from its raw parts (central directory header & filename).
+    pub(crate) fn from_raw(header: CentralDirectoryHeader, filename: String) -> Result<Self> {
         Ok(ZipEntry {
             name: filename,
             comment: None,
@@ -70,41 +73,48 @@ impl ZipEntry {
         self.data_descriptor
     }
 
+    /// Returns whether or not the entry represents a directory.
+    pub fn dir(&self) -> bool {
+        self.name.ends_with("/")
+    }
+
     /// Returns an optional CRC32 value for the entry.
     pub fn crc32(&self) -> Option<u32> {
         self.crc32
     }
 
+    /// Returns an optional compressed file size for the entry.
     pub fn compressed_size(&self) -> Option<u32> {
         self.compressed_size
     }
 
+    /// Returns an optional uncompressed file size for the entry.
     pub fn uncompressed_size(&self) -> Option<u32> {
         self.uncompressed_size
     }
 
+    /// Returns a shared reference to the entry's last modification date.
     pub fn last_modified(&self) -> &DateTime<Utc> {
         &self.last_modified
     }
 
+    /// Returns an optional shared reference to the extra bytes for the entry.
     pub fn extra(&self) -> Option<&Vec<u8>> {
         self.extra.as_ref()
     }
 
+    /// Returns a shared reference to the compression type of the entry.
     pub fn compression(&self) -> &Compression {
         &self.compression
     }
 
+    /// Returns the offset at which data for this entry starts.
     pub(crate) fn data_offset(&self) -> u64 {
         30 + self.offset.unwrap() as u64 + (self.name_length.unwrap() + self.extra_length.unwrap()) as u64
     }
 }
 
-/// A ZIP entry reader over some generic reader which could implement decompression.
-///
-/// # Note
-/// This type will never implmement AsyncSeek, even if the underlying implementation from this crate implies seek
-/// capabilities.
+/// A ZIP file entry reader which may implement decompression.
 pub struct ZipEntryReader<'a, R: AsyncRead + Unpin> {
     pub(crate) entry: &'a ZipEntry,
     pub(crate) reader: CompressionReader<'a, R>,

@@ -11,6 +11,22 @@
 //! - Or; only process a set number of entries at any one time.
 //! 
 //! # Example
+//! ```
+//! let zip = ZipFileReader::new("./Archive.zip").await.unwrap();
+//! 
+//! assert_eq!(zip.entries().len(), 2);
+//! 
+//! let mut reader1 = zip.entry_reader(0).await.unwrap();
+//! let mut reader2 = zip.entry_reader(1).await.unwrap();
+//! 
+//! let mut buff1 = String::new();
+//! let mut buff2 = String::new();
+//! 
+//! tokio::select! {
+//!     _ = reader1.read_to_string(&mut buff1) => {}
+//!     _ = reader2.read_to_string(&mut buff2) => {}
+//! };
+//! ```
 
 use super::CompressionReader;
 use crate::error::{Result, ZipError};
@@ -20,6 +36,10 @@ use std::io::SeekFrom;
 use tokio::fs::File;
 use tokio::io::{Take, AsyncSeekExt, AsyncReadExt};
 
+/// The type returned as an entry reader within this concurrent module.
+pub type ConcurrentReader<'a> = ZipEntryReader<'a, Take<File>>;
+
+/// A reader which acts concurrently over a filesystem file.
 pub struct ZipFileReader<'a> {
     pub(crate) filename: &'a str,
     pub(crate) entries: Vec<ZipEntry>,
@@ -40,9 +60,6 @@ impl<'a> ZipFileReader<'a> {
     }
 
     /// Searches for an entry with a specific filename.
-    /// 
-    /// If an entry is found, a tuple containing the index it was found at, as well as a shared reference to the
-    /// ZipEntry itself is returned. Else, None is returned.
     pub fn entry(&self, name: &str) -> Option<(usize, &ZipEntry)> {
         for (index, entry) in self.entries().iter().enumerate() {
             if entry.name() == name {
@@ -54,7 +71,7 @@ impl<'a> ZipFileReader<'a> {
     }
 
     /// Opens an entry at the provided index for reading.
-    pub async fn entry_reader(&self, index: usize) -> Result<ZipEntryReader<'_, Take<File>>> {
+    pub async fn entry_reader(&self, index: usize) -> Result<ConcurrentReader<'_>> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
         let mut fs_file = File::open(self.filename).await?;
