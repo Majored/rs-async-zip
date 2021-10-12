@@ -3,7 +3,7 @@
 
 //! A module which supports reading ZIP files using various approaches.
 
-pub mod concurrent;
+pub mod fs;
 pub mod seek;
 pub mod stream;
 pub mod mem;

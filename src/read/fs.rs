@@ -2,13 +2,6 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 //! A module for reading ZIP file entries concurrently from the filesystem.
-//!
-//! # Note
-//! To enable concurrency, this module's ZipFileReader will open a new file for each call to `entry_reader()` and seek
-//! to the relevant entry's data offset. Thus, any caller needs to be aware that for large ZIP files with many entries,
-//! you may hit an OS file limit if attempting to open all entries concurrently. To mitigate this, either:
-//! - Increase the execeuting user's file limit (often via the 'ulimit' command).
-//! - Or; only process a set number of entries at any one time.
 //! 
 //! # Example
 //! ```

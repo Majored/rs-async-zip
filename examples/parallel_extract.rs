@@ -6,7 +6,7 @@ use std::path::Path;
 
 use tokio::io::BufReader;
 use tokio::fs::File;
-use async_zip::read::concurrent::ZipFileReader;
+use async_zip::read::fs::ZipFileReader;
 
 #[tokio::main]
 async fn main() {
