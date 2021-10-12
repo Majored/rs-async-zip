@@ -39,21 +39,7 @@ impl<'a, R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<'a, R> {
         Ok(ZipFileReader { reader, entries })
     }
 
-    /// Returns a shared reference to a list of the ZIP file's entries.
-    pub fn entries(&self) -> &Vec<ZipEntry> {
-        &self.entries
-    }
-
-    /// Searches for an entry with a specific filename.
-    pub fn entry(&self, name: &str) -> Option<(usize, &ZipEntry)> {
-        for (index, entry) in self.entries().iter().enumerate() {
-            if entry.name() == name {
-                return Some((index, entry));
-            }
-        }
-
-        None
-    }
+    crate::read::reader_entry_impl!();
 
     /// Opens an entry at the provided index for reading.
     pub async fn entry_reader<'b>(&'b mut self, index: usize) -> Result<ZipEntryReader<'b, R>> {
