@@ -7,6 +7,7 @@ pub mod fs;
 pub mod seek;
 pub mod stream;
 pub mod mem;
+pub mod sync;
 
 use crate::error::{Result, ZipError};
 use crate::header::CentralDirectoryHeader;
