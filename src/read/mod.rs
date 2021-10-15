@@ -4,9 +4,9 @@
 //! A module which supports reading ZIP files using various approaches.
 
 pub mod fs;
+pub mod mem;
 pub mod seek;
 pub mod stream;
-pub mod mem;
 pub mod sync;
 
 use crate::error::{Result, ZipError};
@@ -233,7 +233,7 @@ macro_rules! reader_entry_impl {
         pub fn entry(&self, name: &str) -> Option<(usize, &ZipEntry)> {
             for (index, entry) in self.entries().iter().enumerate() {
                 if entry.name() == name {
-                return Some((index, entry));
+                    return Some((index, entry));
                 }
             }
             None

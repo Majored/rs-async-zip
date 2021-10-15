@@ -1,12 +1,12 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use std::sync::Arc;
 use std::path::Path;
+use std::sync::Arc;
 
-use tokio::io::BufReader;
-use tokio::fs::File;
 use async_zip::read::fs::ZipFileReader;
+use tokio::fs::File;
+use tokio::io::BufReader;
 
 #[tokio::main]
 async fn main() {
@@ -25,7 +25,7 @@ async fn main() {
             let path_str = format!("./output/{}", reader.entry().name());
             let path = Path::new(&path_str);
             tokio::fs::create_dir_all(path.parent().unwrap()).await.unwrap();
-            
+
             let mut output = File::create(path).await.unwrap();
             let mut reader = BufReader::with_capacity(65536, reader);
             tokio::io::copy_buf(&mut reader, &mut output).await.unwrap();

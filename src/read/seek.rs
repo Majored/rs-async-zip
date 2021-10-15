@@ -2,25 +2,25 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 //! A module for reading ZIP file from a seekable source.
-//! 
+//!
 //! # Example
 //! ```
 //! let mut file = File::open("./Archive.zip").await.unwrap();
 //! let mut zip = ZipFileReader::new(&mut file).await.unwrap();
-//! 
+//!
 //! assert_eq!(zip.entries().len(), 2);
-//! 
+//!
 //! // Consume the entries out-of-order.
 //! let mut reader = zip.entry_reader(1).await.unwrap();
 //! reader.read_to_string(&mut String::new()).await.unwrap();
-//! 
+//!
 //! let mut reader = zip.entry_reader(0).await.unwrap();
 //! reader.read_to_string(&mut String::new()).await.unwrap();
 //! ```
 
 use crate::error::{Result, ZipError};
 use crate::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
-use crate::read::{ZipEntry, ZipEntryReader, CompressionReader};
+use crate::read::{CompressionReader, ZipEntry, ZipEntryReader};
 
 use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt};
 
@@ -78,7 +78,11 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
         // Ignore file extra & comment for the moment.
         let header = CentralDirectoryHeader::from_reader(reader).await?;
         let filename = super::read_string(reader, header.file_name_length).await?;
-        reader.seek(SeekFrom::Current((header.extra_field_length + header.file_comment_length).into())).await?;
+        reader
+            .seek(SeekFrom::Current(
+                (header.extra_field_length + header.file_comment_length).into(),
+            ))
+            .await?;
 
         entries.push(ZipEntry::from_raw(header, filename)?);
     }

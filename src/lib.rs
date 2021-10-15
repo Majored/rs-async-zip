@@ -6,15 +6,18 @@
 //! An asynchronous ZIP archive reading/writing crate with a heavy focus on streaming support.
 //!
 //! ## Features
-//! - Asynchronous design powered by `tokio`.
-//! - Support for Stored, Deflate, Bzip2, LZMA, zstd, and xz compression methods.
-//! - Aims for resonable [specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) compliance.
+//! - Asynchronous design powered by tokio.
+//! - Support for Stored, Deflate, bzip2, LZMA, zstd, and xz compression methods.
+//! - Various different reading approaches (seek, stream, filesystem, in-memory buffer).
+//! - Support for writing a complete data (u8 slices) or stream writing using data descriptors (unimplemented).
+//! - Aims for reasonable [specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) compliance.
+//!
+//! [Read more.](https://github.com/Majored/rs-async-zip)
 
 #[macro_use]
 pub(crate) mod header;
 pub(crate) mod delim;
 pub mod error;
-pub mod opts;
 pub mod read;
 pub mod write;
 

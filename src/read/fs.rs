@@ -2,19 +2,19 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 //! A module for reading ZIP file entries concurrently from the filesystem.
-//! 
+//!
 //! # Example
 //! ```
 //! let zip = ZipFileReader::new("./Archive.zip").await.unwrap();
-//! 
+//!
 //! assert_eq!(zip.entries().len(), 2);
-//! 
+//!
 //! let mut reader1 = zip.entry_reader(0).await.unwrap();
 //! let mut reader2 = zip.entry_reader(1).await.unwrap();
-//! 
+//!
 //! let mut buff1 = String::new();
 //! let mut buff2 = String::new();
-//! 
+//!
 //! tokio::select! {
 //!     _ = reader1.read_to_string(&mut buff1) => {}
 //!     _ = reader2.read_to_string(&mut buff2) => {}
@@ -27,7 +27,7 @@ use crate::read::{ZipEntry, ZipEntryReader};
 
 use std::io::SeekFrom;
 use tokio::fs::File;
-use tokio::io::{Take, AsyncSeekExt, AsyncReadExt};
+use tokio::io::{AsyncReadExt, AsyncSeekExt, Take};
 
 /// The type returned as an entry reader within this concurrent module.
 pub type ConcurrentReader<'a> = ZipEntryReader<'a, Take<File>>;

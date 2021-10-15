@@ -1,15 +1,19 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+//! A module which holds relevant error reporting structures/types.
+
+/// A Result type alias over ZipError to minimise repetition.
 pub type Result<V> = std::result::Result<V, ZipError>;
 
+/// An enum of possible errors and their descriptions.
 #[derive(Debug)]
 pub enum ZipError {
     LocalFileHeaderError(u32),
     UnsupportedCompressionError(u16),
     ReadFailed,
     FeatureNotSupported(&'static str),
-    EntryIndexOutOfBounds
+    EntryIndexOutOfBounds,
 }
 
 impl ZipError {
