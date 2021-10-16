@@ -71,9 +71,10 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
     let mut entries = Vec::with_capacity(eocdh.num_of_entries.into());
 
     for _ in 0..eocdh.num_of_entries {
-        if reader.read_u32_le().await? != crate::delim::CDFHD {
-            return Err(ZipError::ReadFailed); // Alter error message.
-        }
+        match reader.read_u32_le().await? {
+            crate::delim::CDFHD => {}
+            actual => return Err(ZipError::UnexpectedHeaderError(actual, crate::delim::CDFHD)),
+        };
 
         // Ignore file extra & comment for the moment.
         let header = CentralDirectoryHeader::from_reader(reader).await?;

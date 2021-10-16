@@ -9,9 +9,9 @@ pub type Result<V> = std::result::Result<V, ZipError>;
 /// An enum of possible errors and their descriptions.
 #[derive(Debug)]
 pub enum ZipError {
-    LocalFileHeaderError(u32),
+    UnexpectedHeaderError(u32, u32),
     UnsupportedCompressionError(u16),
-    ReadFailed,
+    UpstreamReadError(std::io::Error),
     FeatureNotSupported(&'static str),
     EntryIndexOutOfBounds,
 }
@@ -19,19 +19,20 @@ pub enum ZipError {
 impl ZipError {
     pub fn description(&self) -> String {
         match self {
-            ZipError::LocalFileHeaderError(actual) => {
-                format!("{} != {} or any supported ZIP delimiter.", actual, crate::delim::LFHD)
-            }
+            ZipError::UnexpectedHeaderError(actual, expected) => format!(
+                "Encountered an unexpected header (actual: {:#x}, expected: {:#x}).",
+                actual, expected
+            ),
             ZipError::UnsupportedCompressionError(actual) => format!("{} is not a supported compression type.", actual),
-            ZipError::ReadFailed => format!("Read failed."),
+            ZipError::UpstreamReadError(inner) => format!("An upstream reader returned an error: '{:?}'.", inner),
             ZipError::FeatureNotSupported(feature) => format!("Feature not currently supported: '{}'.", feature),
-            ZipError::EntryIndexOutOfBounds => "Entry index was out of bounds.".to_string(),
+            ZipError::EntryIndexOutOfBounds => format!("Entry index was out of bounds."),
         }
     }
 }
 
-impl From<tokio::io::Error> for ZipError {
-    fn from(_err: tokio::io::Error) -> Self {
-        ZipError::ReadFailed
+impl From<std::io::Error> for ZipError {
+    fn from(err: std::io::Error) -> Self {
+        ZipError::UpstreamReadError(err)
     }
 }

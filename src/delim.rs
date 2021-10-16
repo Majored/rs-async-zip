@@ -4,13 +4,13 @@
 #![allow(dead_code)]
 
 /// Local file header delimiter.
-pub const LFHD: u32 = 0x04034b50;
+pub const LFHD: u32 = 0x4034b50;
 
 /// Central directory file header delimiter.
-pub const CDFHD: u32 = 0x02014b50;
+pub const CDFHD: u32 = 0x2014b50;
 
 /// Data descriptor delimiter.
-pub const DDD: u32 = 0x08074b50;
+pub const DDD: u32 = 0x8074b50;
 
 /// End of central directory delimiter.
-pub const EOCDD: u32 = 0x06054b50;
+pub const EOCDD: u32 = 0x6054b50;
