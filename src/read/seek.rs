@@ -23,7 +23,7 @@ use crate::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
 use crate::read::{CompressionReader, ZipEntry, ZipEntryReader};
 use crate::Compression;
 
-use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt};
 
 use std::io::SeekFrom;
 
@@ -47,7 +47,9 @@ impl<'a, R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<'a, R> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
         self.reader.seek(SeekFrom::Start(entry.data_offset())).await?;
-        let reader = CompressionReader::from_reader_borrow(entry.compression(), self.reader);
+
+        let reader = self.reader.take(entry.compressed_size.unwrap().into());
+        let reader = CompressionReader::from_reader_borrow(entry.compression(), reader);
 
         Ok(ZipEntryReader { entry, reader })
     }

@@ -8,7 +8,7 @@ use crate::read::{CompressionReader, ZipEntry, ZipEntryReader};
 
 use std::io::{Cursor, SeekFrom};
 
-use tokio::io::AsyncSeekExt;
+use tokio::io::{AsyncReadExt, AsyncSeekExt};
 
 /// The type returned as an entry reader within this concurrent module.
 pub type ConcurrentReader<'b, 'a> = ZipEntryReader<'b, Cursor<&'a [u8]>>;
@@ -31,10 +31,12 @@ impl<'a> ZipFileReader<'a> {
     /// Opens an entry at the provided index for reading.
     pub async fn entry_reader<'b>(&'b mut self, index: usize) -> Result<ConcurrentReader<'b, 'a>> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let mut cursor = Cursor::new(self.data.clone());
 
+        let mut cursor = Cursor::new(self.data.clone());
         cursor.seek(SeekFrom::Start(entry.data_offset())).await?;
-        let reader = CompressionReader::from_reader(entry.compression(), cursor);
+
+        let reader = cursor.take(entry.compressed_size.unwrap().into());
+        let reader = CompressionReader::from_reader(entry.compression(), reader);
 
         Ok(ZipEntryReader { entry, reader })
     }

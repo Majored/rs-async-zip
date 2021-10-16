@@ -23,7 +23,7 @@ use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 
-use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt, ReadBuf};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, ReadBuf};
 
 /// A reader which acts concurrently over an in-memory buffer.
 pub struct ZipFileReader<R: AsyncRead + AsyncSeek + Unpin> {
@@ -53,8 +53,11 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
         let mut guarded_reader = GuardedReader {
             reader: self.reader.clone(),
         };
+
         guarded_reader.seek(SeekFrom::Start(entry.data_offset())).await?;
-        let reader = CompressionReader::from_reader(entry.compression(), guarded_reader);
+
+        let reader = guarded_reader.take(entry.compressed_size.unwrap().into());
+        let reader = CompressionReader::from_reader(entry.compression(), reader);
 
         Ok(ZipEntryReader { entry, reader })
     }

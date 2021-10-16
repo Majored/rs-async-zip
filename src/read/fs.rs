@@ -27,10 +27,10 @@ use crate::read::{ZipEntry, ZipEntryReader};
 
 use std::io::SeekFrom;
 use tokio::fs::File;
-use tokio::io::{AsyncReadExt, AsyncSeekExt, Take};
+use tokio::io::{AsyncReadExt, AsyncSeekExt};
 
 /// The type returned as an entry reader within this concurrent module.
-pub type ConcurrentReader<'a> = ZipEntryReader<'a, Take<File>>;
+pub type ConcurrentReader<'a> = ZipEntryReader<'a, File>;
 
 /// A reader which acts concurrently over a filesystem file.
 pub struct ZipFileReader<'a> {
@@ -55,7 +55,8 @@ impl<'a> ZipFileReader<'a> {
 
         let mut fs_file = File::open(self.filename).await?;
         fs_file.seek(SeekFrom::Start(entry.data_offset())).await?;
-        let reader = fs_file.take(entry.uncompressed_size.unwrap().into());
+
+        let reader = fs_file.take(entry.compressed_size.unwrap().into());
         let reader = CompressionReader::from_reader(entry.compression(), reader);
 
         Ok(ZipEntryReader { entry, reader })

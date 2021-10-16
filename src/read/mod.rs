@@ -16,7 +16,7 @@ use std::task::{Context, Poll};
 
 use async_compression::tokio::bufread::{BzDecoder, DeflateDecoder, LzmaDecoder, XzDecoder, ZstdDecoder};
 use chrono::{DateTime, Utc};
-use tokio::io::{AsyncRead, BufReader, ReadBuf};
+use tokio::io::{AsyncRead, BufReader, ReadBuf, Take};
 
 /// An entry within a larger ZIP file reader.
 pub struct ZipEntry {
@@ -117,18 +117,18 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
 ///
 /// This underpins entry reading functionality for all three sub-modules (stream, seek, and concurrent).
 pub(crate) enum CompressionReader<'a, R: AsyncRead + Unpin> {
-    Stored(R),
-    StoredBorrow(&'a mut R),
-    Deflate(DeflateDecoder<BufReader<R>>),
-    DeflateBorrow(DeflateDecoder<BufReader<&'a mut R>>),
-    Bz(BzDecoder<BufReader<R>>),
-    BzBorrow(BzDecoder<BufReader<&'a mut R>>),
-    Lzma(LzmaDecoder<BufReader<R>>),
-    LzmaBorrow(LzmaDecoder<BufReader<&'a mut R>>),
-    Zstd(ZstdDecoder<BufReader<R>>),
-    ZstdBorrow(ZstdDecoder<BufReader<&'a mut R>>),
-    Xz(XzDecoder<BufReader<R>>),
-    XzBorrow(XzDecoder<BufReader<&'a mut R>>),
+    Stored(Take<R>),
+    StoredBorrow(Take<&'a mut R>),
+    Deflate(DeflateDecoder<BufReader<Take<R>>>),
+    DeflateBorrow(DeflateDecoder<BufReader<Take<&'a mut R>>>),
+    Bz(BzDecoder<BufReader<Take<R>>>),
+    BzBorrow(BzDecoder<BufReader<Take<&'a mut R>>>),
+    Lzma(LzmaDecoder<BufReader<Take<R>>>),
+    LzmaBorrow(LzmaDecoder<BufReader<Take<&'a mut R>>>),
+    Zstd(ZstdDecoder<BufReader<Take<R>>>),
+    ZstdBorrow(ZstdDecoder<BufReader<Take<&'a mut R>>>),
+    Xz(XzDecoder<BufReader<Take<R>>>),
+    XzBorrow(XzDecoder<BufReader<Take<&'a mut R>>>),
 }
 
 impl<'a, R: AsyncRead + Unpin> AsyncRead for CompressionReader<'a, R> {
@@ -151,7 +151,7 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for CompressionReader<'a, R> {
 }
 
 impl<'a, R: AsyncRead + Unpin> CompressionReader<'a, R> {
-    pub(crate) fn from_reader(compression: &Compression, reader: R) -> Self {
+    pub(crate) fn from_reader(compression: &Compression, reader: Take<R>) -> Self {
         match compression {
             Compression::Stored => CompressionReader::Stored(reader),
             Compression::Deflate => CompressionReader::Deflate(DeflateDecoder::new(BufReader::new(reader))),
@@ -162,7 +162,7 @@ impl<'a, R: AsyncRead + Unpin> CompressionReader<'a, R> {
         }
     }
 
-    pub(crate) fn from_reader_borrow(compression: &Compression, reader: &'a mut R) -> Self {
+    pub(crate) fn from_reader_borrow(compression: &Compression, reader: Take<&'a mut R>) -> Self {
         match compression {
             Compression::Stored => CompressionReader::StoredBorrow(reader),
             Compression::Deflate => CompressionReader::DeflateBorrow(DeflateDecoder::new(BufReader::new(reader))),
