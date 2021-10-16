@@ -13,6 +13,7 @@ pub enum ZipError {
     UnsupportedCompressionError(u16),
     UpstreamReadError(std::io::Error),
     FeatureNotSupported(&'static str),
+    CRC32CheckError,
     EntryIndexOutOfBounds,
 }
 
@@ -26,6 +27,7 @@ impl ZipError {
             ZipError::UnsupportedCompressionError(actual) => format!("{} is not a supported compression type.", actual),
             ZipError::UpstreamReadError(inner) => format!("An upstream reader returned an error: '{:?}'.", inner),
             ZipError::FeatureNotSupported(feature) => format!("Feature not currently supported: '{}'.", feature),
+            ZipError::CRC32CheckError => format!("A computed CRC32 value did not match the expected value."),
             ZipError::EntryIndexOutOfBounds => format!("Entry index was out of bounds."),
         }
     }

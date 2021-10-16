@@ -9,15 +9,17 @@ pub mod seek;
 pub mod stream;
 pub mod sync;
 
+use crate::error::{Result, ZipError};
 use crate::Compression;
 
+use std::convert::TryInto;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use async_compression::tokio::bufread::{BzDecoder, DeflateDecoder, LzmaDecoder, XzDecoder, ZstdDecoder};
 use chrono::{DateTime, Utc};
 use crc32fast::Hasher;
-use tokio::io::{AsyncRead, BufReader, ReadBuf, Take};
+use tokio::io::{AsyncRead, AsyncReadExt, BufReader, ReadBuf, Take};
 
 /// An entry within a larger ZIP file reader.
 pub struct ZipEntry {
@@ -119,11 +121,39 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     }
 
     /// Returns true if the computed CRC32 value of all bytes read so far matches the expected value.
-    /// 
+    ///
     /// # Note
     /// This function consumes the reader and should only be called once EOF has been reached.
     pub fn compare_crc(self) -> bool {
         self.entry.crc32().unwrap() == self.hasher.finalize()
+    }
+
+    /// A convenience method similar to `AsyncReadExt::read_to_end()` but with the final CRC32 check integrated.
+    ///
+    /// Reads all bytes until EOF and returns an owned vector of them.
+    pub async fn read_to_end_crc(mut self) -> Result<Vec<u8>> {
+        let mut buffer = Vec::with_capacity(self.entry.uncompressed_size.unwrap().try_into().unwrap());
+        self.read_to_end(&mut buffer).await?;
+
+        if !self.compare_crc() {
+            return Err(ZipError::CRC32CheckError);
+        }
+
+        Ok(buffer)
+    }
+
+    /// A convenience method similar to `AsyncReadExt::read_to_string()` but with the final CRC32 check integrated.
+    ///
+    /// Reads all bytes until EOF and returns an owned string of them.
+    pub async fn read_to_string_crc(mut self) -> Result<String> {
+        let mut buffer = String::with_capacity(self.entry.uncompressed_size.unwrap().try_into().unwrap());
+        self.read_to_string(&mut buffer).await?;
+
+        if !self.compare_crc() {
+            return Err(ZipError::CRC32CheckError);
+        }
+
+        Ok(buffer)
     }
 }
 
