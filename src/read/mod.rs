@@ -9,7 +9,7 @@ pub mod seek;
 pub mod stream;
 pub mod sync;
 
-use crate::error::{Result, ZipError};
+use crate::error::Result;
 use crate::header::CentralDirectoryHeader;
 use crate::Compression;
 
@@ -17,8 +17,8 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use async_compression::tokio::bufread::{BzDecoder, DeflateDecoder, LzmaDecoder, XzDecoder, ZstdDecoder};
-use chrono::{DateTime, TimeZone, Utc};
-use tokio::io::{AsyncRead, AsyncReadExt, BufReader, ReadBuf};
+use chrono::{DateTime, Utc};
+use tokio::io::{AsyncRead, BufReader, ReadBuf};
 
 /// An entry within a larger ZIP file reader.
 pub struct ZipEntry {
@@ -48,7 +48,7 @@ impl ZipEntry {
             crc32: Some(header.crc),
             uncompressed_size: Some(header.uncompressed_size),
             compressed_size: Some(header.compressed_size),
-            last_modified: zip_date_to_chrono(header.mod_date, header.mod_time),
+            last_modified: crate::utils::zip_date_to_chrono(header.mod_date, header.mod_time),
             extra: None,
             compression: Compression::from_u16(header.compression)?,
             offset: Some(header.lh_offset),
@@ -132,32 +132,6 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
     fn poll_read(mut self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
         Pin::new(&mut self.reader).poll_read(c, b)
     }
-}
-
-pub(crate) fn zip_date_to_chrono(date: u16, time: u16) -> DateTime<Utc> {
-    let years = (((date & 0xFE00) >> 9) + 1980).into();
-    let months = ((date & 0x1E0) >> 5).into();
-    let days = (date & 0x1F).into();
-
-    let hours = ((time & 0x1F) >> 11).into();
-    let mins = ((time & 0x7E0) >> 5).into();
-    let secs = ((time & 0x1F) << 1).into();
-
-    Utc.ymd(years, months, days).and_hms(hours, mins, secs)
-}
-
-pub(crate) async fn read_u32<R: AsyncRead + Unpin>(reader: &mut R) -> Result<u32> {
-    Ok(reader.read_u32_le().await.map_err(|_| ZipError::ReadFailed)?)
-}
-
-pub(crate) async fn read_string<R: AsyncRead + Unpin>(reader: &mut R, length: u16) -> Result<String> {
-    let mut buffer = String::with_capacity(length as usize);
-    reader
-        .take(length as u64)
-        .read_to_string(&mut buffer)
-        .await
-        .map_err(|_| ZipError::ReadFailed)?;
-    Ok(buffer)
 }
 
 /// A reader which may implement decompression over its inner type, and of which supports owned inner types or mutable

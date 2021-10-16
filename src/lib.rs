@@ -19,6 +19,7 @@ pub(crate) mod header;
 pub(crate) mod delim;
 pub mod error;
 pub mod read;
+pub(crate) mod utils;
 pub mod write;
 
 pub(crate) use array_push;

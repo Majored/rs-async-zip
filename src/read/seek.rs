@@ -22,7 +22,7 @@ use crate::error::{Result, ZipError};
 use crate::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
 use crate::read::{CompressionReader, ZipEntry, ZipEntryReader};
 
-use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt};
 
 use std::io::SeekFrom;
 
@@ -56,7 +56,7 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
     // Assume no ZIP comment exists for the moment so we can seek directly to EOCD header.
     reader.seek(SeekFrom::End(-22)).await?;
 
-    if super::read_u32(reader).await? != crate::delim::EOCDD {
+    if reader.read_u32_le().await? != crate::delim::EOCDD {
         return Err(ZipError::FeatureNotSupported("ZIP file comment"));
     }
 
@@ -71,13 +71,13 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
     let mut entries = Vec::with_capacity(eocdh.num_of_entries.into());
 
     for _ in 0..eocdh.num_of_entries {
-        if super::read_u32(reader).await? != crate::delim::CDFHD {
+        if reader.read_u32_le().await? != crate::delim::CDFHD {
             return Err(ZipError::ReadFailed); // Alter error message.
         }
 
         // Ignore file extra & comment for the moment.
         let header = CentralDirectoryHeader::from_reader(reader).await?;
-        let filename = super::read_string(reader, header.file_name_length).await?;
+        let filename = crate::utils::read_string(reader, header.file_name_length).await?;
         reader
             .seek(SeekFrom::Current(
                 (header.extra_field_length + header.file_comment_length).into(),
