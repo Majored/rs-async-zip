@@ -59,6 +59,6 @@ impl<'a> ZipFileReader<'a> {
         let reader = fs_file.take(entry.compressed_size.unwrap().into());
         let reader = CompressionReader::from_reader(entry.compression(), reader);
 
-        Ok(ZipEntryReader { entry, reader })
+        Ok(ZipEntryReader::from_raw(entry, reader))
     }
 }

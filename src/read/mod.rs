@@ -16,6 +16,7 @@ use std::task::{Context, Poll};
 
 use async_compression::tokio::bufread::{BzDecoder, DeflateDecoder, LzmaDecoder, XzDecoder, ZstdDecoder};
 use chrono::{DateTime, Utc};
+use crc32fast::Hasher;
 use tokio::io::{AsyncRead, BufReader, ReadBuf, Take};
 
 /// An entry within a larger ZIP file reader.
@@ -98,17 +99,46 @@ impl ZipEntry {
 pub struct ZipEntryReader<'a, R: AsyncRead + Unpin> {
     pub(crate) entry: &'a ZipEntry,
     pub(crate) reader: CompressionReader<'a, R>,
+    pub(crate) hasher: Hasher,
 }
 
 impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
+    pub(crate) fn from_raw(entry: &'a ZipEntry, reader: CompressionReader<'a, R>) -> Self {
+        ZipEntryReader {
+            entry,
+            reader,
+            hasher: Hasher::new(),
+        }
+    }
+}
+
+impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
+    /// Returns a reference to the inner entry's data.
     pub fn entry(&self) -> &ZipEntry {
-        &self.entry
+        self.entry
+    }
+
+    /// Returns true if the computed CRC32 value of all bytes read so far matches the expected value.
+    /// 
+    /// # Note
+    /// This function consumes the reader and should only be called once EOF has been reached.
+    pub fn compare_crc(self) -> bool {
+        self.entry.crc32().unwrap() == self.hasher.finalize()
     }
 }
 
 impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
     fn poll_read(mut self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
-        Pin::new(&mut self.reader).poll_read(c, b)
+        let size_before = b.filled().len();
+        let poll = Pin::new(&mut self.reader).poll_read(c, b);
+
+        match poll {
+            Poll::Ready(Err(_)) | Poll::Pending => return poll,
+            _ => {}
+        };
+
+        self.hasher.update(&b.filled()[size_before..b.filled().len()]);
+        poll
     }
 }
 
