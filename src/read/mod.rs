@@ -9,8 +9,6 @@ pub mod seek;
 pub mod stream;
 pub mod sync;
 
-use crate::error::Result;
-use crate::header::CentralDirectoryHeader;
 use crate::Compression;
 
 use std::pin::Pin;
@@ -34,29 +32,9 @@ pub struct ZipEntry {
 
     // Additional fields from EOCDH.
     pub(crate) offset: Option<u32>,
-    pub(crate) name_length: Option<u16>,
-    pub(crate) extra_length: Option<u16>,
 }
 
 impl ZipEntry {
-    /// Construct an entry from its raw parts (central directory header & filename).
-    pub(crate) fn from_raw(header: CentralDirectoryHeader, filename: String) -> Result<Self> {
-        Ok(ZipEntry {
-            name: filename,
-            comment: None,
-            data_descriptor: header.flags.data_descriptor,
-            crc32: Some(header.crc),
-            uncompressed_size: Some(header.uncompressed_size),
-            compressed_size: Some(header.compressed_size),
-            last_modified: crate::utils::zip_date_to_chrono(header.mod_date, header.mod_time),
-            extra: None,
-            compression: Compression::from_u16(header.compression)?,
-            offset: Some(header.lh_offset),
-            name_length: Some(header.file_name_length),
-            extra_length: Some(header.extra_field_length),
-        })
-    }
-
     /// Returns a shared reference to the entry's name.
     pub fn name(&self) -> &str {
         &self.name
@@ -112,7 +90,7 @@ impl ZipEntry {
 
     /// Returns the offset at which data for this entry starts.
     pub(crate) fn data_offset(&self) -> u64 {
-        30 + self.offset.unwrap() as u64 + (self.name_length.unwrap() + self.extra_length.unwrap()) as u64
+        30 + self.offset.unwrap() as u64 + (self.name().len() + self.extra().unwrap().len()) as u64
     }
 }
 

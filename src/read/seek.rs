@@ -21,8 +21,9 @@
 use crate::error::{Result, ZipError};
 use crate::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
 use crate::read::{CompressionReader, ZipEntry, ZipEntryReader};
+use crate::Compression;
 
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt};
+use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt};
 
 use std::io::SeekFrom;
 
@@ -55,10 +56,7 @@ impl<'a, R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<'a, R> {
 pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) -> Result<Vec<ZipEntry>> {
     // Assume no ZIP comment exists for the moment so we can seek directly to EOCD header.
     reader.seek(SeekFrom::End(-22)).await?;
-
-    if reader.read_u32_le().await? != crate::delim::EOCDD {
-        return Err(ZipError::FeatureNotSupported("ZIP file comment"));
-    }
+    crate::utils::assert_delimiter(reader, crate::delim::EOCDD).await?;
 
     let eocdh = EndOfCentralDirectoryHeader::from_reader(reader).await?;
 
@@ -71,22 +69,32 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
     let mut entries = Vec::with_capacity(eocdh.num_of_entries.into());
 
     for _ in 0..eocdh.num_of_entries {
-        match reader.read_u32_le().await? {
-            crate::delim::CDFHD => {}
-            actual => return Err(ZipError::UnexpectedHeaderError(actual, crate::delim::CDFHD)),
-        };
-
-        // Ignore file extra & comment for the moment.
-        let header = CentralDirectoryHeader::from_reader(reader).await?;
-        let filename = crate::utils::read_string(reader, header.file_name_length).await?;
-        reader
-            .seek(SeekFrom::Current(
-                (header.extra_field_length + header.file_comment_length).into(),
-            ))
-            .await?;
-
-        entries.push(ZipEntry::from_raw(header, filename)?);
+        entries.push(read_cd_entry(reader).await?);
     }
 
     Ok(entries)
+}
+
+pub(crate) async fn read_cd_entry<R: AsyncRead + Unpin>(reader: &mut R) -> Result<ZipEntry> {
+    crate::utils::assert_delimiter(reader, crate::delim::CDFHD).await?;
+
+    let header = CentralDirectoryHeader::from_reader(reader).await?;
+    let filename = crate::utils::read_string(reader, header.file_name_length.into()).await?;
+    let extra = crate::utils::read_bytes(reader, header.extra_field_length.into()).await?;
+    let comment = crate::utils::read_string(reader, header.file_comment_length.into()).await?;
+
+    let entry = ZipEntry {
+        name: filename,
+        comment: Some(comment),
+        data_descriptor: header.flags.data_descriptor,
+        crc32: Some(header.crc),
+        uncompressed_size: Some(header.uncompressed_size),
+        compressed_size: Some(header.compressed_size),
+        last_modified: crate::utils::zip_date_to_chrono(header.mod_date, header.mod_time),
+        extra: Some(extra),
+        compression: Compression::from_u16(header.compression)?,
+        offset: Some(header.lh_offset),
+    };
+
+    Ok(entry)
 }
