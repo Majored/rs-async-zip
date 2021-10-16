@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use async_zip::read::fs::ZipFileReader;
 use tokio::fs::File;
-use tokio::io::BufReader;
 
 #[tokio::main]
 async fn main() {
@@ -27,8 +26,7 @@ async fn main() {
             tokio::fs::create_dir_all(path.parent().unwrap()).await.unwrap();
 
             let mut output = File::create(path).await.unwrap();
-            let mut reader = BufReader::with_capacity(65536, reader);
-            tokio::io::copy_buf(&mut reader, &mut output).await.unwrap();
+            reader.copy_to_end_crc(&mut output, 65536).await.unwrap();
         }));
     }
 
