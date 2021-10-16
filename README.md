@@ -1,7 +1,7 @@
 # rs-async-zip
 [![GitHub license](https://img.shields.io/badge/license-MIT-007ec6)](https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/async_zip)](https://crates.io/crates/async_zip)
-[![docs.rs](https://img.shields.io/docsrs/async_zip/0.0.2)](https://docs.rs/async_zip/0.0.2/async_zip/)
+[![docs.rs](https://img.shields.io/docsrs/async_zip)](https://docs.rs/async_zip/)
 
 An asynchronous ZIP archive reading/writing crate with a heavy focus on streaming support.
 
@@ -9,7 +9,7 @@ An asynchronous ZIP archive reading/writing crate with a heavy focus on streamin
 - Asynchronous design powered by `tokio`.
 - Support for Stored, Deflate, bzip2, LZMA, zstd, and xz compression methods.
 - Various different reading approaches (seek, stream, filesystem, in-memory buffer).
-- Support for writing a complete data (u8 slices) or stream writing using data descriptors (unimplemented).
+- Support for writing complete data (u8 slices) or streams using data descriptors (unimplemented).
 - Aims for reasonable [specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) compliance.
 
 ## Installation & Basic Usage
