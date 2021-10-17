@@ -13,7 +13,7 @@ async fn main() {
     let mut handles = Vec::with_capacity(zip.entries().len());
 
     for (index, entry) in zip.entries().iter().enumerate() {
-        if entry.name().ends_with("/") {
+        if entry.dir() {
             continue;
         }
 
