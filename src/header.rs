@@ -214,6 +214,14 @@ impl From<[u8; 18]> for EndOfCentralDirectoryHeader {
 /* end from array */
 
 /* from reader */
+impl LocalFileHeader {
+    pub async fn from_reader<R: AsyncRead + Unpin>(reader: &mut R) -> Result<LocalFileHeader> {
+        let mut buffer: [u8; 26] = [0; 26];
+        reader.read(&mut buffer).await?;
+        Ok(LocalFileHeader::from(buffer))
+    }
+}
+
 impl EndOfCentralDirectoryHeader {
     pub async fn from_reader<R: AsyncRead + Unpin>(reader: &mut R) -> Result<EndOfCentralDirectoryHeader> {
         let mut buffer: [u8; 18] = [0; 18];
