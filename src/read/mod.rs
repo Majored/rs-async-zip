@@ -105,6 +105,7 @@ pub struct ZipEntryReader<'a, R: AsyncRead + Unpin> {
 }
 
 impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
+    /// Construct an entry reader from its raw parts (a shared reference to the entry and an inner reader).
     pub(crate) fn from_raw(entry: &'a ZipEntry, reader: CompressionReader<'a, R>) -> Self {
         ZipEntryReader {
             entry,
@@ -112,9 +113,7 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
             hasher: Hasher::new(),
         }
     }
-}
 
-impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     /// Returns a reference to the inner entry's data.
     pub fn entry(&self) -> &ZipEntry {
         self.entry
@@ -135,11 +134,11 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         let mut buffer = Vec::with_capacity(self.entry.uncompressed_size.unwrap().try_into().unwrap());
         self.read_to_end(&mut buffer).await?;
 
-        if !self.compare_crc() {
-            return Err(ZipError::CRC32CheckError);
+        if self.compare_crc() {
+            Ok(buffer)
+        } else {
+            Err(ZipError::CRC32CheckError)
         }
-
-        Ok(buffer)
     }
 
     /// A convenience method similar to `AsyncReadExt::read_to_string()` but with the final CRC32 check integrated.
@@ -149,11 +148,11 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         let mut buffer = String::with_capacity(self.entry.uncompressed_size.unwrap().try_into().unwrap());
         self.read_to_string(&mut buffer).await?;
 
-        if !self.compare_crc() {
-            return Err(ZipError::CRC32CheckError);
+        if self.compare_crc() {
+            Ok(buffer)
+        } else {
+            Err(ZipError::CRC32CheckError)
         }
-
-        Ok(buffer)
     }
 
     /// A convenience method for buffered copying of bytes to a writer with the final CRC32 check integrated.
@@ -169,26 +168,26 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         let mut reader = BufReader::with_capacity(buffer, &mut self);
         tokio::io::copy_buf(&mut reader, writer).await.unwrap();
 
-        if !self.compare_crc() {
-            return Err(ZipError::CRC32CheckError);
+        if self.compare_crc() {
+            Ok(())
+        } else {
+            Err(ZipError::CRC32CheckError)
         }
-
-        Ok(())
     }
 }
 
 impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
     fn poll_read(mut self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
-        let size_before = b.filled().len();
+        let prev_len = b.filled().len();
         let poll = Pin::new(&mut self.reader).poll_read(c, b);
 
         match poll {
-            Poll::Ready(Err(_)) | Poll::Pending => return poll,
-            _ => {}
-        };
-
-        self.hasher.update(&b.filled()[size_before..b.filled().len()]);
-        poll
+            Poll::Ready(Err(_)) | Poll::Pending => poll,
+            _ => {
+                self.hasher.update(&b.filled()[prev_len..b.filled().len()]);
+                poll
+            }
+        }
     }
 }
 
