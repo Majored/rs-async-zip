@@ -59,7 +59,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
         let reader = guarded_reader.take(entry.compressed_size.unwrap().into());
         let reader = CompressionReader::from_reader(entry.compression(), reader);
 
-        Ok(ZipEntryReader::from_raw(entry, reader))
+        Ok(ZipEntryReader::from_raw(entry, reader, false))
     }
 }
 

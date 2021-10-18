@@ -32,9 +32,9 @@ impl<'a, R: AsyncRead + Unpin> ZipFileReader<'a, R> {
         self.finished
     }
 
-    /// Opens the entry for reading.
+    /// Opens the next entry for reading if the central directory hasn't already been reached.
     pub async fn entry_reader<'b>(&'b mut self) -> Result<Option<ZipEntryReader<'b, R>>> {
-        // TODO: Ensure the previous file has been fully read.
+        // TODO: Ensure the previous entry has been fully read.
 
         if self.finished {
             return Ok(None);
@@ -50,7 +50,7 @@ impl<'a, R: AsyncRead + Unpin> ZipFileReader<'a, R> {
         let reader = self.reader.take(entry_borrow.compressed_size.unwrap().into());
         let reader = CompressionReader::from_reader_borrow(entry_borrow.compression(), reader);
 
-        Ok(Some(ZipEntryReader::from_raw(entry_borrow, reader)))
+        Ok(Some(ZipEntryReader::from_raw(entry_borrow, reader, true)))
     }
 }
 

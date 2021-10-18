@@ -102,15 +102,19 @@ pub struct ZipEntryReader<'a, R: AsyncRead + Unpin> {
     pub(crate) entry: &'a ZipEntry,
     pub(crate) reader: CompressionReader<'a, R>,
     pub(crate) hasher: Hasher,
+    pub(crate) consumed: bool,
+    pub(crate) stream: bool,
 }
 
 impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     /// Construct an entry reader from its raw parts (a shared reference to the entry and an inner reader).
-    pub(crate) fn from_raw(entry: &'a ZipEntry, reader: CompressionReader<'a, R>) -> Self {
+    pub(crate) fn from_raw(entry: &'a ZipEntry, reader: CompressionReader<'a, R>, stream: bool) -> Self {
         ZipEntryReader {
             entry,
             reader,
+            stream,
             hasher: Hasher::new(),
+            consumed: false,
         }
     }
 
@@ -119,12 +123,15 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         self.entry
     }
 
+    ///  Returns whether or not this reader has been fully consumed.
+    pub fn consumed(&self) -> bool {
+        self.consumed
+    }
+
     /// Returns true if the computed CRC32 value of all bytes read so far matches the expected value.
-    ///
-    /// # Note
-    /// This function consumes the reader and should only be called once EOF has been reached.
-    pub fn compare_crc(self) -> bool {
-        self.entry.crc32().unwrap() == self.hasher.finalize()
+    pub fn compare_crc(&mut self) -> bool {
+        let hasher = std::mem::take(&mut self.hasher);
+        self.entry.crc32().unwrap() == hasher.finalize()
     }
 
     /// A convenience method similar to `AsyncReadExt::read_to_end()` but with the final CRC32 check integrated.
@@ -182,11 +189,23 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
         let poll = Pin::new(&mut self.reader).poll_read(c, b);
 
         match poll {
-            Poll::Ready(Err(_)) | Poll::Pending => poll,
-            _ => {
-                self.hasher.update(&b.filled()[prev_len..b.filled().len()]);
-                poll
-            }
+            Poll::Ready(Err(_)) | Poll::Pending => return poll,
+            _ => {}
+        };
+        
+        if b.filled().len() - prev_len == 0 {
+            self.consumed = true;
+        }
+
+        self.hasher.update(&b.filled()[prev_len..b.filled().len()]);
+        poll
+    }
+}
+
+impl<'a, R: AsyncRead + Unpin> Drop for ZipEntryReader<'a, R> {
+    fn drop(&mut self) {
+        if self.stream && !self.consumed {
+            panic!("Not all bytes of this reader were consumed before being dropped.");
         }
     }
 }
