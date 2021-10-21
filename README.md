@@ -1,4 +1,4 @@
-# rs-async-zip
+# async_zip
 [![GitHub license](https://img.shields.io/badge/license-MIT-007ec6)](https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/async_zip)](https://crates.io/crates/async_zip)
 [![docs.rs](https://img.shields.io/docsrs/async_zip)](https://docs.rs/async_zip/)
@@ -8,7 +8,7 @@ An asynchronous ZIP archive reading/writing crate with a heavy focus on streamin
 ## Features
 - Asynchronous design powered by `tokio`.
 - Support for Stored, Deflate, bzip2, LZMA, zstd, and xz compression methods.
-- Various different reading approaches (seek, stream, filesystem, in-memory buffer).
+- Various different reading approaches (seek, stream, filesystem, in-memory buffer, etc).
 - Support for writing complete data (u8 slices) or streams using data descriptors (unimplemented).
 - Aims for reasonable [specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) compliance.
 
@@ -16,7 +16,7 @@ An asynchronous ZIP archive reading/writing crate with a heavy focus on streamin
 
 ```toml
 [dependencies]
-async_zip = "0.0.2"
+async_zip = "0.0.3"
 ```
 
 A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-zip/tree/main/examples) can be found under the `/examples` directory.
@@ -41,7 +41,8 @@ println!("{}", txt);
 Whilst I will be continuing to maintain this crate myself, reasonable specification compliance is a huge undertaking for a single individual. As such, contributions will always be encouraged and appreciated.
 
 No contribution guidelines exist but additions should be developed with readability in mind, with appropriate comments, and make use of `rustfmt`.
+
 ## Issues & Support
-Whether you're wanting to report a bug you've come across during use of this crate or are seeking general help/assistance, please utilise the [issues tracker](https://github.com/Majored/rs-async-zip/issues) and tag your issue appropriately during creation.
+Whether you're wanting to report a bug you've come across during use of this crate or are seeking general help/assistance, please utilise the [issues tracker](https://github.com/Majored/rs-async-zip/issues) and provide as much detail as possible (eg. recreation steps).
 
 I try to respond to issues within a reasonable timeframe.
