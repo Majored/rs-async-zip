@@ -4,8 +4,7 @@
 //! A module for reading ZIP file entries concurrently from an in-memory buffer.
 
 use crate::error::{Result, ZipError};
-use crate::read::reader::{CompressionReader, ZipEntryReader};
-use crate::read::ZipEntry;
+use crate::read::{CompressionReader, ZipEntry, ZipEntryReader};
 
 use std::io::{Cursor, SeekFrom};
 
