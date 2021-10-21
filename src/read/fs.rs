@@ -21,9 +21,9 @@
 //! };
 //! ```
 
-use super::CompressionReader;
 use crate::error::{Result, ZipError};
-use crate::read::{ZipEntry, ZipEntryReader};
+use crate::read::reader::{CompressionReader, ZipEntryReader};
+use crate::read::ZipEntry;
 
 use std::io::SeekFrom;
 use tokio::fs::File;

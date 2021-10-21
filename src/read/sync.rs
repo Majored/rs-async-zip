@@ -15,7 +15,8 @@
 //! Feel free to open an issue/PR if you have a good approach for this.
 
 use crate::error::{Result, ZipError};
-use crate::read::{CompressionReader, ZipEntry, ZipEntryReader};
+use crate::read::reader::{CompressionReader, ZipEntryReader};
+use crate::read::ZipEntry;
 
 use std::io::SeekFrom;
 use std::ops::DerefMut;
