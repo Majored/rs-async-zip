@@ -32,6 +32,10 @@ impl<'a> ZipFileReader<'a> {
     pub async fn entry_reader<'b>(&'b mut self, index: usize) -> Result<ConcurrentReader<'b, 'a>> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
+        if entry.data_descriptor() {
+            return Err(ZipError::FeatureNotSupported("Entries with data descriptors"));
+        }
+
         let mut cursor = Cursor::new(self.data.clone());
         cursor.seek(SeekFrom::Start(entry.data_offset())).await?;
 

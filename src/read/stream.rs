@@ -51,6 +51,10 @@ impl<'a, R: AsyncRead + Unpin> ZipFileReader<'a, R> {
 
         let entry_borrow = self.entry.as_ref().unwrap();
 
+        if entry_borrow.data_descriptor() {
+            return Err(ZipError::FeatureNotSupported("Entries with data descriptors"));
+        }
+
         let reader = self.reader.take(entry_borrow.compressed_size.unwrap().into());
         let reader = CompressionReader::from_reader_borrow(entry_borrow.compression(), reader);
 

@@ -53,6 +53,10 @@ impl<'a> ZipFileReader<'a> {
     pub async fn entry_reader(&self, index: usize) -> Result<ConcurrentReader<'_>> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
+        if entry.data_descriptor() {
+            return Err(ZipError::FeatureNotSupported("Entries with data descriptors"));
+        }
+
         let mut fs_file = File::open(self.filename).await?;
         fs_file.seek(SeekFrom::Start(entry.data_offset())).await?;
 

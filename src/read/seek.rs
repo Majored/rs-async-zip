@@ -46,6 +46,10 @@ impl<'a, R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<'a, R> {
     pub async fn entry_reader<'b>(&'b mut self, index: usize) -> Result<ZipEntryReader<'b, R>> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
+        if entry.data_descriptor() {
+            return Err(ZipError::FeatureNotSupported("Entries with data descriptors"));
+        }
+
         self.reader.seek(SeekFrom::Start(entry.data_offset())).await?;
 
         let reader = self.reader.take(entry.compressed_size.unwrap().into());
