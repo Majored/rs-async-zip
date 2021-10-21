@@ -2,14 +2,14 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 //! A module for reading ZIP file from a non-seekable source.
-//! 
+//!
 //! # Example
 //! ```
 //! ```
 
 use crate::error::{Result, ZipError};
-use crate::read::{ZipEntry, ZipEntryReader, CompressionReader};
 use crate::header::LocalFileHeader;
+use crate::read::{CompressionReader, ZipEntry, ZipEntryReader};
 use crate::Compression;
 
 use tokio::io::{AsyncRead, AsyncReadExt};
@@ -24,7 +24,11 @@ pub struct ZipFileReader<'a, R: AsyncRead + Unpin> {
 impl<'a, R: AsyncRead + Unpin> ZipFileReader<'a, R> {
     /// Constructs a new ZIP file reader from a mutable reference to a reader.
     pub fn new(reader: &'a mut R) -> Self {
-        ZipFileReader { reader, entry: None, finished: false }
+        ZipFileReader {
+            reader,
+            entry: None,
+            finished: false,
+        }
     }
 
     /// Returns whether or not `entry_reader()` will yield more entries.
@@ -56,7 +60,7 @@ impl<'a, R: AsyncRead + Unpin> ZipFileReader<'a, R> {
 
 pub(crate) async fn read_lfh<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Option<ZipEntry>> {
     match reader.read_u32_le().await? {
-        crate::delim::LFHD => {},
+        crate::delim::LFHD => {}
         crate::delim::CDFHD => return Ok(None),
         actual => return Err(ZipError::UnexpectedHeaderError(actual, crate::delim::LFHD)),
     };

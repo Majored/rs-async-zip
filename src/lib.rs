@@ -14,15 +14,12 @@
 //!
 //! [Read more.](https://github.com/Majored/rs-async-zip)
 
-#[macro_use]
-pub(crate) mod header;
 pub(crate) mod delim;
 pub mod error;
+pub(crate) mod header;
 pub mod read;
 pub(crate) mod utils;
 pub mod write;
-
-pub(crate) use array_push;
 
 use error::{Result, ZipError};
 

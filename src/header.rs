@@ -3,7 +3,6 @@
 
 #![allow(dead_code)]
 
-use crate::array_push;
 use crate::error::Result;
 
 use std::convert::TryInto;
@@ -248,3 +247,5 @@ macro_rules! array_push {
         }
     }};
 }
+
+pub(crate) use array_push;

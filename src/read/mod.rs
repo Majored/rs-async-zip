@@ -19,7 +19,7 @@ use std::task::{Context, Poll};
 use async_compression::tokio::bufread::{BzDecoder, DeflateDecoder, LzmaDecoder, XzDecoder, ZstdDecoder};
 use chrono::{DateTime, Utc};
 use crc32fast::Hasher;
-use tokio::io::{AsyncRead, AsyncReadExt, BufReader, ReadBuf, Take, AsyncWrite};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, BufReader, ReadBuf, Take};
 
 /// An entry within a larger ZIP file reader.
 pub struct ZipEntry {
@@ -163,11 +163,11 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     }
 
     /// A convenience method for buffered copying of bytes to a writer with the final CRC32 check integrated.
-    /// 
+    ///
     /// # Note
     /// Any bytes written to the writer cannot be unwound, thus the caller should appropriately handle the side effects
     /// of a failed CRC32 check.
-    /// 
+    ///
     /// Prefer this method over tokio::io::copy as we have the ability to specify the buffer size (64kb recommended on
     /// modern systems), whereas, tokio's default implementation uses 2kb, so many more calls to read() have to take
     /// place.
@@ -192,7 +192,7 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
             Poll::Ready(Err(_)) | Poll::Pending => return poll,
             _ => {}
         };
-        
+
         if b.filled().len() - prev_len == 0 {
             self.consumed = true;
         }
