@@ -1,7 +1,7 @@
 [package]
 name = "async_zip"
 version = "0.0.3"
-edition = "2018"
+edition = "2021"
 authors = ["Harry [hello@majored.pw]"]
 repository = "https://github.com/Majored/rs-async-zip"
 description = "An asynchronous ZIP archive reading/writing crate with a heavy focus on streaming support."
