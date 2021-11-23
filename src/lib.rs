@@ -24,7 +24,7 @@ pub mod write;
 use error::{Result, ZipError};
 
 /// A compression method supported by this crate.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Compression {
     Stored,
     Deflate,
