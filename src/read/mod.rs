@@ -22,6 +22,7 @@ use crc32fast::Hasher;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, BufReader, ReadBuf, Take};
 
 /// An entry within a larger ZIP file reader.
+#[derive(Debug)]
 pub struct ZipEntry {
     pub(crate) name: String,
     pub(crate) comment: Option<String>,
