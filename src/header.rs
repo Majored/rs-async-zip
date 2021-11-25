@@ -158,11 +158,11 @@ impl From<[u8; 26]> for LocalFileHeader {
 
 impl From<u16> for GeneralPurposeFlag {
     fn from(value: u16) -> GeneralPurposeFlag {
-        let encrypted = match (value & 0x8000) >> 14 {
+        let encrypted = match value & 0x1 {
             0 => false,
             _ => true,
         };
-        let data_descriptor = match (value & 0x1000) >> 12 {
+        let data_descriptor = match (value & 0x8) >> 3 {
             0 => false,
             _ => true,
         };
