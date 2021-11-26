@@ -23,6 +23,7 @@ pub struct LocalFileHeader {
     pub extra_field_length: u16,
 }
 
+#[derive(Copy, Clone)]
 pub struct GeneralPurposeFlag {
     pub encrypted: bool,
     pub data_descriptor: bool,

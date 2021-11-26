@@ -28,14 +28,15 @@ impl<'a> EntryOptions<'a> {
 pub struct ZipFileWriter<'a, W: AsyncWrite + Unpin> {
     writer: &'a mut W,
     cd_entries: Vec<CentralDirectoryHeader>,
+    written: usize,
 }
 
 impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
     pub fn new(writer: &'a mut W) -> Self {
-        Self { writer, cd_entries: Vec::new() }
+        Self { writer, cd_entries: Vec::new(), written: 0 }
     }
 
-    pub async fn write_entry(&mut self, opts: EntryOptions<'_>, mut raw_data: &[u8]) -> Result<()> {
+    pub async fn write_entry(&mut self, opts: EntryOptions<'_>, raw_data: &[u8]) -> Result<()> {
         let mut _compressed_data: Option<Vec<u8>> = None;
         let compressed_data = match &opts.compression {
             Compression::Stored => raw_data,
@@ -63,10 +64,31 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
             },
         };
 
-        self.writer.write(&crate::delim::LFHD.to_le_bytes()).await?;
-        self.writer.write(&lf_header.to_slice()).await?;
-        self.writer.write(opts.filename.as_bytes()).await?;
-        self.writer.write(compressed_data).await?;
+        let cd_header = CentralDirectoryHeader {
+            v_made_by: 0,
+            v_needed: 0,
+            compressed_size: lf_header.compressed_size,
+            uncompressed_size: lf_header.uncompressed_size,
+            compression: lf_header.compression,
+            crc: lf_header.crc,
+            extra_field_length: lf_header.extra_field_length,
+            file_name_length: lf_header.file_name_length,
+            file_comment_length: 0,
+            mod_time: lf_header.mod_time,
+            mod_date: lf_header.mod_date,
+            flags: lf_header.flags,
+            disk_start: 0,
+            inter_attr: 0,
+            exter_attr: 0,
+            lh_offset: self.written as u32,
+        };
+
+        self.written += self.writer.write(&crate::delim::LFHD.to_le_bytes()).await?;
+        self.written += self.writer.write(&lf_header.to_slice()).await?;
+        self.written += self.writer.write(opts.filename.as_bytes()).await?;
+        self.written += self.writer.write(compressed_data).await?;
+
+        self.cd_entries.push(cd_header);
 
         Ok(())
     }
