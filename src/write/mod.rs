@@ -5,13 +5,14 @@
 
 use crate::error::Result;
 use crate::Compression;
-use crate::header::CentralDirectoryHeader;
+use crate::header::{LocalFileHeader, CentralDirectoryHeader, GeneralPurposeFlag};
 
 use std::io::Cursor;
 
-use tokio::io::AsyncWriteExt;
-use async_compression::tokio::write::DeflateEncoder;
-use tokio::io::AsyncWrite;
+use chrono::Utc;
+use crc32fast::Hasher;
+use async_compression::tokio::write::{DeflateEncoder, BzEncoder, LzmaEncoder, XzEncoder, ZstdEncoder};
+use tokio::io::{AsyncWrite, AsyncWriteExt};
 
 pub struct EntryOptions<'a> {
     filename: &'a str,
@@ -34,14 +35,40 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
         Self { writer, cd_entries: Vec::new() }
     }
 
-    pub async fn write_entry(&mut self, opts: EntryOptions<'_>, data: &[u8]) -> Result<()> {
-        if let Compression::Stored = &opts.compression {
-            // Handle stored separately so we don't need to heap-allocate anything.
-        }
+    pub async fn write_entry(&mut self, opts: EntryOptions<'_>, mut raw_data: &[u8]) -> Result<()> {
+        let mut _compressed_data: Option<Vec<u8>> = None;
+        let compressed_data = match &opts.compression {
+            Compression::Stored => raw_data,
+            _ => { 
+                _compressed_data = Some(compress(&opts.compression, raw_data).await);
+                _compressed_data.as_ref().unwrap()
+            }
+        };
 
-        let compressed_data = compress(&opts.compression, data).await;
+        let (mod_time, mod_date) = crate::utils::chrono_to_zip_time(&Utc::now());
 
-        unimplemented!();
+        let lf_header = LocalFileHeader {
+            compressed_size: compressed_data.len() as u32,
+            uncompressed_size: raw_data.len() as u32,
+            compression: opts.compression.to_u16(),
+            crc: compute_crc(raw_data),
+            extra_field_length: 0,
+            file_name_length: opts.filename.as_bytes().len() as u16,
+            mod_time,
+            mod_date,
+            version: 0,
+            flags: GeneralPurposeFlag {
+                data_descriptor: false,
+                encrypted: false,
+            },
+        };
+
+        self.writer.write(&crate::delim::LFHD.to_le_bytes()).await?;
+        self.writer.write(&lf_header.to_slice()).await?;
+        self.writer.write(opts.filename.as_bytes()).await?;
+        self.writer.write(compressed_data).await?;
+
+        Ok(())
     }
 
     pub fn stream_write_entry(&mut self, opts: EntryOptions) -> Result<()> {
@@ -54,16 +81,40 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
 }
 
 async fn compress(compression: &Compression, data: &[u8]) -> Vec<u8> {
+    // TODO: Reduce reallocations of Vec by making a lower-bound estimate of the length reduction and
+    // pre-initialising the Vec to that length. Then truncate() to the actual number of bytes written.
     match compression {
         Compression::Deflate => {
-            // TODO: Reduce reallocations of Vec by making a lower-bound estimate of the length reduction and
-            // pre-initialising the Vec to that length. Then truncate() to the actual number of bytes written.
             let mut writer = DeflateEncoder::new(Cursor::new(Vec::new()));
             writer.write_all(data).await.unwrap();
             writer.into_inner().into_inner()
         }
-        _ => {
-            unimplemented!();
+        Compression::Bz => {
+            let mut writer = BzEncoder::new(Cursor::new(Vec::new()));
+            writer.write_all(data).await.unwrap();
+            writer.into_inner().into_inner()
         }
+        Compression::Lzma => {
+            let mut writer = LzmaEncoder::new(Cursor::new(Vec::new()));
+            writer.write_all(data).await.unwrap();
+            writer.into_inner().into_inner()
+        }
+        Compression::Xz => {
+            let mut writer = XzEncoder::new(Cursor::new(Vec::new()));
+            writer.write_all(data).await.unwrap();
+            writer.into_inner().into_inner()
+        }
+        Compression::Zstd => {
+            let mut writer = ZstdEncoder::new(Cursor::new(Vec::new()));
+            writer.write_all(data).await.unwrap();
+            writer.into_inner().into_inner()
+        }
+        _ => unreachable!(),
     }
+}
+
+fn compute_crc(data: &[u8]) -> u32 {
+    let mut hasher = Hasher::new();
+    hasher.update(data);
+    hasher.finalize()
 }
