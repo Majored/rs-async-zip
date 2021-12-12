@@ -4,14 +4,14 @@
 //! A module which supports writing ZIP files (unimplemented).
 
 use crate::error::Result;
+use crate::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
 use crate::Compression;
-use crate::header::{LocalFileHeader, CentralDirectoryHeader, GeneralPurposeFlag};
 
 use std::io::Cursor;
 
+use async_compression::tokio::write::{BzEncoder, DeflateEncoder, LzmaEncoder, XzEncoder, ZstdEncoder};
 use chrono::Utc;
 use crc32fast::Hasher;
-use async_compression::tokio::write::{DeflateEncoder, BzEncoder, LzmaEncoder, XzEncoder, ZstdEncoder};
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
 pub struct EntryOptions<'a> {
@@ -40,7 +40,7 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
         let mut _compressed_data: Option<Vec<u8>> = None;
         let compressed_data = match &opts.compression {
             Compression::Stored => raw_data,
-            _ => { 
+            _ => {
                 _compressed_data = Some(compress(&opts.compression, raw_data).await);
                 _compressed_data.as_ref().unwrap()
             }
@@ -58,10 +58,7 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
             mod_time,
             mod_date,
             version: 0,
-            flags: GeneralPurposeFlag {
-                data_descriptor: false,
-                encrypted: false,
-            },
+            flags: GeneralPurposeFlag { data_descriptor: false, encrypted: false },
         };
 
         let cd_header = CentralDirectoryHeader {

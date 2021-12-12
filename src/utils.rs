@@ -3,7 +3,7 @@
 
 use crate::error::{Result, ZipError};
 
-use chrono::{DateTime, TimeZone, Utc, Datelike, Timelike};
+use chrono::{DateTime, Datelike, TimeZone, Timelike, Utc};
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 /// Converts a date and time stored within ZIP headers into a `chrono` structure.

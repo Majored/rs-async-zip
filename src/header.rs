@@ -168,10 +168,7 @@ impl From<u16> for GeneralPurposeFlag {
             _ => true,
         };
 
-        GeneralPurposeFlag {
-            encrypted,
-            data_descriptor,
-        }
+        GeneralPurposeFlag { encrypted, data_descriptor }
     }
 }
 

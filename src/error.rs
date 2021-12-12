@@ -20,10 +20,9 @@ pub enum ZipError {
 impl ZipError {
     pub fn description(&self) -> String {
         match self {
-            ZipError::UnexpectedHeaderError(actual, expected) => format!(
-                "Encountered an unexpected header (actual: {:#x}, expected: {:#x}).",
-                actual, expected
-            ),
+            ZipError::UnexpectedHeaderError(actual, expected) => {
+                format!("Encountered an unexpected header (actual: {:#x}, expected: {:#x}).", actual, expected)
+            }
             ZipError::UnsupportedCompressionError(actual) => format!("{} is not a supported compression type.", actual),
             ZipError::UpstreamReadError(inner) => format!("An upstream reader returned an error: '{:?}'.", inner),
             ZipError::FeatureNotSupported(feature) => format!("Feature not currently supported: '{}'.", feature),

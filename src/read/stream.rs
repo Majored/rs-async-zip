@@ -24,11 +24,7 @@ pub struct ZipFileReader<'a, R: AsyncRead + Unpin> {
 impl<'a, R: AsyncRead + Unpin> ZipFileReader<'a, R> {
     /// Constructs a new ZIP file reader from a mutable reference to a reader.
     pub fn new(reader: &'a mut R) -> Self {
-        ZipFileReader {
-            reader,
-            entry: None,
-            finished: false,
-        }
+        ZipFileReader { reader, entry: None, finished: false }
     }
 
     /// Returns whether or not `entry_reader()` will yield more entries.

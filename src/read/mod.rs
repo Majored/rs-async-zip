@@ -110,13 +110,7 @@ pub struct ZipEntryReader<'a, R: AsyncRead + Unpin> {
 impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     /// Construct an entry reader from its raw parts (a shared reference to the entry and an inner reader).
     pub(crate) fn from_raw(entry: &'a ZipEntry, reader: CompressionReader<'a, R>, stream: bool) -> Self {
-        ZipEntryReader {
-            entry,
-            reader,
-            stream,
-            hasher: Hasher::new(),
-            consumed: false,
-        }
+        ZipEntryReader { entry, reader, stream, hasher: Hasher::new(), consumed: false }
     }
 
     /// Returns a reference to the inner entry's data.

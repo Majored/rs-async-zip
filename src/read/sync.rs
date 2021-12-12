@@ -38,10 +38,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
         unimplemented!();
 
         let entries = crate::read::seek::read_cd(&mut reader).await?;
-        Ok(ZipFileReader {
-            reader: Arc::new(Mutex::new(reader)),
-            entries,
-        })
+        Ok(ZipFileReader { reader: Arc::new(Mutex::new(reader)), entries })
     }
 
     crate::read::reader_entry_impl!();
@@ -50,9 +47,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
     pub async fn entry_reader<'a>(&'a self, index: usize) -> Result<ZipEntryReader<'a, GuardedReader<R>>> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
-        let mut guarded_reader = GuardedReader {
-            reader: self.reader.clone(),
-        };
+        let mut guarded_reader = GuardedReader { reader: self.reader.clone() };
 
         guarded_reader.seek(SeekFrom::Start(entry.data_offset())).await?;
 
