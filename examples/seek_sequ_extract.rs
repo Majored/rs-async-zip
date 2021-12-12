@@ -6,6 +6,9 @@ use std::path::Path;
 use async_zip::read::seek::ZipFileReader;
 use tokio::fs::File;
 
+// NOTE: This example does not check nor mitigate any potienal directory traversal. It expects a trusted ZIP file to be
+//       provided. Mitigation should be added by the library implementer where needed.
+
 #[tokio::main]
 async fn main() {
     let mut file = File::open("./Archive.zip").await.unwrap();

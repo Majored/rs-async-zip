@@ -7,6 +7,9 @@ use std::sync::Arc;
 use async_zip::read::fs::ZipFileReader;
 use tokio::fs::File;
 
+// NOTE: This example does not check nor mitigate any potienal directory traversal. It expects a trusted ZIP file to be
+//       provided. Mitigation should be added by the library implementer where needed.
+
 #[tokio::main]
 async fn main() {
     let zip = Arc::new(ZipFileReader::new("./Archive.zip").await.unwrap());
