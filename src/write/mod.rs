@@ -4,7 +4,7 @@
 //! A module which supports writing ZIP files (unimplemented).
 
 use crate::error::Result;
-use crate::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
+use crate::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader, EndOfCentralDirectoryHeader};
 use crate::Compression;
 
 use std::io::Cursor;
@@ -27,7 +27,7 @@ impl<'a> EntryOptions<'a> {
 
 pub struct ZipFileWriter<'a, W: AsyncWrite + Unpin> {
     writer: &'a mut W,
-    cd_entries: Vec<CentralDirectoryHeader>,
+    cd_entries: Vec<(CentralDirectoryHeader, String)>,
     written: usize,
 }
 
@@ -85,17 +85,41 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
         self.written += self.writer.write(opts.filename.as_bytes()).await?;
         self.written += self.writer.write(compressed_data).await?;
 
-        self.cd_entries.push(cd_header);
+        self.cd_entries.push((cd_header, opts.filename.to_string()));
 
         Ok(())
     }
 
-    pub fn stream_write_entry(&mut self, opts: EntryOptions) -> Result<()> {
+    pub fn stream_write_entry(&mut self, _opts: EntryOptions) -> Result<()> {
         unimplemented!();
     }
 
-    pub fn close(self) -> Result<()> {
-        unimplemented!();
+    pub async fn close(self) -> Result<()> {
+        let cd_offset = self.written;
+        let mut cd_size: u32 = 0;
+
+        for entry in &self.cd_entries {
+            self.writer.write(&crate::delim::CDFHD.to_le_bytes()).await?;
+            self.writer.write(&entry.0.to_slice()).await?;
+            self.writer.write(&entry.1.as_bytes()).await?;
+
+            cd_size += 4 + 42 + entry.1.as_bytes().len() as u32;
+        }
+
+        let header = EndOfCentralDirectoryHeader {
+            disk_num: 0,
+            start_cent_dir_disk: 0,
+            num_of_entries_disk: self.cd_entries.len() as u16,
+            num_of_entries: self.cd_entries.len() as u16,
+            size_cent_dir: cd_size,
+            cent_dir_offset: cd_offset as u32,
+            file_comm_length: 0,
+        };
+
+        self.writer.write(&crate::delim::EOCDD.to_le_bytes()).await?;
+        self.writer.write(&header.to_slice()).await?;
+
+        Ok(())
     }
 }
 
@@ -106,26 +130,31 @@ async fn compress(compression: &Compression, data: &[u8]) -> Vec<u8> {
         Compression::Deflate => {
             let mut writer = DeflateEncoder::new(Cursor::new(Vec::new()));
             writer.write_all(data).await.unwrap();
+            writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()
         }
         Compression::Bz => {
             let mut writer = BzEncoder::new(Cursor::new(Vec::new()));
             writer.write_all(data).await.unwrap();
+            writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()
         }
         Compression::Lzma => {
             let mut writer = LzmaEncoder::new(Cursor::new(Vec::new()));
             writer.write_all(data).await.unwrap();
+            writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()
         }
         Compression::Xz => {
             let mut writer = XzEncoder::new(Cursor::new(Vec::new()));
             writer.write_all(data).await.unwrap();
+            writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()
         }
         Compression::Zstd => {
             let mut writer = ZstdEncoder::new(Cursor::new(Vec::new()));
             writer.write_all(data).await.unwrap();
+            writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()
         }
         _ => unreachable!(),
