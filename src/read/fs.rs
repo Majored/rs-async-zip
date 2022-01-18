@@ -33,15 +33,15 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt};
 pub type ConcurrentReader<'a> = ZipEntryReader<'a, File>;
 
 /// A reader which acts concurrently over a filesystem file.
-pub struct ZipFileReader<'a> {
-    pub(crate) filename: &'a str,
+pub struct ZipFileReader {
+    pub(crate) filename: String,
     pub(crate) entries: Vec<ZipEntry>,
 }
 
-impl<'a> ZipFileReader<'a> {
+impl ZipFileReader {
     /// Constructs a new ZIP file reader from a filename.
-    pub async fn new(filename: &'a str) -> Result<ZipFileReader<'a>> {
-        let mut fs_file = File::open(filename).await?;
+    pub async fn new(filename: String) -> Result<ZipFileReader> {
+        let mut fs_file = File::open(&filename).await?;
         let entries = crate::read::seek::read_cd(&mut fs_file).await?;
 
         Ok(ZipFileReader { filename, entries })
@@ -57,7 +57,7 @@ impl<'a> ZipFileReader<'a> {
             return Err(ZipError::FeatureNotSupported("Entries with data descriptors"));
         }
 
-        let mut fs_file = File::open(self.filename).await?;
+        let mut fs_file = File::open(&self.filename).await?;
         fs_file.seek(SeekFrom::Start(entry.data_offset())).await?;
 
         let reader = fs_file.take(entry.compressed_size.unwrap().into());

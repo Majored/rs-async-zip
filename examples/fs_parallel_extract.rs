@@ -12,7 +12,7 @@ use tokio::fs::File;
 
 #[tokio::main]
 async fn main() {
-    let zip = Arc::new(ZipFileReader::new("./Archive.zip").await.unwrap());
+    let zip = Arc::new(ZipFileReader::new(String::from("./Archive.zip")).await.unwrap());
     let mut handles = Vec::with_capacity(zip.entries().len());
 
     for (index, entry) in zip.entries().iter().enumerate() {
