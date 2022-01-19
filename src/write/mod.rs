@@ -14,11 +14,31 @@ use chrono::Utc;
 use crc32fast::Hasher;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
+/// A set of options for opening new ZIP entries.
 pub struct EntryOptions {
-    pub filename: String,
-    pub extra: Vec<u8>,
-    pub comment: String,
-    pub compression: Compression,
+    filename: String,
+    compression: Compression,
+    extra: Vec<u8>,
+    comment: String,
+}
+
+impl EntryOptions {
+    /// Construct a new set of options from its required constituents.
+    pub fn new(filename: String, compression: Compression) -> Self {
+        EntryOptions { filename, compression, extra: Vec::new(), comment: String::new() }
+    }
+    
+    /// Consume the options and override the extra field data.
+    pub fn extra(mut self, extra: Vec<u8>) -> Self {
+        self.extra = extra;
+        self
+    }
+
+    /// Consume the options and override the file comment.
+    pub fn comment(mut self, comment: String) -> Self {
+        self.comment = comment;
+        self
+    }
 }
 
 struct CentralDirectoryEntry {
@@ -26,6 +46,7 @@ struct CentralDirectoryEntry {
     opts: EntryOptions,
 }
 
+/// A writer which acts over a non-seekable source.
 pub struct ZipFileWriter<'a, W: AsyncWrite + Unpin> {
     writer: &'a mut W,
     cd_entries: Vec<CentralDirectoryEntry>,
@@ -33,10 +54,12 @@ pub struct ZipFileWriter<'a, W: AsyncWrite + Unpin> {
 }
 
 impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
+    /// Construct a new ZIP file writer from a mutable reference to a writer.
     pub fn new(writer: &'a mut W) -> Self {
         Self { writer, cd_entries: Vec::new(), written: 0 }
     }
 
+    /// Write a new ZIP entry of known size and data.
     pub async fn write_entry(&mut self, opts: EntryOptions, raw_data: &[u8]) -> Result<()> {
         let mut _compressed_data: Option<Vec<u8>> = None;
         let compressed_data = match &opts.compression {
@@ -92,10 +115,14 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
         Ok(())
     }
 
+    /// Write an entry of unknown size and data via streaming (ie. using a data descriptor).
+    /// 
+    /// Will panic as this method of entry writing is unimplemented.
     pub fn stream_write_entry(&mut self, _opts: EntryOptions) -> Result<()> {
         unimplemented!();
     }
 
+    /// Close the ZIP file by writing all central directory headers.
     pub async fn close(self) -> Result<()> {
         let cd_offset = self.written;
         let mut cd_size: u32 = 0;
