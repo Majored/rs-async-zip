@@ -1,7 +1,7 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-//! A module which supports writing ZIP files (unimplemented).
+//! A module which supports writing ZIP files.
 
 use crate::error::Result;
 use crate::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader, EndOfCentralDirectoryHeader};
@@ -14,20 +14,21 @@ use chrono::Utc;
 use crc32fast::Hasher;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
-pub struct EntryOptions<'a> {
-    filename: &'a str,
-    compression: Compression,
+pub struct EntryOptions {
+    pub filename: String,
+    pub extra: Vec<u8>,
+    pub comment: String,
+    pub compression: Compression,
 }
 
-impl<'a> EntryOptions<'a> {
-    pub fn new(filename: &'a str, compression: Compression) -> Self {
-        Self { filename, compression }
-    }
+struct CentralDirectoryEntry {
+    header: CentralDirectoryHeader,
+    opts: EntryOptions,
 }
 
 pub struct ZipFileWriter<'a, W: AsyncWrite + Unpin> {
     writer: &'a mut W,
-    cd_entries: Vec<(CentralDirectoryHeader, String)>,
+    cd_entries: Vec<CentralDirectoryEntry>,
     written: usize,
 }
 
@@ -36,7 +37,7 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
         Self { writer, cd_entries: Vec::new(), written: 0 }
     }
 
-    pub async fn write_entry(&mut self, opts: EntryOptions<'_>, raw_data: &[u8]) -> Result<()> {
+    pub async fn write_entry(&mut self, opts: EntryOptions, raw_data: &[u8]) -> Result<()> {
         let mut _compressed_data: Option<Vec<u8>> = None;
         let compressed_data = match &opts.compression {
             Compression::Stored => raw_data,
@@ -53,7 +54,7 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
             uncompressed_size: raw_data.len() as u32,
             compression: opts.compression.to_u16(),
             crc: compute_crc(raw_data),
-            extra_field_length: 0,
+            extra_field_length: opts.extra.len() as u16,
             file_name_length: opts.filename.as_bytes().len() as u16,
             mod_time,
             mod_date,
@@ -61,7 +62,7 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
             flags: GeneralPurposeFlag { data_descriptor: false, encrypted: false },
         };
 
-        let cd_header = CentralDirectoryHeader {
+        let header = CentralDirectoryHeader {
             v_made_by: 0,
             v_needed: 0,
             compressed_size: lf_header.compressed_size,
@@ -70,7 +71,7 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
             crc: lf_header.crc,
             extra_field_length: lf_header.extra_field_length,
             file_name_length: lf_header.file_name_length,
-            file_comment_length: 0,
+            file_comment_length: opts.comment.len() as u16,
             mod_time: lf_header.mod_time,
             mod_date: lf_header.mod_date,
             flags: lf_header.flags,
@@ -83,9 +84,10 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
         self.written += self.writer.write(&crate::delim::LFHD.to_le_bytes()).await?;
         self.written += self.writer.write(&lf_header.to_slice()).await?;
         self.written += self.writer.write(opts.filename.as_bytes()).await?;
+        self.written += self.writer.write(&opts.extra).await?;
         self.written += self.writer.write(compressed_data).await?;
 
-        self.cd_entries.push((cd_header, opts.filename.to_string()));
+        self.cd_entries.push(CentralDirectoryEntry { header, opts });
 
         Ok(())
     }
@@ -100,10 +102,13 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
 
         for entry in &self.cd_entries {
             self.writer.write(&crate::delim::CDFHD.to_le_bytes()).await?;
-            self.writer.write(&entry.0.to_slice()).await?;
-            self.writer.write(&entry.1.as_bytes()).await?;
+            self.writer.write(&entry.header.to_slice()).await?;
+            self.writer.write(entry.opts.filename.as_bytes()).await?;
+            self.writer.write(&entry.opts.extra).await?;
+            self.writer.write(entry.opts.comment.as_bytes()).await?;
 
-            cd_size += 4 + 42 + entry.1.as_bytes().len() as u32;
+            cd_size += 4 + 42 + entry.opts.filename.as_bytes().len() as u32;
+            cd_size += (entry.opts.extra.len() + entry.opts.comment.len()) as u32;
         }
 
         let header = EndOfCentralDirectoryHeader {
