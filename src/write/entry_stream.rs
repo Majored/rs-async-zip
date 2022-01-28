@@ -2,6 +2,7 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::write::{ZipFileWriter, EntryOptions};
+use crate::error::Result;
 
 use std::io::Error;
 use std::pin::Pin;
@@ -19,6 +20,19 @@ pub struct EntryStreamWriter<'a, 'brw, W: AsyncWrite + Unpin> {
 }
 
 impl<'a, 'brw, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'brw, W> {
+    pub async fn from_raw(raw_writer: &'brw mut ZipFileWriter<'a, W>, options: EntryOptions) -> Result<EntryStreamWriter<'a, 'brw, W>> {
+        let writer = EntryStreamWriter {
+            raw_writer,
+            options,
+            hasher: Hasher::new(),
+            closed: false,
+        };
+
+        // TODO: write LFH.
+
+        Ok(writer)
+    }
+
     pub async fn close(self) {
         unimplemented!();
     }

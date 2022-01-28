@@ -8,6 +8,7 @@ pub mod entry_stream;
 use crate::error::Result;
 use crate::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader, EndOfCentralDirectoryHeader};
 use crate::Compression;
+use entry_stream::EntryStreamWriter;
 
 use std::io::Cursor;
 
@@ -118,10 +119,10 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
     }
 
     /// Write an entry of unknown size and data via streaming (ie. using a data descriptor).
-    /// 
-    /// Will panic as this method of entry writing is unimplemented.
-    pub fn stream_write_entry(&mut self, _opts: EntryOptions) -> Result<()> {
-        unimplemented!();
+    pub async fn stream_write_entry<'b>(&'b mut self, opts: EntryOptions) -> Result<EntryStreamWriter<'a, 'b, W>> {
+        // validate options & no existing entry with same file name.
+        let writer = EntryStreamWriter::from_raw(self, opts).await?;
+        Ok(writer)
     }
 
     /// Close the ZIP file by writing all central directory headers.
