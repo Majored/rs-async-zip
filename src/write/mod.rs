@@ -3,6 +3,8 @@
 
 //! A module which supports writing ZIP files.
 
+pub mod entry_stream;
+
 use crate::error::Result;
 use crate::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader, EndOfCentralDirectoryHeader};
 use crate::Compression;
