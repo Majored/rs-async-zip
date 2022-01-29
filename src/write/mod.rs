@@ -57,7 +57,7 @@ pub struct ZipFileWriter<'a, W: AsyncWrite + Unpin> {
 impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
     /// Construct a new ZIP file writer from a mutable reference to a writer.
     pub fn new(writer: &'a mut W) -> Self {
-        Self { 
+        Self {
             writer: OffsetAsyncWriter::from_raw(writer),
             cd_entries: Vec::new()
         }
@@ -69,16 +69,13 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
     }
 
     /// Write an entry of unknown size and data via streaming (ie. using a data descriptor).
-    pub async fn write_entry_stream<'b>(&'b mut self, opts: EntryOptions) -> Result<EntryStreamWriter<'a, 'b, W>> {
-        // validate options & no existing entry with same file name.
-        let writer = EntryStreamWriter::from_raw(self, opts).await?;
-        Ok(writer)
+    pub async fn write_entry_stream<'b>(&'b mut self, options: EntryOptions) -> Result<EntryStreamWriter<'a, 'b, W>> {
+        EntryStreamWriter::from_raw(self, options).await
     }
 
     /// Close the ZIP file by writing all central directory headers.
     pub async fn close(mut self) -> Result<()> {
         let cd_offset = self.writer.offset();
-        let mut cd_size: u32 = 0;
 
         for entry in &self.cd_entries {
             self.writer.write(&crate::delim::CDFHD.to_le_bytes()).await?;
@@ -86,9 +83,6 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
             self.writer.write(entry.opts.filename.as_bytes()).await?;
             self.writer.write(&entry.opts.extra).await?;
             self.writer.write(entry.opts.comment.as_bytes()).await?;
-
-            cd_size += 4 + 42 + entry.opts.filename.as_bytes().len() as u32;
-            cd_size += (entry.opts.extra.len() + entry.opts.comment.len()) as u32;
         }
 
         let header = EndOfCentralDirectoryHeader {
@@ -96,7 +90,7 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
             start_cent_dir_disk: 0,
             num_of_entries_disk: self.cd_entries.len() as u16,
             num_of_entries: self.cd_entries.len() as u16,
-            size_cent_dir: cd_size,
+            size_cent_dir: (self.writer.offset() - cd_offset) as u32,
             cent_dir_offset: cd_offset as u32,
             file_comm_length: 0,
         };
