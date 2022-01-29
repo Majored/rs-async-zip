@@ -14,6 +14,10 @@ pub struct OffsetAsyncWriter<'a, W: AsyncWrite + Unpin> {
 }
 
 impl<'a, W: AsyncWrite + Unpin> OffsetAsyncWriter<'a, W> {
+    pub fn from_raw(writer: &'a mut W) -> Self {
+        Self { writer, offset: 0 }
+    }
+
     pub fn offset(&self) -> usize {
         self.offset
     }
