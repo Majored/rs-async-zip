@@ -1,25 +1,27 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use tokio::io::{AsyncWrite};
 use crate::Compression;
+use crate::write::offset_writer::OffsetAsyncWriter;
 
 use std::io::Error;
 use std::pin::Pin;
 use std::task::{Poll, Context};
 
+use tokio::io::{AsyncWrite};
 use async_compression::tokio::write::{BzEncoder, DeflateEncoder, LzmaEncoder, XzEncoder, ZstdEncoder};
 
-pub enum CompressedAsyncWriter<'a, W: AsyncWrite + Unpin> {
-    Deflate(DeflateEncoder<&'a mut W>),
-    Bz(BzEncoder<&'a mut W>),
-    Lzma(LzmaEncoder<&'a mut W>),
-    Zstd(ZstdEncoder<&'a mut W>),
-    Xz(XzEncoder<&'a mut W>),
+pub enum CompressedAsyncWriter<'b, W: AsyncWrite + Unpin> {
+    Deflate(DeflateEncoder<&'b mut OffsetAsyncWriter<W>>),
+    Bz(BzEncoder<&'b mut OffsetAsyncWriter<W>>),
+    Lzma(LzmaEncoder<&'b mut OffsetAsyncWriter<W>>),
+    Zstd(ZstdEncoder<&'b mut OffsetAsyncWriter<W>>),
+    Xz(XzEncoder<&'b mut OffsetAsyncWriter<W>>),
 }
 
-impl<'a, W: AsyncWrite + Unpin> CompressedAsyncWriter<'a, W> {
-    pub fn from_raw(writer: &'a mut W, compression: Compression) -> Self {
+
+impl<'b, W: AsyncWrite + Unpin> CompressedAsyncWriter<'b, W> {
+    pub fn from_raw(writer: &'b mut OffsetAsyncWriter<W>, compression: Compression) -> Self {
         match compression {
             Compression::Stored => unreachable!(),
             Compression::Deflate => CompressedAsyncWriter::Deflate(DeflateEncoder::new(writer)),
@@ -29,9 +31,19 @@ impl<'a, W: AsyncWrite + Unpin> CompressedAsyncWriter<'a, W> {
             Compression::Xz => CompressedAsyncWriter::Xz(XzEncoder::new(writer)),
         }
     }
+
+    pub fn into_inner(self) -> &'b mut OffsetAsyncWriter<W> {
+        match self {
+            CompressedAsyncWriter::Deflate(inner) => inner.into_inner(),
+            CompressedAsyncWriter::Bz(inner) => inner.into_inner(),
+            CompressedAsyncWriter::Lzma(inner) => inner.into_inner(),
+            CompressedAsyncWriter::Zstd(inner) => inner.into_inner(),
+            CompressedAsyncWriter::Xz(inner) => inner.into_inner(),
+        }
+    }
 }
 
-impl<'a, 'brw, W: AsyncWrite + Unpin> AsyncWrite for CompressedAsyncWriter<'a, W> {
+impl<'b, W: AsyncWrite + Unpin> AsyncWrite for CompressedAsyncWriter<'b, W> {
     fn poll_write(mut self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<std::result::Result<usize, Error>> {
         match *self {
             CompressedAsyncWriter::Deflate(ref mut inner) => Pin::new(inner).poll_write(cx, buf),

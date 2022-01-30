@@ -6,6 +6,7 @@
 pub mod entry_stream;
 pub(crate) mod entry_whole;
 pub(crate) mod offset_writer;
+pub(crate) mod compressed_writer;
 
 use crate::error::Result;
 use crate::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
@@ -50,7 +51,7 @@ pub(crate) struct CentralDirectoryEntry {
 
 /// A writer which acts over a non-seekable source.
 pub struct ZipFileWriter<'a, W: AsyncWrite + Unpin> {
-    pub(crate) writer: OffsetAsyncWriter<'a, W>,
+    pub(crate) writer: OffsetAsyncWriter<&'a mut W>,
     pub(crate) cd_entries: Vec<CentralDirectoryEntry>,
 }
 
@@ -59,7 +60,7 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
     pub fn new(writer: &'a mut W) -> Self {
         Self {
             writer: OffsetAsyncWriter::from_raw(writer),
-            cd_entries: Vec::new()
+            cd_entries: Vec::new(),
         }
     }
 

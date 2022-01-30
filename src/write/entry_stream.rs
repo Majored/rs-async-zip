@@ -3,67 +3,111 @@
 
 use crate::write::{ZipFileWriter, EntryOptions};
 use crate::error::Result;
+use crate::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
+use crate::write::compressed_writer::CompressedAsyncWriter;
+use crate::write::offset_writer::OffsetAsyncWriter;
+use crate::write::CentralDirectoryEntry;
 
 use std::io::Error;
 use std::pin::Pin;
 use std::task::{Poll, Context};
 
+use chrono::Utc;
 use crc32fast::Hasher;
-use tokio::io::{AsyncWrite};
+use tokio::io::{AsyncWrite, AsyncWriteExt};
 
-// Taking a mutable reference ensures that no two writers can act upon the same ZipFileWriter.
-pub struct EntryStreamWriter<'a, 'brw, W: AsyncWrite + Unpin> {
-    raw_writer: &'brw mut ZipFileWriter<'a, W>,
+// Taking a mutable reference ensures that no two writers can act upon the same ZipFileWriter. 
+pub struct EntryStreamWriter<'a, 'b, W: AsyncWrite + Unpin> {
+    writer: OffsetAsyncWriter<CompressedAsyncWriter<'b, &'a mut W>>,
+    cd_entries: &'b mut Vec<CentralDirectoryEntry>,
     options: EntryOptions,
     hasher: Hasher,
-    closed: bool,
+    lfh: LocalFileHeader,
+    lfh_offset: usize,
 }
 
-impl<'a, 'brw, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'brw, W> {
-    pub async fn from_raw(raw_writer: &'brw mut ZipFileWriter<'a, W>, options: EntryOptions) -> Result<EntryStreamWriter<'a, 'brw, W>> {
-        let writer = EntryStreamWriter {
-            raw_writer,
+impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
+    pub async fn from_raw(writer: &'b mut ZipFileWriter<'a, W>, options: EntryOptions) -> Result<EntryStreamWriter<'a, 'b, W>> {
+        let lfh_offset = writer.writer.offset();
+        let lfh = EntryStreamWriter::write_lfh(writer, &options).await?;
+
+        let cd_entries = &mut writer.cd_entries;
+        let writer = OffsetAsyncWriter::from_raw(CompressedAsyncWriter::from_raw(&mut writer.writer, options.compression));
+
+        Ok(EntryStreamWriter {
+            writer,
+            cd_entries,
             options,
+            lfh,
+            lfh_offset,
             hasher: Hasher::new(),
-            closed: false,
+        })
+    }
+
+    async fn write_lfh(writer: &'b mut ZipFileWriter<'a, W>, options: &EntryOptions) -> Result<LocalFileHeader> {
+        let (mod_time, mod_date) = crate::utils::chrono_to_zip_time(&Utc::now());
+    
+        let lfh = LocalFileHeader {
+            compressed_size: 0,
+            uncompressed_size: 0,
+            compression: options.compression.to_u16(),
+            crc: 0,
+            extra_field_length: options.extra.len() as u16,
+            file_name_length: options.filename.as_bytes().len() as u16,
+            mod_time,
+            mod_date,
+            version: 0,
+            flags: GeneralPurposeFlag { data_descriptor: true, encrypted: false },
         };
 
-        // TODO: write LFH.
+        writer.writer.write(&crate::delim::LFHD.to_le_bytes()).await?;
+        writer.writer.write(&lfh.to_slice()).await?;
+        writer.writer.write(options.filename.as_bytes()).await?;
+        writer.writer.write(&options.extra).await?;
 
-        Ok(writer)
+        Ok(lfh)
     }
 
     pub async fn close(self) {
-        unimplemented!();
+        let crc = self.hasher.finalize();
+        let uncompressed_size = self.writer.offset() as u32;
+        let inner_writer = self.writer.into_inner().into_inner();
+        let compressed_size = (inner_writer.offset() - self.lfh_offset) as u32;
+
+        let cdh = CentralDirectoryHeader {
+            compressed_size,
+            uncompressed_size,
+            crc,
+            v_made_by: 0,
+            v_needed: 0,
+            compression: self.lfh.compression,
+            extra_field_length: self.lfh.extra_field_length,
+            file_name_length: self.lfh.file_name_length,
+            file_comment_length: self.options.comment.len() as u16,
+            mod_time: self.lfh.mod_time,
+            mod_date: self.lfh.mod_date,
+            flags: self.lfh.flags,
+            disk_start: 0,
+            inter_attr: 0,
+            exter_attr: 0,
+            lh_offset: self.lfh_offset as u32,
+        };
+
+        self.cd_entries.push(CentralDirectoryEntry { header: cdh, opts: self.options });
     }
 }
 
-impl<'a, 'brw, W: AsyncWrite + Unpin> AsyncWrite for EntryStreamWriter<'a, 'brw, W> {
-    fn poll_write(
-        self: Pin<&mut Self>,
-        cx: &mut Context,
-        buf: &[u8]
-    ) -> Poll<std::result::Result<usize, Error>> {
-        unimplemented!();
+impl<'a, 'b, W: AsyncWrite + Unpin> AsyncWrite for EntryStreamWriter<'a, 'b, W> {
+    fn poll_write(mut self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<std::result::Result<usize, Error>> {
+        self.hasher.update(buf);
+        Pin::new(&mut self.writer).poll_write(cx, buf)
     }
 
-    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context) -> Poll<std::result::Result<(), Error>> {
-        unimplemented!();
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<std::result::Result<(), Error>> {
+        Pin::new(&mut self.writer).poll_flush(cx)
     }
 
-    fn poll_shutdown(
-        self: Pin<&mut Self>,
-        cx: &mut Context
-    ) -> Poll<std::result::Result<(), Error>> {
-        unimplemented!();
+    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<std::result::Result<(), Error>> {
+        Pin::new(&mut self.writer).poll_shutdown(cx)
     }
 }
-
-impl<'a, 'brw, W: AsyncWrite + Unpin> Drop for EntryStreamWriter<'a, 'brw, W> {
-    fn drop(&mut self) {
-        if !self.closed {
-            panic!("An EntryStreamWriter must be closed before being dropped.");
-        }
-    }
-}
-
