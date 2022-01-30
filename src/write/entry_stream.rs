@@ -24,12 +24,14 @@ pub struct EntryStreamWriter<'a, 'b, W: AsyncWrite + Unpin> {
     hasher: Hasher,
     lfh: LocalFileHeader,
     lfh_offset: usize,
+    data_offset: usize,
 }
 
 impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
     pub async fn from_raw(writer: &'b mut ZipFileWriter<'a, W>, options: EntryOptions) -> Result<EntryStreamWriter<'a, 'b, W>> {
         let lfh_offset = writer.writer.offset();
         let lfh = EntryStreamWriter::write_lfh(writer, &options).await?;
+        let data_offset = writer.writer.offset();
 
         let cd_entries = &mut writer.cd_entries;
         let writer = OffsetAsyncWriter::from_raw(CompressedAsyncWriter::from_raw(&mut writer.writer, options.compression));
@@ -40,6 +42,7 @@ impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
             options,
             lfh,
             lfh_offset,
+            data_offset,
             hasher: Hasher::new(),
         })
     }
@@ -72,7 +75,7 @@ impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
         let crc = self.hasher.finalize();
         let uncompressed_size = self.writer.offset() as u32;
         let inner_writer = self.writer.into_inner().into_inner();
-        let compressed_size = (inner_writer.offset() - self.lfh_offset) as u32;
+        let compressed_size = (inner_writer.offset() - self.data_offset) as u32;
 
         let cdh = CentralDirectoryHeader {
             compressed_size,
