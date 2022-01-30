@@ -8,24 +8,28 @@ use std::task::{Poll, Context};
 use tokio::io::{AsyncWrite};
 
 // A writer which tracks the current byte offset.
-pub struct OffsetAsyncWriter<'a, W: AsyncWrite + Unpin> {
-    writer: &'a mut W,
+pub struct OffsetAsyncWriter<W: AsyncWrite + Unpin> {
+    writer: W,
     offset: usize,
 }
 
-impl<'a, W: AsyncWrite + Unpin> OffsetAsyncWriter<'a, W> {
-    pub fn from_raw(writer: &'a mut W) -> Self {
+impl<W: AsyncWrite + Unpin> OffsetAsyncWriter<W> {
+    pub fn from_raw(writer: W) -> Self {
         Self { writer, offset: 0 }
     }
 
     pub fn offset(&self) -> usize {
         self.offset
     }
+
+    pub fn into_inner(self) -> W {
+        self.writer
+    }
 }
 
-impl<'a, W: AsyncWrite + Unpin> AsyncWrite for OffsetAsyncWriter<'a, W> {
+impl<W: AsyncWrite + Unpin> AsyncWrite for OffsetAsyncWriter<W> {
     fn poll_write(mut self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<Result<usize, Error>> {
-        let poll = Pin::new(&mut *self.writer).poll_write(cx, buf);
+        let poll = Pin::new(&mut self.writer).poll_write(cx, buf);
 
         if let Poll::Ready(Ok(inner)) = poll {
             self.offset += inner;
@@ -35,10 +39,10 @@ impl<'a, W: AsyncWrite + Unpin> AsyncWrite for OffsetAsyncWriter<'a, W> {
     }
 
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), Error>> {
-        Pin::new(&mut *self.writer).poll_flush(cx)
+        Pin::new(&mut self.writer).poll_flush(cx)
     }
 
     fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), Error>> {
-        Pin::new(&mut *self.writer).poll_shutdown(cx)
+        Pin::new(&mut self.writer).poll_shutdown(cx)
     }
 }
