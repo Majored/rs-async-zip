@@ -53,6 +53,7 @@ pub(crate) struct CentralDirectoryEntry {
 pub struct ZipFileWriter<'a, W: AsyncWrite + Unpin> {
     pub(crate) writer: OffsetAsyncWriter<&'a mut W>,
     pub(crate) cd_entries: Vec<CentralDirectoryEntry>,
+    comment_opt: Option<String>,
 }
 
 impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
@@ -61,6 +62,7 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
         Self {
             writer: OffsetAsyncWriter::from_raw(writer),
             cd_entries: Vec::new(),
+            comment_opt: None,
         }
     }
 
@@ -72,6 +74,11 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
     /// Write an entry of unknown size and data via streaming (ie. using a data descriptor).
     pub async fn write_entry_stream<'b>(&'b mut self, options: EntryOptions) -> Result<EntryStreamWriter<'a, 'b, W>> {
         EntryStreamWriter::from_raw(self, options).await
+    }
+
+    /// Set the ZIP file comment.
+    pub fn comment(&mut self, comment: String) {
+        self.comment_opt = Some(comment);
     }
 
     /// Close the ZIP file by writing all central directory headers.
@@ -93,11 +100,14 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
             num_of_entries: self.cd_entries.len() as u16,
             size_cent_dir: (self.writer.offset() - cd_offset) as u32,
             cent_dir_offset: cd_offset as u32,
-            file_comm_length: 0,
+            file_comm_length: self.comment_opt.as_ref().map(|v| v.len() as u16).unwrap_or_default(),
         };
 
         self.writer.write_all(&crate::delim::EOCDD.to_le_bytes()).await?;
         self.writer.write_all(&header.to_slice()).await?;
+        if let Some(comment) = self.comment_opt {
+            self.writer.write_all(comment.as_bytes()).await?;
+        }
 
         Ok(())
     }
