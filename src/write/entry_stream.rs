@@ -63,10 +63,10 @@ impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
             flags: GeneralPurposeFlag { data_descriptor: true, encrypted: false },
         };
 
-        writer.writer.write(&crate::delim::LFHD.to_le_bytes()).await?;
-        writer.writer.write(&lfh.to_slice()).await?;
-        writer.writer.write(options.filename.as_bytes()).await?;
-        writer.writer.write(&options.extra).await?;
+        writer.writer.write_all(&crate::delim::LFHD.to_le_bytes()).await?;
+        writer.writer.write_all(&lfh.to_slice()).await?;
+        writer.writer.write_all(options.filename.as_bytes()).await?;
+        writer.writer.write_all(&options.extra).await?;
 
         Ok(lfh)
     }

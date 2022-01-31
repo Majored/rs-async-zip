@@ -68,11 +68,11 @@ impl<'a, 'b,'c, W: AsyncWrite + Unpin> EntryWholeWriter<'a, 'b,'c, W> {
             lh_offset: self.writer.writer.offset() as u32,
         };
     
-        self.writer.writer.write(&crate::delim::LFHD.to_le_bytes()).await?;
-        self.writer.writer.write(&lf_header.to_slice()).await?;
-        self.writer.writer.write(self.opts.filename.as_bytes()).await?;
-        self.writer.writer.write(&self.opts.extra).await?;
-        self.writer.writer.write(compressed_data).await?;
+        self.writer.writer.write_all(&crate::delim::LFHD.to_le_bytes()).await?;
+        self.writer.writer.write_all(&lf_header.to_slice()).await?;
+        self.writer.writer.write_all(self.opts.filename.as_bytes()).await?;
+        self.writer.writer.write_all(&self.opts.extra).await?;
+        self.writer.writer.write_all(compressed_data).await?;
     
         self.writer.cd_entries.push(CentralDirectoryEntry { header, opts: self.opts });
     

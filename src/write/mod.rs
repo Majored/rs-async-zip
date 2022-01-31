@@ -79,11 +79,11 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
         let cd_offset = self.writer.offset();
 
         for entry in &self.cd_entries {
-            self.writer.write(&crate::delim::CDFHD.to_le_bytes()).await?;
-            self.writer.write(&entry.header.to_slice()).await?;
-            self.writer.write(entry.opts.filename.as_bytes()).await?;
-            self.writer.write(&entry.opts.extra).await?;
-            self.writer.write(entry.opts.comment.as_bytes()).await?;
+            self.writer.write_all(&crate::delim::CDFHD.to_le_bytes()).await?;
+            self.writer.write_all(&entry.header.to_slice()).await?;
+            self.writer.write_all(entry.opts.filename.as_bytes()).await?;
+            self.writer.write_all(&entry.opts.extra).await?;
+            self.writer.write_all(entry.opts.comment.as_bytes()).await?;
         }
 
         let header = EndOfCentralDirectoryHeader {
@@ -96,8 +96,8 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
             file_comm_length: 0,
         };
 
-        self.writer.write(&crate::delim::EOCDD.to_le_bytes()).await?;
-        self.writer.write(&header.to_slice()).await?;
+        self.writer.write_all(&crate::delim::EOCDD.to_le_bytes()).await?;
+        self.writer.write_all(&header.to_slice()).await?;
 
         Ok(())
     }
