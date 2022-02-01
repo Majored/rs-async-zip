@@ -20,11 +20,13 @@ pub(crate) mod header;
 pub mod read;
 pub(crate) mod utils;
 pub mod write;
+#[cfg(test)]
+pub(crate) mod tests;
 
 use error::{Result, ZipError};
 
 /// A compression method supported by this crate.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Compression {
     Stored,
     Deflate,
