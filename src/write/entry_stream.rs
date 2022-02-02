@@ -16,7 +16,12 @@ use chrono::Utc;
 use crc32fast::Hasher;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
-// Taking a mutable reference ensures that no two writers can act upon the same ZipFileWriter. 
+/// An entry writer which supports the streaming of data (ie. the writing of unknown size or data at runtime).
+/// 
+/// # Note
+/// - This writer cannot be manually constructed; instead, use [`ZipFileWriter::write_entry_stream()`].
+/// - [`EntryStreamWriter::close()`] must be called before a stream writer goes out of scope.
+/// - Utilities for working with [`AsyncWrite`] values are provided by [`AsyncWriteExt`].
 pub struct EntryStreamWriter<'a, 'b, W: AsyncWrite + Unpin> {
     writer: OffsetAsyncWriter<CompressedAsyncWriter<'b, &'a mut W>>,
     cd_entries: &'b mut Vec<CentralDirectoryEntry>,
@@ -28,7 +33,7 @@ pub struct EntryStreamWriter<'a, 'b, W: AsyncWrite + Unpin> {
 }
 
 impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
-    pub async fn from_raw(writer: &'b mut ZipFileWriter<'a, W>, options: EntryOptions) -> Result<EntryStreamWriter<'a, 'b, W>> {
+    pub(crate) async fn from_raw(writer: &'b mut ZipFileWriter<'a, W>, options: EntryOptions) -> Result<EntryStreamWriter<'a, 'b, W>> {
         let lfh_offset = writer.writer.offset();
         let lfh = EntryStreamWriter::write_lfh(writer, &options).await?;
         let data_offset = writer.writer.offset();
@@ -71,7 +76,16 @@ impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
         Ok(lfh)
     }
 
-    pub async fn close(self) {
+    /// Consumes this entry writer and completes all closing tasks.
+    /// 
+    /// This includes:
+    /// - Finalising the CRC32 hash value for the written data.
+    /// - Calculating the compressed and uncompressed byte sizes.
+    /// - Constructing a central directory header.
+    /// - Pushing that central directory header to the [`ZipFileWriter`]'s store.
+    /// 
+    /// Failiure to call this function before going out of scope would result in a corrupted ZIP file.
+    pub fn close(self) {
         let crc = self.hasher.finalize();
         let uncompressed_size = self.writer.offset() as u32;
         let inner_writer = self.writer.into_inner().into_inner();

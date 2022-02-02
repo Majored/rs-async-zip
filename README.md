@@ -9,7 +9,7 @@ An asynchronous ZIP archive reading/writing crate with a heavy focus on streamin
 - Asynchronous design powered by `tokio`.
 - Support for Stored, Deflate, bzip2, LZMA, zstd, and xz compression methods.
 - Various different reading approaches (seek, stream, filesystem, in-memory buffer, etc).
-- Support for writing complete data (u8 slices) or streams using data descriptors (unimplemented).
+- Support for writing complete data (u8 slices) or streams using data descriptors.
 - Aims for reasonable [specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) compliance.
 
 ## Installation & Basic Usage

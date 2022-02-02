@@ -4,18 +4,25 @@
 //! A module for reading ZIP file from a seekable source.
 //!
 //! # Example
-//! ```
+//! ```no_run
+//! # use async_zip::read::seek::ZipFileReader;
+//! # use tokio::fs::File;
+//! # use async_zip::error::ZipError;
+//! #
+//! # async fn run() -> Result<(), ZipError> {
 //! let mut file = File::open("./Archive.zip").await.unwrap();
-//! let mut zip = ZipFileReader::new(&mut file).await.unwrap();
+//! let mut zip = ZipFileReader::new(&mut file).await?;
 //!
 //! assert_eq!(zip.entries().len(), 2);
 //!
 //! // Consume the entries out-of-order.
-//! let mut reader = zip.entry_reader(1).await.unwrap();
-//! reader.read_to_string(&mut String::new()).await.unwrap();
+//! let mut reader = zip.entry_reader(1).await?;
+//! reader.read_to_string_crc().await?;
 //!
-//! let mut reader = zip.entry_reader(0).await.unwrap();
-//! reader.read_to_string(&mut String::new()).await.unwrap();
+//! let mut reader = zip.entry_reader(0).await?;
+//! reader.read_to_string_crc().await?;
+//! #   Ok(())
+//! # }
 //! ```
 
 use crate::error::{Result, ZipError};
