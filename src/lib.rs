@@ -16,10 +16,10 @@ pub(crate) mod delim;
 pub mod error;
 pub(crate) mod header;
 pub mod read;
-pub(crate) mod utils;
-pub mod write;
 #[cfg(test)]
 pub(crate) mod tests;
+pub(crate) mod utils;
+pub mod write;
 
 use error::{Result, ZipError};
 

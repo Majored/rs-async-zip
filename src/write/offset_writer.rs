@@ -3,12 +3,12 @@
 
 use std::io::Error;
 use std::pin::Pin;
-use std::task::{Poll, Context};
+use std::task::{Context, Poll};
 
-use tokio::io::{AsyncWrite};
+use tokio::io::AsyncWrite;
 
 /// An async writer wrapper which tracks the current byte offset.
-/// 
+///
 /// This type is only ever used internally to track offsets needed for central directory headers, and to easily
 /// calculate compressed & uncompressed file sizes.
 pub struct OffsetAsyncWriter<W: AsyncWrite + Unpin> {

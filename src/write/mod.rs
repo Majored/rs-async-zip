@@ -2,21 +2,21 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 //! A module which supports writing ZIP files.
-//! 
+//!
 //! # Example
 //! ### Whole data (u8 slice)
 //! ```no_run
 //! # use async_zip::{Compression, write::{EntryOptions, ZipFileWriter}};
 //! # use tokio::{fs::File, io::AsyncWriteExt};
 //! # use async_zip::error::ZipError;
-//! # 
+//! #
 //! # async fn run() -> Result<(), ZipError> {
 //! let mut file = File::create("foo.zip").await?;
 //! let mut writer = ZipFileWriter::new(&mut file);
 //!
 //! let data = b"This is an example file.";
 //! let opts = EntryOptions::new(String::from("foo.txt"), Compression::Deflate);
-//! 
+//!
 //! writer.write_entry_whole(opts, data).await?;
 //! writer.close().await?;
 //! #   Ok(())
@@ -27,27 +27,27 @@
 //! # use async_zip::{Compression, write::{EntryOptions, ZipFileWriter}};
 //! # use tokio::{fs::File, io::AsyncWriteExt};
 //! # use async_zip::error::ZipError;
-//! # 
+//! #
 //! # async fn run() -> Result<(), ZipError> {
 //! let mut file = File::create("foo.zip").await?;
 //! let mut writer = ZipFileWriter::new(&mut file);
-//! 
+//!
 //! let data = b"This is an example file.";
 //! let opts = EntryOptions::new(String::from("bar.txt"), Compression::Deflate);
-//! 
+//!
 //! let mut entry_writer = writer.write_entry_stream(opts).await?;
 //! entry_writer.write_all(data).await.unwrap();
-//! 
+//!
 //! entry_writer.close();
 //! writer.close().await?;
 //! #   Ok(())
 //! # }
 //! ```
 
+pub(crate) mod compressed_writer;
 pub(crate) mod entry_stream;
 pub(crate) mod entry_whole;
 pub(crate) mod offset_writer;
-pub(crate) mod compressed_writer;
 
 pub use entry_stream::EntryStreamWriter;
 
@@ -72,7 +72,7 @@ impl EntryOptions {
     pub fn new(filename: String, compression: Compression) -> Self {
         EntryOptions { filename, compression, extra: Vec::new(), comment: String::new() }
     }
-    
+
     /// Consume the options and override the extra field data.
     pub fn extra(mut self, extra: Vec<u8>) -> Self {
         self.extra = extra;
@@ -92,7 +92,7 @@ pub(crate) struct CentralDirectoryEntry {
 }
 
 /// A ZIP file writer which acts over AsyncWrite implementers.
-/// 
+///
 /// # Note
 /// - [`ZipFileWriter::close()`] must be called before a stream writer goes out of scope.
 pub struct ZipFileWriter<'a, W: AsyncWrite + Unpin> {
@@ -104,11 +104,7 @@ pub struct ZipFileWriter<'a, W: AsyncWrite + Unpin> {
 impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
     /// Construct a new ZIP file writer from a mutable reference to a writer.
     pub fn new(writer: &'a mut W) -> Self {
-        Self {
-            writer: OffsetAsyncWriter::from_raw(writer),
-            cd_entries: Vec::new(),
-            comment_opt: None,
-        }
+        Self { writer: OffsetAsyncWriter::from_raw(writer), cd_entries: Vec::new(), comment_opt: None }
     }
 
     /// Write a new ZIP entry of known size and data.
@@ -127,12 +123,12 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
     }
 
     /// Consumes this ZIP writer and completes all closing tasks.
-    /// 
+    ///
     /// This includes:
     /// - Writing all central directroy headers.
     /// - Writing the end of central directory header.
     /// - Writing the file comment.
-    /// 
+    ///
     /// Failiure to call this function before going out of scope would result in a corrupted ZIP file.
     pub async fn close(mut self) -> Result<()> {
         let cd_offset = self.writer.offset();

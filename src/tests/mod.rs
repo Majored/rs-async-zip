@@ -1,8 +1,8 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use crate::write::{EntryOptions, ZipFileWriter};
 use crate::Compression;
-use crate::write::{ZipFileWriter, EntryOptions};
 
 use std::io::Cursor;
 use std::vec::Vec;
@@ -25,7 +25,7 @@ async fn empty() {
 #[tokio::test]
 async fn zero_length_zip() {
     use crate::read::seek::ZipFileReader;
-    
+
     let mut input_stream = Cursor::new(Vec::<u8>::new());
 
     let zip_reader_res = ZipFileReader::new(&mut input_stream).await;
@@ -66,7 +66,7 @@ macro_rules! single_entry_gen {
 
             let mut zip_writer = ZipFileWriter::new(&mut input_stream);
             let open_opts = EntryOptions::new("foo.bar".to_string(), $typ);
-            let data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut...";
+            let data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt...";
 
             zip_writer.write_entry_whole(open_opts, data.as_bytes()).await.expect("failed to write entry");
             zip_writer.close().await.expect("failed to close writer");
@@ -74,14 +74,14 @@ macro_rules! single_entry_gen {
             input_stream.set_position(0);
 
             let mut zip_reader = ZipFileReader::new(&mut input_stream).await.expect("failed to open reader");
-            let expect_len = data.len() as u32;
 
             assert_eq!(1, zip_reader.entries().len());
-            assert!(zip_reader.entry("foo.bar").is_some());
-            assert_eq!(0, zip_reader.entry("foo.bar").unwrap().0);
-            assert!(zip_reader.entry("foo.bar").unwrap().1.compressed_size().is_some());
-            assert_eq!(expect_len, zip_reader.entry("foo.bar").unwrap().1.uncompressed_size().expect("no uncompressed size"));
-            assert_eq!($typ, *zip_reader.entry("foo.bar").unwrap().1.compression());
+
+            let entry = zip_reader.entry("foo.bar").expect("no 'foo.bar' entry");
+            assert_eq!(0, entry.0);
+            assert!(entry.1.compressed_size().is_some());
+            assert_eq!(data.len() as u32, entry.1.uncompressed_size().expect("no uncompressed size"));
+            assert_eq!($typ, *entry.1.compression());
 
             let entry_reader = zip_reader.entry_reader(0).await.expect("failed to open entry reader");
             let buffer = entry_reader.read_to_string_crc().await.expect("failed to read entry to string");

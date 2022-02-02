@@ -1,15 +1,15 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::Compression;
 use crate::write::offset_writer::OffsetAsyncWriter;
+use crate::Compression;
 
 use std::io::Error;
 use std::pin::Pin;
-use std::task::{Poll, Context};
+use std::task::{Context, Poll};
 
-use tokio::io::{AsyncWrite};
 use async_compression::tokio::write::{BzEncoder, DeflateEncoder, LzmaEncoder, XzEncoder, ZstdEncoder};
+use tokio::io::AsyncWrite;
 
 pub enum CompressedAsyncWriter<'b, W: AsyncWrite + Unpin> {
     Deflate(DeflateEncoder<&'b mut OffsetAsyncWriter<W>>),
@@ -18,7 +18,6 @@ pub enum CompressedAsyncWriter<'b, W: AsyncWrite + Unpin> {
     Zstd(ZstdEncoder<&'b mut OffsetAsyncWriter<W>>),
     Xz(XzEncoder<&'b mut OffsetAsyncWriter<W>>),
 }
-
 
 impl<'b, W: AsyncWrite + Unpin> CompressedAsyncWriter<'b, W> {
     pub fn from_raw(writer: &'b mut OffsetAsyncWriter<W>, compression: Compression) -> Self {

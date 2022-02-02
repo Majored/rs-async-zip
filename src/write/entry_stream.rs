@@ -1,23 +1,23 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::write::{ZipFileWriter, EntryOptions};
 use crate::error::Result;
 use crate::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
 use crate::write::compressed_writer::CompressedAsyncWriter;
 use crate::write::offset_writer::OffsetAsyncWriter;
 use crate::write::CentralDirectoryEntry;
+use crate::write::{EntryOptions, ZipFileWriter};
 
 use std::io::Error;
 use std::pin::Pin;
-use std::task::{Poll, Context};
+use std::task::{Context, Poll};
 
 use chrono::Utc;
 use crc32fast::Hasher;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
 /// An entry writer which supports the streaming of data (ie. the writing of unknown size or data at runtime).
-/// 
+///
 /// # Note
 /// - This writer cannot be manually constructed; instead, use [`ZipFileWriter::write_entry_stream()`].
 /// - [`EntryStreamWriter::close()`] must be called before a stream writer goes out of scope.
@@ -33,28 +33,24 @@ pub struct EntryStreamWriter<'a, 'b, W: AsyncWrite + Unpin> {
 }
 
 impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
-    pub(crate) async fn from_raw(writer: &'b mut ZipFileWriter<'a, W>, options: EntryOptions) -> Result<EntryStreamWriter<'a, 'b, W>> {
+    pub(crate) async fn from_raw(
+        writer: &'b mut ZipFileWriter<'a, W>,
+        options: EntryOptions,
+    ) -> Result<EntryStreamWriter<'a, 'b, W>> {
         let lfh_offset = writer.writer.offset();
         let lfh = EntryStreamWriter::write_lfh(writer, &options).await?;
         let data_offset = writer.writer.offset();
 
         let cd_entries = &mut writer.cd_entries;
-        let writer = OffsetAsyncWriter::from_raw(CompressedAsyncWriter::from_raw(&mut writer.writer, options.compression));
+        let writer =
+            OffsetAsyncWriter::from_raw(CompressedAsyncWriter::from_raw(&mut writer.writer, options.compression));
 
-        Ok(EntryStreamWriter {
-            writer,
-            cd_entries,
-            options,
-            lfh,
-            lfh_offset,
-            data_offset,
-            hasher: Hasher::new(),
-        })
+        Ok(EntryStreamWriter { writer, cd_entries, options, lfh, lfh_offset, data_offset, hasher: Hasher::new() })
     }
 
     async fn write_lfh(writer: &'b mut ZipFileWriter<'a, W>, options: &EntryOptions) -> Result<LocalFileHeader> {
         let (mod_time, mod_date) = crate::utils::chrono_to_zip_time(&Utc::now());
-    
+
         let lfh = LocalFileHeader {
             compressed_size: 0,
             uncompressed_size: 0,
@@ -77,13 +73,13 @@ impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
     }
 
     /// Consumes this entry writer and completes all closing tasks.
-    /// 
+    ///
     /// This includes:
     /// - Finalising the CRC32 hash value for the written data.
     /// - Calculating the compressed and uncompressed byte sizes.
     /// - Constructing a central directory header.
     /// - Pushing that central directory header to the [`ZipFileWriter`]'s store.
-    /// 
+    ///
     /// Failiure to call this function before going out of scope would result in a corrupted ZIP file.
     pub fn close(self) {
         let crc = self.hasher.finalize();

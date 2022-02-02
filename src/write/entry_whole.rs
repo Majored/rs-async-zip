@@ -1,9 +1,9 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::write::{ZipFileWriter, EntryOptions, CentralDirectoryEntry};
 use crate::error::Result;
 use crate::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
+use crate::write::{CentralDirectoryEntry, EntryOptions, ZipFileWriter};
 use crate::Compression;
 
 use std::io::Cursor;
@@ -13,13 +13,13 @@ use chrono::Utc;
 use crc32fast::Hasher;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
-pub struct EntryWholeWriter<'a, 'b,'c, W: AsyncWrite + Unpin> {
+pub struct EntryWholeWriter<'a, 'b, 'c, W: AsyncWrite + Unpin> {
     writer: &'b mut ZipFileWriter<'a, W>,
     opts: EntryOptions,
     data: &'c [u8],
 }
 
-impl<'a, 'b,'c, W: AsyncWrite + Unpin> EntryWholeWriter<'a, 'b,'c, W> {
+impl<'a, 'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'a, 'b, 'c, W> {
     pub fn from_raw(writer: &'b mut ZipFileWriter<'a, W>, opts: EntryOptions, data: &'c [u8]) -> Self {
         Self { writer, opts, data }
     }
@@ -33,9 +33,9 @@ impl<'a, 'b,'c, W: AsyncWrite + Unpin> EntryWholeWriter<'a, 'b,'c, W> {
                 _compressed_data.as_ref().unwrap()
             }
         };
-    
+
         let (mod_time, mod_date) = crate::utils::chrono_to_zip_time(&Utc::now());
-    
+
         let lf_header = LocalFileHeader {
             compressed_size: compressed_data.len() as u32,
             uncompressed_size: self.data.len() as u32,
@@ -48,7 +48,7 @@ impl<'a, 'b,'c, W: AsyncWrite + Unpin> EntryWholeWriter<'a, 'b,'c, W> {
             version: 0,
             flags: GeneralPurposeFlag { data_descriptor: false, encrypted: false },
         };
-    
+
         let header = CentralDirectoryHeader {
             v_made_by: 0,
             v_needed: 0,
@@ -67,15 +67,15 @@ impl<'a, 'b,'c, W: AsyncWrite + Unpin> EntryWholeWriter<'a, 'b,'c, W> {
             exter_attr: 0,
             lh_offset: self.writer.writer.offset() as u32,
         };
-    
+
         self.writer.writer.write_all(&crate::delim::LFHD.to_le_bytes()).await?;
         self.writer.writer.write_all(&lf_header.to_slice()).await?;
         self.writer.writer.write_all(self.opts.filename.as_bytes()).await?;
         self.writer.writer.write_all(&self.opts.extra).await?;
         self.writer.writer.write_all(compressed_data).await?;
-    
+
         self.writer.cd_entries.push(CentralDirectoryEntry { header, opts: self.opts });
-    
+
         Ok(())
     }
 }

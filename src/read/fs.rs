@@ -7,7 +7,7 @@
 //! ```no_run
 //! # use async_zip::read::fs::ZipFileReader;
 //! # use async_zip::error::ZipError;
-//! # 
+//! #
 //! # async fn run() -> Result<(), ZipError> {
 //! let zip = ZipFileReader::new(String::from("./Archive.zip")).await.unwrap();
 //! assert_eq!(zip.entries().len(), 2);
