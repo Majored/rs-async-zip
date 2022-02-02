@@ -3,15 +3,16 @@
 
 //! A module which supports writing ZIP files.
 
-pub mod entry_stream;
+pub(crate) mod entry_stream;
 pub(crate) mod entry_whole;
 pub(crate) mod offset_writer;
 pub(crate) mod compressed_writer;
 
+pub use entry_stream::EntryStreamWriter;
+
 use crate::error::Result;
 use crate::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
 use crate::Compression;
-use entry_stream::EntryStreamWriter;
 use entry_whole::EntryWholeWriter;
 use offset_writer::OffsetAsyncWriter;
 
