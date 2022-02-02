@@ -16,7 +16,7 @@ An asynchronous ZIP archive reading/writing crate with a heavy focus on streamin
 
 ```toml
 [dependencies]
-async_zip = "0.0.4"
+async_zip = "0.0.5"
 ```
 
 A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-zip/tree/main/examples) can be found under the `/examples` directory.
@@ -31,9 +31,8 @@ let mut file = File::open("./Archive.zip").await.unwrap();
 let mut zip = ZipFileReader::new(&mut file).await.unwrap();
 
 let mut reader = zip.entry_reader(0).await.unwrap();
-let mut txt = String::new();
+let txt = reader.read_to_string_crc().await.unwrap();
 
-reader.read_to_string(&mut txt).await.unwrap();
 println!("{}", txt);
 ```
 
@@ -50,7 +49,7 @@ let mut writer = ZipFileWriter::new(&mut file);
 let data = b"This is an example file.";
 let opts = EntryOptions::new(String::from("bar.txt"), Compression::Deflate);
 
-writer.write_entry(opts, data).await.unwrap();
+writer.write_entry_whole(opts, data).await.unwrap();
 writer.close().await.unwrap();
 ```
 
