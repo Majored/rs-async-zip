@@ -38,7 +38,7 @@
 //! let mut entry_writer = writer.write_entry_stream(opts).await?;
 //! entry_writer.write_all(data).await.unwrap();
 //!
-//! entry_writer.close();
+//! entry_writer.close().await?;
 //! writer.close().await?;
 //! #   Ok(())
 //! # }

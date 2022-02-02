@@ -81,11 +81,18 @@ impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
     /// - Pushing that central directory header to the [`ZipFileWriter`]'s store.
     ///
     /// Failiure to call this function before going out of scope would result in a corrupted ZIP file.
-    pub fn close(self) {
+    pub async fn close(mut self) -> Result<()> {
+        self.writer.shutdown().await?;
+        
         let crc = self.hasher.finalize();
         let uncompressed_size = self.writer.offset() as u32;
         let inner_writer = self.writer.into_inner().into_inner();
         let compressed_size = (inner_writer.offset() - self.data_offset) as u32;
+
+        inner_writer.write_all(&crate::delim::DDD.to_le_bytes()).await?;
+        inner_writer.write_all(&crc.to_le_bytes()).await?;
+        inner_writer.write_all(&compressed_size.to_le_bytes()).await?;
+        inner_writer.write_all(&uncompressed_size.to_le_bytes()).await?;
 
         let cdh = CentralDirectoryHeader {
             compressed_size,
@@ -107,6 +114,7 @@ impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
         };
 
         self.cd_entries.push(CentralDirectoryEntry { header: cdh, opts: self.options });
+        Ok(())
     }
 }
 
