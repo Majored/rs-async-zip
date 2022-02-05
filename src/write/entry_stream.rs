@@ -120,8 +120,13 @@ impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
 
 impl<'a, 'b, W: AsyncWrite + Unpin> AsyncWrite for EntryStreamWriter<'a, 'b, W> {
     fn poll_write(mut self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<std::result::Result<usize, Error>> {
-        self.hasher.update(buf);
-        Pin::new(&mut self.writer).poll_write(cx, buf)
+        let poll = Pin::new(&mut self.writer).poll_write(cx, buf);
+
+        if let Poll::Ready(Ok(written)) = poll {
+            self.hasher.update(&buf[0..written]);
+        }
+        
+        poll
     }
 
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<std::result::Result<(), Error>> {
