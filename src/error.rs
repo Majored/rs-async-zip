@@ -7,33 +7,24 @@
 pub type Result<V> = std::result::Result<V, ZipError>;
 
 /// An enum of possible errors and their descriptions.
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum ZipError {
+    #[error("Encountered an unexpected header (actual: {0:#x}, expected: {1:#x}).")]
     UnexpectedHeaderError(u32, u32),
+    #[error("{0} is not a supported compression type.")]
     UnsupportedCompressionError(u16),
-    UpstreamReadError(std::io::Error),
+    #[error("An upstream reader returned an error: '{0:?}'.")]
+    UpstreamReadError(#[from] std::io::Error),
+    #[error("Feature not currently supported: '{0}'.")]
     FeatureNotSupported(&'static str),
+    #[error("A computed CRC32 value did not match the expected value.")]
     CRC32CheckError,
+    #[error("Entry index was out of bounds.")]
     EntryIndexOutOfBounds,
 }
 
 impl ZipError {
     pub fn description(&self) -> String {
-        match self {
-            ZipError::UnexpectedHeaderError(actual, expected) => {
-                format!("Encountered an unexpected header (actual: {:#x}, expected: {:#x}).", actual, expected)
-            }
-            ZipError::UnsupportedCompressionError(actual) => format!("{} is not a supported compression type.", actual),
-            ZipError::UpstreamReadError(inner) => format!("An upstream reader returned an error: '{:?}'.", inner),
-            ZipError::FeatureNotSupported(feature) => format!("Feature not currently supported: '{}'.", feature),
-            ZipError::CRC32CheckError => format!("A computed CRC32 value did not match the expected value."),
-            ZipError::EntryIndexOutOfBounds => format!("Entry index was out of bounds."),
-        }
-    }
-}
-
-impl From<std::io::Error> for ZipError {
-    fn from(err: std::io::Error) -> Self {
-        ZipError::UpstreamReadError(err)
+        self.to_string()
     }
 }
