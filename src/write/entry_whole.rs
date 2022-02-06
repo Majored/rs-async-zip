@@ -4,7 +4,7 @@
 use crate::error::Result;
 use crate::spec::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
 use crate::write::{CentralDirectoryEntry, EntryOptions, ZipFileWriter};
-use crate::Compression;
+use crate::spec::compression::Compression;
 
 use std::io::Cursor;
 

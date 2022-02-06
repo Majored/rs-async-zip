@@ -2,7 +2,7 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::write::{EntryOptions, ZipFileWriter};
-use crate::Compression;
+use crate::spec::compression::Compression;
 
 use std::io::Cursor;
 use std::vec::Vec;

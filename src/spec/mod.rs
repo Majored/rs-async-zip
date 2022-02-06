@@ -4,3 +4,4 @@
 pub(crate) mod header;
 pub(crate) mod parse;
 pub(crate) mod delimiter;
+pub(crate) mod compression;

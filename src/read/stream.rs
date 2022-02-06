@@ -10,7 +10,7 @@
 use crate::error::{Result, ZipError};
 use crate::spec::header::LocalFileHeader;
 use crate::read::{CompressionReader, ZipEntry, ZipEntryReader};
-use crate::Compression;
+use crate::spec::compression::Compression;
 
 use tokio::io::{AsyncRead, AsyncReadExt};
 

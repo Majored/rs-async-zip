@@ -10,7 +10,7 @@ pub mod stream;
 pub mod sync;
 
 use crate::error::{Result, ZipError};
-use crate::Compression;
+use crate::spec::compression::Compression;
 
 use std::convert::TryInto;
 use std::pin::Pin;
@@ -206,7 +206,7 @@ impl<'a, R: AsyncRead + Unpin> Drop for ZipEntryReader<'a, R> {
 }
 
 /// A reader which may implement decompression over its inner type, and of which supports owned inner types or mutable
-/// borrows of them. Implements identical compression types to that of the crate::Compression enum.
+/// borrows of them. Implements identical compression types to that of the crate::spec::compression::Compression enum.
 ///
 /// This underpins entry reading functionality for all three sub-modules (stream, seek, and concurrent).
 pub(crate) enum CompressionReader<'a, R: AsyncRead + Unpin> {

@@ -53,7 +53,7 @@ pub use entry_stream::EntryStreamWriter;
 
 use crate::error::Result;
 use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
-use crate::Compression;
+use crate::spec::compression::Compression;
 use entry_whole::EntryWholeWriter;
 use offset_writer::OffsetAsyncWriter;
 
