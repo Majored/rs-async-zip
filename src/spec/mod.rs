@@ -2,6 +2,7 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 pub(crate) mod compression;
+pub(crate) mod date;
 pub(crate) mod delimiter;
 pub(crate) mod header;
 pub(crate) mod parse;

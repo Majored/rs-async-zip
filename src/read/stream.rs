@@ -76,7 +76,7 @@ pub(crate) async fn read_lfh<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Opt
         crc32: Some(header.crc),
         uncompressed_size: Some(header.uncompressed_size),
         compressed_size: Some(header.compressed_size),
-        last_modified: crate::utils::zip_date_to_chrono(header.mod_date, header.mod_time),
+        last_modified: crate::spec::date::zip_date_to_chrono(header.mod_date, header.mod_time),
         extra: Some(extra),
         compression: Compression::from_u16(header.compression)?,
         offset: None,
