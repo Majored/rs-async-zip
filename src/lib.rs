@@ -14,10 +14,10 @@
 
 pub mod error;
 pub mod read;
+pub(crate) mod spec;
 #[cfg(test)]
 pub(crate) mod tests;
 pub(crate) mod utils;
 pub mod write;
-pub(crate) mod spec;
 
 pub use crate::spec::compression::Compression;

@@ -2,9 +2,9 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::error::Result;
+use crate::spec::compression::Compression;
 use crate::spec::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
 use crate::write::{CentralDirectoryEntry, EntryOptions, ZipFileWriter};
-use crate::spec::compression::Compression;
 
 use std::io::Cursor;
 

@@ -52,8 +52,8 @@ pub(crate) mod offset_writer;
 pub use entry_stream::EntryStreamWriter;
 
 use crate::error::Result;
-use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
 use crate::spec::compression::Compression;
+use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
 use entry_whole::EntryWholeWriter;
 use offset_writer::OffsetAsyncWriter;
 

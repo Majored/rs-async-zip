@@ -26,9 +26,9 @@
 //! ```
 
 use crate::error::{Result, ZipError};
-use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
 use crate::read::{CompressionReader, ZipEntry, ZipEntryReader};
 use crate::spec::compression::Compression;
+use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt};
 

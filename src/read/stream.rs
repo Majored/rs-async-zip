@@ -8,9 +8,9 @@
 //! ```
 
 use crate::error::{Result, ZipError};
-use crate::spec::header::LocalFileHeader;
 use crate::read::{CompressionReader, ZipEntry, ZipEntryReader};
 use crate::spec::compression::Compression;
+use crate::spec::header::LocalFileHeader;
 
 use tokio::io::{AsyncRead, AsyncReadExt};
 

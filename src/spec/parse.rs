@@ -1,13 +1,8 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::spec::header::{
-    LocalFileHeader,
-    GeneralPurposeFlag,
-    CentralDirectoryHeader,
-    EndOfCentralDirectoryHeader
-};
 use crate::error::Result;
+use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
 
 use tokio::io::{AsyncRead, AsyncReadExt};
 

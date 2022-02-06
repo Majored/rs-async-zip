@@ -83,7 +83,7 @@ impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
     /// Failiure to call this function before going out of scope would result in a corrupted ZIP file.
     pub async fn close(mut self) -> Result<()> {
         self.writer.shutdown().await?;
-        
+
         let crc = self.hasher.finalize();
         let uncompressed_size = self.writer.offset() as u32;
         let inner_writer = self.writer.into_inner().into_inner();
@@ -125,7 +125,7 @@ impl<'a, 'b, W: AsyncWrite + Unpin> AsyncWrite for EntryStreamWriter<'a, 'b, W> 
         if let Poll::Ready(Ok(written)) = poll {
             self.hasher.update(&buf[0..written]);
         }
-        
+
         poll
     }
 
