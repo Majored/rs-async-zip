@@ -3,11 +3,13 @@
 
 //! A module which holds relevant error reporting structures/types.
 
+use thiserror::Error;
+
 /// A Result type alias over ZipError to minimise repetition.
 pub type Result<V> = std::result::Result<V, ZipError>;
 
 /// An enum of possible errors and their descriptions.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Error)]
 pub enum ZipError {
     #[error("Encountered an unexpected header (actual: {0:#x}, expected: {1:#x}).")]
     UnexpectedHeaderError(u32, u32),
@@ -21,10 +23,4 @@ pub enum ZipError {
     CRC32CheckError,
     #[error("Entry index was out of bounds.")]
     EntryIndexOutOfBounds,
-}
-
-impl ZipError {
-    pub fn description(&self) -> String {
-        self.to_string()
-    }
 }
