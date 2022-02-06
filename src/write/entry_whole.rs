@@ -2,7 +2,7 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::error::Result;
-use crate::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
+use crate::spec::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
 use crate::write::{CentralDirectoryEntry, EntryOptions, ZipFileWriter};
 use crate::Compression;
 
@@ -68,7 +68,7 @@ impl<'a, 'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'a, 'b, 'c, W> {
             lh_offset: self.writer.writer.offset() as u32,
         };
 
-        self.writer.writer.write_all(&crate::delim::LFHD.to_le_bytes()).await?;
+        self.writer.writer.write_all(&crate::spec::delimiter::LFHD.to_le_bytes()).await?;
         self.writer.writer.write_all(&lf_header.to_slice()).await?;
         self.writer.writer.write_all(self.opts.filename.as_bytes()).await?;
         self.writer.writer.write_all(&self.opts.extra).await?;

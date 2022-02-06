@@ -2,7 +2,7 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::error::Result;
-use crate::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
+use crate::spec::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
 use crate::write::compressed_writer::CompressedAsyncWriter;
 use crate::write::offset_writer::OffsetAsyncWriter;
 use crate::write::CentralDirectoryEntry;
@@ -64,7 +64,7 @@ impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
             flags: GeneralPurposeFlag { data_descriptor: true, encrypted: false },
         };
 
-        writer.writer.write_all(&crate::delim::LFHD.to_le_bytes()).await?;
+        writer.writer.write_all(&crate::spec::delimiter::LFHD.to_le_bytes()).await?;
         writer.writer.write_all(&lfh.to_slice()).await?;
         writer.writer.write_all(options.filename.as_bytes()).await?;
         writer.writer.write_all(&options.extra).await?;
@@ -89,7 +89,7 @@ impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
         let inner_writer = self.writer.into_inner().into_inner();
         let compressed_size = (inner_writer.offset() - self.data_offset) as u32;
 
-        inner_writer.write_all(&crate::delim::DDD.to_le_bytes()).await?;
+        inner_writer.write_all(&crate::spec::delimiter::DDD.to_le_bytes()).await?;
         inner_writer.write_all(&crc.to_le_bytes()).await?;
         inner_writer.write_all(&compressed_size.to_le_bytes()).await?;
         inner_writer.write_all(&uncompressed_size.to_le_bytes()).await?;

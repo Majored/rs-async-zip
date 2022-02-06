@@ -12,14 +12,13 @@
 //!
 //! [Read more.](https://github.com/Majored/rs-async-zip)
 
-pub(crate) mod delim;
 pub mod error;
-pub(crate) mod header;
 pub mod read;
 #[cfg(test)]
 pub(crate) mod tests;
 pub(crate) mod utils;
 pub mod write;
+pub(crate) mod spec;
 
 use error::{Result, ZipError};
 

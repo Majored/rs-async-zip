@@ -8,7 +8,7 @@
 //! ```
 
 use crate::error::{Result, ZipError};
-use crate::header::LocalFileHeader;
+use crate::spec::header::LocalFileHeader;
 use crate::read::{CompressionReader, ZipEntry, ZipEntryReader};
 use crate::Compression;
 
@@ -60,9 +60,9 @@ impl<'a, R: AsyncRead + Unpin> ZipFileReader<'a, R> {
 
 pub(crate) async fn read_lfh<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Option<ZipEntry>> {
     match reader.read_u32_le().await? {
-        crate::delim::LFHD => {}
-        crate::delim::CDFHD => return Ok(None),
-        actual => return Err(ZipError::UnexpectedHeaderError(actual, crate::delim::LFHD)),
+        crate::spec::delimiter::LFHD => {}
+        crate::spec::delimiter::CDFHD => return Ok(None),
+        actual => return Err(ZipError::UnexpectedHeaderError(actual, crate::spec::delimiter::LFHD)),
     };
 
     let header = LocalFileHeader::from_reader(reader).await?;
