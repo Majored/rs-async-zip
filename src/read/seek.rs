@@ -69,7 +69,7 @@ impl<'a, R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<'a, R> {
 pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) -> Result<Vec<ZipEntry>> {
     // Assume no ZIP comment exists for the moment so we can seek directly to EOCD header.
     reader.seek(SeekFrom::End(-22)).await?;
-    crate::utils::assert_delimiter(reader, crate::spec::delimiter::EOCDD).await?;
+    crate::utils::assert_signature(reader, crate::spec::signature::END_OF_CENTRAL_DIRECTORY).await?;
 
     let eocdh = EndOfCentralDirectoryHeader::from_reader(reader).await?;
 
@@ -89,7 +89,7 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
 }
 
 pub(crate) async fn read_cd_entry<R: AsyncRead + Unpin>(reader: &mut R) -> Result<ZipEntry> {
-    crate::utils::assert_delimiter(reader, crate::spec::delimiter::CDFHD).await?;
+    crate::utils::assert_signature(reader, crate::spec::signature::CENTRAL_DIRECTORY_FILE_HEADER).await?;
 
     let header = CentralDirectoryHeader::from_reader(reader).await?;
     let filename = crate::utils::read_string(reader, header.file_name_length.into()).await?;

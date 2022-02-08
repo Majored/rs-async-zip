@@ -134,7 +134,7 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
         let cd_offset = self.writer.offset();
 
         for entry in &self.cd_entries {
-            self.writer.write_all(&crate::spec::delimiter::CDFHD.to_le_bytes()).await?;
+            self.writer.write_all(&crate::spec::signature::CENTRAL_DIRECTORY_FILE_HEADER.to_le_bytes()).await?;
             self.writer.write_all(&entry.header.to_slice()).await?;
             self.writer.write_all(entry.opts.filename.as_bytes()).await?;
             self.writer.write_all(&entry.opts.extra).await?;
@@ -151,7 +151,7 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
             file_comm_length: self.comment_opt.as_ref().map(|v| v.len() as u16).unwrap_or_default(),
         };
 
-        self.writer.write_all(&crate::spec::delimiter::EOCDD.to_le_bytes()).await?;
+        self.writer.write_all(&crate::spec::signature::END_OF_CENTRAL_DIRECTORY.to_le_bytes()).await?;
         self.writer.write_all(&header.to_slice()).await?;
         if let Some(comment) = self.comment_opt {
             self.writer.write_all(comment.as_bytes()).await?;
