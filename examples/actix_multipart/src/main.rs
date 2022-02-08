@@ -1,3 +1,6 @@
+// Copyright (c) 2022 FL33TW00D (https://github.com/FL33TW00D)
+// MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE
+
 use actix_multipart::Multipart;
 use actix_web::{web, App, HttpServer, Responder};
 use async_zip::{write::*, Compression};
