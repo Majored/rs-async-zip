@@ -95,15 +95,15 @@ pub(crate) struct CentralDirectoryEntry {
 ///
 /// # Note
 /// - [`ZipFileWriter::close()`] must be called before a stream writer goes out of scope.
-pub struct ZipFileWriter<'a, W: AsyncWrite + Unpin> {
-    pub(crate) writer: OffsetAsyncWriter<&'a mut W>,
+pub struct ZipFileWriter<W: AsyncWrite + Unpin> {
+    pub(crate) writer: OffsetAsyncWriter<W>,
     pub(crate) cd_entries: Vec<CentralDirectoryEntry>,
     comment_opt: Option<String>,
 }
 
-impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
+impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
     /// Construct a new ZIP file writer from a mutable reference to a writer.
-    pub fn new(writer: &'a mut W) -> Self {
+    pub fn new(writer: W) -> Self {
         Self { writer: OffsetAsyncWriter::from_raw(writer), cd_entries: Vec::new(), comment_opt: None }
     }
 
@@ -113,7 +113,7 @@ impl<'a, W: AsyncWrite + Unpin> ZipFileWriter<'a, W> {
     }
 
     /// Write an entry of unknown size and data via streaming (ie. using a data descriptor).
-    pub async fn write_entry_stream<'b>(&'b mut self, options: EntryOptions) -> Result<EntryStreamWriter<'a, 'b, W>> {
+    pub async fn write_entry_stream<'b>(&'b mut self, options: EntryOptions) -> Result<EntryStreamWriter<'b, W>> {
         EntryStreamWriter::from_raw(self, options).await
     }
 

@@ -22,8 +22,8 @@ use tokio::io::{AsyncWrite, AsyncWriteExt};
 /// - This writer cannot be manually constructed; instead, use [`ZipFileWriter::write_entry_stream()`].
 /// - [`EntryStreamWriter::close()`] must be called before a stream writer goes out of scope.
 /// - Utilities for working with [`AsyncWrite`] values are provided by [`AsyncWriteExt`].
-pub struct EntryStreamWriter<'a, 'b, W: AsyncWrite + Unpin> {
-    writer: OffsetAsyncWriter<CompressedAsyncWriter<'b, &'a mut W>>,
+pub struct EntryStreamWriter<'b, W: AsyncWrite + Unpin> {
+    writer: OffsetAsyncWriter<CompressedAsyncWriter<'b, W>>,
     cd_entries: &'b mut Vec<CentralDirectoryEntry>,
     options: EntryOptions,
     hasher: Hasher,
@@ -32,11 +32,11 @@ pub struct EntryStreamWriter<'a, 'b, W: AsyncWrite + Unpin> {
     data_offset: usize,
 }
 
-impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
+impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
     pub(crate) async fn from_raw(
-        writer: &'b mut ZipFileWriter<'a, W>,
+        writer: &'b mut ZipFileWriter<W>,
         options: EntryOptions,
-    ) -> Result<EntryStreamWriter<'a, 'b, W>> {
+    ) -> Result<EntryStreamWriter<'b, W>> {
         let lfh_offset = writer.writer.offset();
         let lfh = EntryStreamWriter::write_lfh(writer, &options).await?;
         let data_offset = writer.writer.offset();
@@ -48,7 +48,7 @@ impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
         Ok(EntryStreamWriter { writer, cd_entries, options, lfh, lfh_offset, data_offset, hasher: Hasher::new() })
     }
 
-    async fn write_lfh(writer: &'b mut ZipFileWriter<'a, W>, options: &EntryOptions) -> Result<LocalFileHeader> {
+    async fn write_lfh(writer: &'b mut ZipFileWriter<W>, options: &EntryOptions) -> Result<LocalFileHeader> {
         let (mod_time, mod_date) = crate::spec::date::chrono_to_zip_time(&Utc::now());
 
         let lfh = LocalFileHeader {
@@ -118,7 +118,7 @@ impl<'a, 'b, W: AsyncWrite + Unpin> EntryStreamWriter<'a, 'b, W> {
     }
 }
 
-impl<'a, 'b, W: AsyncWrite + Unpin> AsyncWrite for EntryStreamWriter<'a, 'b, W> {
+impl<'a, 'b, W: AsyncWrite + Unpin> AsyncWrite for EntryStreamWriter<'b, W> {
     fn poll_write(mut self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<std::result::Result<usize, Error>> {
         let poll = Pin::new(&mut self.writer).poll_write(cx, buf);
 

@@ -13,14 +13,14 @@ use chrono::Utc;
 use crc32fast::Hasher;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
-pub struct EntryWholeWriter<'a, 'b, 'c, W: AsyncWrite + Unpin> {
-    writer: &'b mut ZipFileWriter<'a, W>,
+pub struct EntryWholeWriter<'b, 'c, W: AsyncWrite + Unpin> {
+    writer: &'b mut ZipFileWriter<W>,
     opts: EntryOptions,
     data: &'c [u8],
 }
 
-impl<'a, 'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'a, 'b, 'c, W> {
-    pub fn from_raw(writer: &'b mut ZipFileWriter<'a, W>, opts: EntryOptions, data: &'c [u8]) -> Self {
+impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
+    pub fn from_raw(writer: &'b mut ZipFileWriter<W>, opts: EntryOptions, data: &'c [u8]) -> Self {
         Self { writer, opts, data }
     }
 
