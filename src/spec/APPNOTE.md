@@ -4,13 +4,11 @@ Status: FINAL - replaces version 6.3.8
 Revised: July 15, 2020
 Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
 
-## 1.0 Introduction
----------------
+## 1.0 Introduction
 
-## 1.1 Purpose
------------
+## 1.1 Purpose
 
-   # 1.1.1
+   ### 1.1.1
    This specification is intended to define a cross-platform,
    interoperable file storage and transfer format.  Since its 
    first publication in 1989, PKWARE, Inc. ("PKWARE") has remained 
@@ -20,10 +18,9 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    application developers that use and benefit from this format 
    will share and support this commitment to interoperability.
 
-## 1.2 Scope
----------
+## 1.2 Scope
 
-   # 1.2.1
+   ### 1.2.1
    ZIP is one of the most widely used compressed file formats. It is 
    universally used to aggregate, compress, and encrypt files into a single
    interoperable container. No specific use or application need is 
@@ -32,10 +29,9 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    creating ZIP files.  Information is provided on the records and 
    fields that describe what a ZIP file is. 
 
-## 1.3 Trademarks
---------------
+## 1.3 Trademarks
 
-   # 1.3.1
+   ### 1.3.1
    PKWARE, PKZIP, Smartcrypt, SecureZIP, and PKSFX are registered 
    trademarks of PKWARE, Inc. in the United States and elsewhere.  
    PKPatchMaker, Deflate64, and ZIP64 are trademarks of PKWARE, Inc.  
@@ -43,23 +39,22 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    purposes only and are the property of their respective owners.
    
 
-## 1.4 Permitted Use
------------------ 
+## 1.4 Permitted Use 
 
-   # 1.4.1
+   ### 1.4.1
    This document, "APPNOTE.TXT -  .ZIP File Format Specification" is the
    exclusive property of PKWARE.  Use of the information contained in this 
    document is permitted solely for the purpose of creating products, 
    programs and processes that read and write files in the ZIP format
    subject to the terms and conditions herein.
 
-   # 1.4.2
+   ### 1.4.2
    Use of the content of this document within other publications is 
    permitted only through reference to this document.  Any reproduction
    or distribution of this document in whole or in part without prior
    written permission from PKWARE is strictly prohibited.
 
-   # 1.4.3
+   ### 1.4.3
    Certain technological components provided in this document are the 
    patented proprietary technology of PKWARE and as such require a 
    separate, executed license agreement from PKWARE.  Applicable 
@@ -67,10 +62,9 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    'Refer to the section in this document entitled  "Incorporating 
    PKWARE Proprietary Technology into Your Product" for more information'.
 
-## 1.5 Contacting PKWARE
----------------------
+## 1.5 Contacting PKWARE
 
-   # 1.5.1
+   ### 1.5.1
    If you have questions on this format, its use, or licensing, or if you 
    wish to report defects, request changes or additions, please contact:
 
@@ -81,16 +75,15 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
      +1-414-289-9789 FAX
      zipformat@pkware.com
 
-   # 1.5.2
+   ### 1.5.2
    Information about this format and a reference copy of this document
    is publicly available at:
 
      http://www.pkware.com/appnote
 
-## 1.6 Disclaimer
---------------
+## 1.6 Disclaimer
 
-   # 1.6.1
+   ### 1.6.1
    Although PKWARE will attempt to supply current and accurate
    information relating to its file formats, algorithms, and the
    subject programs, the possibility of error or omission cannot 
@@ -106,13 +99,11 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    programs and/or the algorithms used by the subject programs is
    subject to change without notice.
 
-## 2.0 Revisions
---------------
+## 2.0 Revisions
 
-## 2.1 Document Status
---------------------
+## 2.1 Document Status
 
-   # 2.1.1
+   ### 2.1.1
    If the STATUS of this file is marked as DRAFT, the content 
    defines proposed revisions to this specification which may consist 
    of changes to the ZIP format itself, or that may consist of other 
@@ -122,7 +113,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    to provide notification to the ZIP community of pending changes and to 
    provide opportunity for review and comment.
 
-   # 2.1.2
+   ### 2.1.2
    Versions of this document having a STATUS of FINAL are 
    considered to be in the final form for that version of the document 
    and are not subject to further change until a new, higher version
@@ -130,38 +121,37 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    specification are intended to remain interoperable with all prior 
    versions whenever technically possible.  
 
-## 2.2 Change Log
---------------
+## 2.2 Change Log
 
    Version       Change Description                        Date
    -------       ------------------                       ----------
    5.2           -Single Password Symmetric Encryption    07/16/2003
                   storage
 
-   # 6.1.0
+   6.1.0
            -Smartcard compatibility                 01/20/2004
                  -Documentation on certificate storage
 
-   # 6.2.0
+   6.2.0
            -Introduction of Central Directory       04/26/2004
                   Encryption for encrypting metadata
                  -Added OS X to Version Made By values
 
-   # 6.2.1
+   6.2.1
            -Added Extra Field placeholder for       04/01/2005
                   POSZIP using ID 0x4690
 
                  -Clarified size field on 
                   "zip64 end of central directory record"
 
-   # 6.2.2
+   6.2.2
            -Documented Final Feature Specification  01/06/2006
                   for Strong Encryption
 
                  -Clarifications and typographical 
                   corrections
 
-   # 6.3.0
+   6.3.0
            -Added tape positioning storage          09/29/2006
                   parameters
 
@@ -182,26 +172,26 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
                  -Added additional "Extra Field" 
                   definitions
 
-   # 6.3.1
+   6.3.1
            -Corrected standard hash values for      04/11/2007
                   SHA-256/384/512
 
-   # 6.3.2
+   6.3.2
            -Added compression method 97             09/28/2007
 
                  -Documented InfoZIP "Extra Field"
                   values for UTF-8 file name and
                   file comment storage
 
-   # 6.3.3
+   6.3.3
            -Formatting changes to support           09/01/2012
                   easier referencing of this APPNOTE
                   from other documents and standards  
 
-   # 6.3.4
+   6.3.4
            -Address change                          10/01/2014
  
-   # 6.3.5
+   6.3.5
            -Documented compression methods 16       11/31/2018
                   and 99 (4.4.5, 4.6.1, 5.11, 5.17, 
                   APPENDIX E)
@@ -226,11 +216,11 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
 
                  -Initial information on 0x0022 Extra Data
 
-   # 6.3.6
+   6.3.6
            -Corrected typographical error          04/26/2019
                   (4.4.1.3) 
 
-   # 6.3.7
+   6.3.7
            -Added Zstandard compression method ID  
                   (4.4.5)
 
@@ -241,21 +231,20 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
                  -Added Data Stream Alignment Extra Data info
                   (4.6.11)
 
-   # 6.3.8
+   6.3.8
            -Resolved Zstandard compression method ID conflict  
                   (4.4.5)
 
                  -Added additional compression method ID values in use
 
-   # 6.3.9
+   6.3.9
            -Corrected a typo in Data Stream Alignment description
                   (4.6.11)
 
 
 
 
-## 3.0 Notations
--------------
+## 3.0 Notations
 
    3.1 Use of the term MUST or SHALL indicates a required element. 
 
@@ -268,13 +257,11 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    3.5 MAY indicates an OPTIONAL element.
 
 
-## 4.0 ZIP Files
--------------
+## 4.0 ZIP Files
 
-## 4.1 What is a ZIP file
-----------------------
+## 4.1 What is a ZIP file
 
-   # 4.1.1
+   ### 4.1.1
    ZIP files MAY be identified by the standard .ZIP file extension 
    although use of a file extension is not required.  Use of the 
    extension .ZIPX is also recognized and MAY be used for ZIP files.  
@@ -283,11 +270,11 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    writing ZIP files SHOULD rely on internal record signatures described 
    in this document to identify files in this format.
 
-   # 4.1.2
+   ### 4.1.2
    ZIP files SHOULD contain at least one file and MAY contain 
    multiple files.  
 
-   # 4.1.3
+   ### 4.1.3
    Data compression MAY be used to reduce the size of files
    placed into a ZIP file, but is not required.  This format supports the 
    use of multiple data compression algorithms.  When compression is used, 
@@ -298,7 +285,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    ZIP compatible application programs.  
 
 
-   # 4.1.4
+   ### 4.1.4
    Data encryption MAY be used to protect files within a ZIP file. 
    Keying methods supported for encryption within this format include
    passwords and public/private keys.  Either MAY be used individually
@@ -309,38 +296,38 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    in this document entitled "Incorporating PKWARE Proprietary Technology 
    into Your Product" for more information.
 
-   # 4.1.5
+   ### 4.1.5
    Data integrity MUST be provided for each file using CRC32.  
    
-   # 4.1.6
+   ### 4.1.6
    Additional data integrity MAY be included through the use of 
    digital signatures.  Individual files MAY be signed with one or more 
    digital signatures. The Central Directory, if signed, MUST use a 
    single signature.  
 
-   # 4.1.7
+   ### 4.1.7
    Files MAY be placed within a ZIP file uncompressed or stored. 
    The term "stored" as used in the context of this document means the file 
    is copied into the ZIP file uncompressed.  
 
-   # 4.1.8
+   ### 4.1.8
    Each data file placed into a ZIP file MAY be compressed, stored, 
    encrypted or digitally signed independent of how other data files in the 
    same ZIP file are archived.
 
-   # 4.1.9
+   ### 4.1.9
    ZIP files MAY be streamed, split into segments (on fixed or on
    removable media) or "self-extracting".  Self-extracting ZIP 
    files MUST include extraction code for a target platform within 
    the ZIP file.  
 
-   # 4.1.10
+   ### 4.1.10
    Extensibility is provided for platform or application specific
    needs through extra data fields that MAY be defined for custom
    purposes.  Extra data definitions MUST NOT conflict with existing
    documented record definitions.  
 
-   # 4.1.11
+   ### 4.1.11
    Common uses for ZIP MAY also include the use of manifest files.  
    Manifest files store application specific information within a file stored 
    within the ZIP file.  This manifest file SHOULD be the first file in the 
@@ -349,13 +336,12 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    for information on using manifest files and for any additional profile
    information on using ZIP within an application.
 
-   # 4.1.12
+   ### 4.1.12
    ZIP files MAY be placed within other ZIP files.
 
-## 4.2 ZIP Metadata
-----------------
+## 4.2 ZIP Metadata
 
-   # 4.2.1
+   ### 4.2.1
    ZIP files are identified by metadata consisting of defined record types 
    containing the storage information necessary for maintaining the files 
    placed into a ZIP file.  Each record type MUST be identified using a header 
@@ -363,10 +349,9 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    two byte constant marker of 0x4b50, representing the characters "PK".
 
 
-## 4.3 General Format of a .ZIP file
----------------------------------
+## 4.3 General Format of a .ZIP file
 
-   # 4.3.1
+   ### 4.3.1
    A ZIP file MUST contain an "end of central directory record". A ZIP 
    file containing only an "end of central directory record" is considered an 
    empty ZIP file.  Files MAY be added or replaced within a ZIP file, or deleted. 
@@ -374,30 +359,30 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    records defined in this specification MAY be used as needed to support 
    storage requirements for individual ZIP files.
 
-   # 4.3.2
+   ### 4.3.2
    Each file placed into a ZIP file MUST be preceded by  a "local 
    file header" record for that file.  Each "local file header" MUST be 
    accompanied by a corresponding "central directory header" record within 
    the central directory section of the ZIP file.
 
-   # 4.3.3
+   ### 4.3.3
    Files MAY be stored in arbitrary order within a ZIP file.  A ZIP 
    file MAY span multiple volumes or it MAY be split into user-defined 
    segment sizes. All values MUST be stored in little-endian byte order unless 
    otherwise specified in this document for a specific data element. 
 
-   # 4.3.4
+   ### 4.3.4
    Compression MUST NOT be applied to a "local file header", an "encryption
    header", or an "end of central directory record".  Individual "central 
    directory records" MUST NOT be compressed, but the aggregate of all central
    directory records MAY be compressed.    
 
-   # 4.3.5
+   ### 4.3.5
    File data MAY be followed by a "data descriptor" for the file.  Data 
    descriptors are used to facilitate ZIP file streaming.  
 
  
-   # 4.3.6
+   ### 4.3.6
    Overall .ZIP file format:
 
       [local file header 1]
@@ -423,7 +408,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       [end of central directory record]
 
 
-   # 4.3.7
+   ### 4.3.7
     Local file header:
 
       local file header signature     4 bytes  (0x04034b50)
@@ -441,7 +426,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       file name (variable size)
       extra field (variable size)
 
-   # 4.3.8
+   ### 4.3.8
     File data
 
       Immediately following the local header for a file
@@ -455,14 +440,15 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       Zero-byte files, directories, and other file types that 
       contain no content MUST NOT include file data.
 
-   # 4.3.9
+   ### 4.3.9
     Data descriptor:
 
         crc-32                          4 bytes
         compressed size                 4 bytes
         uncompressed size               4 bytes
 
-      4.3.9.1 This descriptor MUST exist if bit 3 of the general
+      ### 4.3.9
+  .1 This descriptor MUST exist if bit 3 of the general
       purpose bit flag is set (see below).  It is byte aligned
       and immediately follows the last byte of compressed data.
       This descriptor SHOULD be used only when it was not possible to
@@ -470,7 +456,8 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       was standard output or a non-seekable device.  For ZIP64(tm) format
       archives, the compressed and uncompressed sizes are 8 bytes each.
 
-      4.3.9.2 When compressing files, compressed and uncompressed sizes 
+      ### 4.3.9
+  .2 When compressing files, compressed and uncompressed sizes 
       SHOULD be stored in ZIP64 format (as 8 byte values) when a 
       file's size exceeds 0xFFFFFFFF.   However ZIP64 format MAY be 
       used regardless of the size of a file.  When extracting, if 
@@ -478,25 +465,29 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       the file the compressed and uncompressed sizes will be 8
       byte values.  
 
-      4.3.9.3 Although not originally assigned a signature, the value 
+      ### 4.3.9
+  .3 Although not originally assigned a signature, the value 
       0x08074b50 has commonly been adopted as a signature value 
       for the data descriptor record.  Implementers SHOULD be 
       aware that ZIP files MAY be encountered with or without this 
       signature marking data descriptors and SHOULD account for
       either case when reading ZIP files to ensure compatibility.
 
-      4.3.9.4 When writing ZIP files, implementors SHOULD include the
+      ### 4.3.9
+  .4 When writing ZIP files, implementors SHOULD include the
       signature value marking the data descriptor record.  When
       the signature is used, the fields currently defined for
       the data descriptor record will immediately follow the
       signature.
 
-      4.3.9.5 An extensible data descriptor will be released in a 
+      ### 4.3.9
+  .5 An extensible data descriptor will be released in a 
       future version of this APPNOTE.  This new record is intended to
       resolve conflicts with the use of this record going forward,
       and to provide better support for streamed file processing.
 
-      4.3.9.6 When the Central Directory Encryption method is used, 
+      ### 4.3.9
+  .6 When the Central Directory Encryption method is used, 
       the data descriptor record is not required, but MAY be used.  
       If present, and bit 3 of the general purpose bit field is set to 
       indicate its presence, the values in fields of the data descriptor
@@ -506,17 +497,19 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       into Your Product" for more information.
 
 
-   # 4.3.10
+   ### 4.3.10
     Archive decryption header:  
 
-      4.3.10.1 The Archive Decryption Header is introduced in version 6.2
+      ### 4.3.10
+  .1 The Archive Decryption Header is introduced in version 6.2
       of the ZIP format specification.  This record exists in support
       of the Central Directory Encryption Feature implemented as part of 
       the Strong Encryption Specification as described in this document.
       When the Central Directory Structure is encrypted, this decryption
       header MUST precede the encrypted data segment.  
 
-      4.3.10.2 The encrypted data segment SHALL consist of the Archive 
+      ### 4.3.10
+  .2 The encrypted data segment SHALL consist of the Archive 
       extra data record (if present) and the encrypted Central Directory 
       Structure data.  The format of this data record is identical to the 
       Decryption header record preceding compressed file data.  If the 
@@ -529,21 +522,23 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       PKWARE Proprietary Technology into Your Product" for more information.
 
 
-   # 4.3.11
+   ### 4.3.11
     Archive extra data record: 
 
         archive extra data signature    4 bytes  (0x08064b50)
         extra field length              4 bytes
         extra field data                (variable size)
 
-      4.3.11.1 The Archive Extra Data Record is introduced in version 6.2
+      ### 4.3.11
+  .1 The Archive Extra Data Record is introduced in version 6.2
       of the ZIP format specification.  This record MAY be used in support
       of the Central Directory Encryption Feature implemented as part of 
       the Strong Encryption Specification as described in this document.
       When present, this record MUST immediately precede the central 
       directory data structure.  
 
-      4.3.11.2 The size of this data record SHALL be included in the 
+      ### 4.3.11
+  .2 The size of this data record SHALL be included in the 
       Size of the Central Directory field in the End of Central 
       Directory record.  If the central directory structure is compressed, 
       but not encrypted, the location of the start of this data record is 
@@ -552,7 +547,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       entitled "Incorporating PKWARE Proprietary Technology into Your 
       Product" for more information.
 
-   # 4.3.12
+   ### 4.3.12
     Central directory structure:
 
       [central directory header 1]
@@ -586,7 +581,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
         extra field (variable size)
         file comment (variable size)
 
-   # 4.3.13
+   ### 4.3.13
    Digital signature:
 
         header signature                4 bytes  (0x05054b50)
@@ -603,7 +598,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       describing the Strong Encryption Specification. The Digital 
       Signature record will be neither compressed nor encrypted.
 
-   # 4.3.14
+   ### 4.3.14
     Zip64 end of central directory record
 
         zip64 end of central dir 
@@ -625,13 +620,15 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
         the starting disk number        8 bytes
         zip64 extensible data sector    (variable size)
 
-      4.3.14.1 The value stored into the "size of zip64 end of central
+      ### 4.3.14
+  .1 The value stored into the "size of zip64 end of central
       directory record" SHOULD be the size of the remaining
       record and SHOULD NOT include the leading 12 bytes.
   
       Size = SizeOfFixedFields + SizeOfVariableData - 12.
 
-      4.3.14.2 The above record structure defines Version 1 of the 
+      ### 4.3.14
+  .2 The above record structure defines Version 1 of the 
       zip64 end of central directory record. Version 1 was 
       implemented in versions of this specification preceding 
       6.2 in support of the ZIP64 large file feature. The 
@@ -645,7 +642,8 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       for more information applicable to use of Version 2 of this
       record.
 
-      4.3.14.3 Special purpose data MAY reside in the zip64 extensible 
+      ### 4.3.14
+  .3 Special purpose data MAY reside in the zip64 extensible 
       data sector field following either a V1 or V2 version of this
       record.  To ensure identification of this special purpose data
       it MUST include an identifying header block consisting of the
@@ -660,12 +658,13 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       Data Size identifies the number of bytes that follow for this
       data block type.
 
-      4.3.14.4 Multiple special purpose data blocks MAY be present. 
+      ### 4.3.14
+  .4 Multiple special purpose data blocks MAY be present. 
       Each MUST be preceded by a Header ID and Data Size field.  Current
       mappings of Header ID values supported in this field are as
       defined in APPENDIX C.
 
-   # 4.3.15
+   ### 4.3.15
    Zip64 end of central directory locator
 
       zip64 end of central dir locator 
@@ -677,7 +676,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       end of central directory record 8 bytes
       total number of disks           4 bytes
         
-   # 4.3.16
+   ### 4.3.16
     End of central directory record:
 
       end of central dir signature    4 bytes  (0x06054b50)
@@ -695,34 +694,39 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       .ZIP file comment length        2 bytes
       .ZIP file comment       (variable size)
                 
-## 4.4  Explanation of fields
---------------------------
+## 4.4  Explanation of fields
       
-   # 4.4.1
+   ### 4.4.1
    General notes on fields
 
-      4.4.1.1  All fields unless otherwise noted are unsigned and stored
+      ### 4.4.1
+  .1  All fields unless otherwise noted are unsigned and stored
       in Intel low-byte:high-byte, low-word:high-word order.
 
-      4.4.1.2  String fields are not null terminated, since the length 
+      ### 4.4.1
+  .2  String fields are not null terminated, since the length 
       is given explicitly.
 
-      4.4.1.3  The entries in the central directory MAY NOT necessarily
+      ### 4.4.1
+  .3  The entries in the central directory MAY NOT necessarily
       be in the same order that files appear in the .ZIP file.
 
-      4.4.1.4  If one of the fields in the end of central directory
+      ### 4.4.1
+  .4  If one of the fields in the end of central directory
       record is too small to hold required data, the field SHOULD be 
       set to -1 (0xFFFF or 0xFFFFFFFF) and the ZIP64 format record 
       SHOULD be created.
 
-      4.4.1.5  The end of central directory record and the Zip64 end 
+      ### 4.4.1
+  .5  The end of central directory record and the Zip64 end 
       of central directory locator record MUST reside on the same 
       disk when splitting or spanning an archive.
 
-   # 4.4.2
+   ### 4.4.2
    version made by (2 bytes)
 
-        4.4.2.1 The upper byte indicates the compatibility of the file
+        ### 4.4.2
+  .1 The upper byte indicates the compatibility of the file
         attribute information.  If the external file attributes 
         are compatible with MS-DOS and can be read by PKZIP for 
         DOS version 2.04g then this value will be zero.  If these 
@@ -731,7 +735,8 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
         compatible.  Software can use this information to determine
         the line record format for text files etc.  
 
-        4.4.2.2 The current mappings are:
+        ### 4.4.2
+  .2 The current mappings are:
 
          0 - MS-DOS and OS/2 (FAT / VFAT / FAT32 file systems)
          1 - Amiga                     2 - OpenVMS
@@ -745,16 +750,18 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
         17 - Tandem                   18 - OS/400
         19 - OS X (Darwin)            20 thru 255 - unused
 
-        4.4.2.3 The lower byte indicates the ZIP specification version 
+        ### 4.4.2
+  .3 The lower byte indicates the ZIP specification version 
         (the version of this document) supported by the software 
         used to encode the file.  The value/10 indicates the major 
         version number, and the value mod 10 is the minor version 
         number.  
 
-   # 4.4.3
+   ### 4.4.3
    version needed to extract (2 bytes)
 
-        4.4.3.1 The minimum supported ZIP specification version needed 
+        ### 4.4.3
+  .1 The minimum supported ZIP specification version needed 
         to extract the file, mapped as above.  This value is based on 
         the specific format features a ZIP program MUST support to 
         be able to extract the file.  If multiple features are
@@ -764,7 +771,8 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
         implemented using higher version numbers than the last 
         published value to avoid conflict.
 
-        4.4.3.2 Current minimum feature versions are as defined below:
+        ### 4.4.3
+  .2 Current minimum feature versions are as defined below:
 
          1.0 - Default value
          1.1 - File is a volume label
@@ -790,7 +798,8 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
          6.3 - File is encrypted using Blowfish
          6.3 - File is encrypted using Twofish
 
-        4.4.3.3 Notes on version needed to extract 
+        ### 4.4.3
+  .3 Notes on version needed to extract 
 
         * Early 7.x (pre-7.2) versions of PKZIP incorrectly set the
         version needed to extract for BZIP2 compression to be 50
@@ -816,7 +825,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
         Version 1 or Version 2 format is in use. 
 
 
-   # 4.4.4
+   ### 4.4.4
    general purpose bit flag: (2 bytes)
 
         Bit 0: If set, indicates that the file is encrypted.
@@ -904,7 +913,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
 
         Bit 15: Reserved by PKWARE.
 
-   # 4.4.5
+   ### 4.4.5
    compression method: (2 bytes)
 
         0 - The file is stored (no compression)
@@ -936,10 +945,11 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
        98 - PPMd version I, Rev 1
        99 - AE-x encryption marker (see APPENDIX E)
 
-       4.4.5.1 Methods 1-6 are legacy algorithms and are no longer
+       ### 4.4.5
+  .1 Methods 1-6 are legacy algorithms and are no longer
        recommended for use when compressing files.
 
-   # 4.4.6
+   ### 4.4.6
    date and time fields: (2 bytes each)
 
        The date and time are encoded in standard MS-DOS format.
@@ -952,7 +962,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
        UTC. For example, MS-DOS uses year values relative to 1980
        and 2 second precision.
 
-   # 4.4.7
+   ### 4.4.7
    CRC-32: (4 bytes)
 
        The CRC-32 algorithm was generously contributed by
@@ -972,9 +982,9 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
        bit flag 13 is set indicating masking, the value stored 
        in the Local Header will be zero. 
 
-   # 4.4.8
+   ### 4.4.8
    compressed size: (4 bytes)
-   # 4.4.9
+   ### 4.4.9
    uncompressed size: (4 bytes)
 
        The size of the file compressed (4.4.8) and uncompressed,
@@ -992,11 +1002,11 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
        flag 13 is set indicating masking, the value stored for the 
        uncompressed size in the Local Header will be zero. 
 
-   # 4.4.10
+   ### 4.4.10
    file name length: (2 bytes)
-   # 4.4.11
+   ### 4.4.11
    extra field length: (2 bytes)
-   # 4.4.12
+   ### 4.4.12
    file comment length: (2 bytes)
 
        The length of the file name, extra field, and comment
@@ -1006,7 +1016,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
        input, the file name length is set to zero.  
 
 
-   # 4.4.13
+   ### 4.4.13
    disk number start: (2 bytes)
 
        The number of the disk on which this file begins.  If an 
@@ -1014,17 +1024,19 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
        0xFFFF, the size will be in the corresponding 4 byte zip64 
        extended information extra field.
 
-   # 4.4.14
+   ### 4.4.14
    internal file attributes: (2 bytes)
 
        Bits 1 and 2 are reserved for use by PKWARE.
 
-       4.4.14.1 The lowest bit of this field indicates, if set, 
+       ### 4.4.14
+  .1 The lowest bit of this field indicates, if set, 
        that the file is apparently an ASCII or text file.  If not
        set, that the file apparently contains binary data.
        The remaining bits are unused in version 1.0.
 
-       4.4.14.2 The 0x0002 bit of this field indicates, if set, that 
+       ### 4.4.14
+  .2 The 0x0002 bit of this field indicates, if set, that 
        a 4 byte variable record length control field precedes each 
        logical record indicating the length of the record. The 
        record length control field is stored in little-endian byte
@@ -1033,7 +1045,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
        control characters in the total length of the record. This 
        value is provided for mainframe data transfer support.
 
-   # 4.4.15
+   ### 4.4.15
    external file attributes: (4 bytes)
 
        The mapping of the external attributes is
@@ -1042,7 +1054,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
        attribute byte.  If input came from standard input, this
        field is set to zero.
 
-   # 4.4.16
+   ### 4.4.16
    relative offset of local header: (4 bytes)
 
        This is the offset from the start of the first disk on
@@ -1051,10 +1063,11 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
        in this field is 0xFFFFFFFF, the size will be in the 
        corresponding 8 byte zip64 extended information extra field.
 
-   # 4.4.17
+   ### 4.4.17
    file name: (Variable)
 
-       4.4.17.1 The name of the file, with optional relative path.
+       ### 4.4.17
+  .1 The name of the file, with optional relative path.
        The path stored MUST NOT contain a drive or
        device letter, or a leading slash.  All slashes
        MUST be forward slashes '/' as opposed to
@@ -1062,7 +1075,8 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
        and UNIX file systems etc.  If input came from standard
        input, there is no file name field.  
 
-       4.4.17.2 If using the Central Directory Encryption Feature and 
+       ### 4.4.17
+  .2 If using the Central Directory Encryption Feature and 
        general purpose bit flag 13 is set indicating masking, the file 
        name stored in the Local Header will not be the actual file name.  
        A masking value consisting of a unique hexadecimal value will 
@@ -1073,12 +1087,12 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
        Proprietary Technology into Your Product" for more information.
 
 
-   # 4.4.18
+   ### 4.4.18
    file comment: (Variable)
 
        The comment for this file.
 
-   # 4.4.19
+   ### 4.4.19
    number of this disk: (2 bytes)
 
        The number of this disk, which contains central
@@ -1088,7 +1102,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
        directory field.
 
 
-   # 4.4.20
+   ### 4.4.20
    number of the disk with the start of the central
             directory: (2 bytes)
 
@@ -1098,7 +1112,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
        be in the corresponding 4 byte zip64 end of central 
        directory field.
 
-   # 4.4.21
+   ### 4.4.21
    total number of entries in the central dir on 
           this disk: (2 bytes)
 
@@ -1108,7 +1122,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       corresponding 8 byte zip64 end of central 
       directory field.
 
-   # 4.4.22
+   ### 4.4.22
    total number of entries in the central dir: (2 bytes)
 
       The total number of files in the .ZIP file. If an 
@@ -1116,7 +1130,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       is 0xFFFF, the size will be in the corresponding 8 byte 
       zip64 end of central directory field.
 
-   # 4.4.23
+   ### 4.4.23
    size of the central directory: (4 bytes)
 
       The size (in bytes) of the entire central directory.
@@ -1125,7 +1139,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       corresponding 8 byte zip64 end of central 
       directory field.
 
-   # 4.4.24
+   ### 4.4.24
    offset of start of central directory with respect to
           the starting disk number:  (4 bytes)
 
@@ -1136,12 +1150,12 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       corresponding 8 byte zip64 end of central 
       directory field.
 
-   # 4.4.25
+   ### 4.4.25
    .ZIP file comment length: (2 bytes)
 
       The length of the comment for this .ZIP file.
 
-   # 4.4.26
+   ### 4.4.26
    .ZIP file comment: (Variable)
 
       The comment for this .ZIP file.  ZIP file comment data
@@ -1149,13 +1163,13 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       is applied to this area at this time.  Confidential information
       SHOULD NOT be stored in this section.
 
-   # 4.4.27
+   ### 4.4.27
    zip64 extensible data sector    (variable size)
 
       (currently reserved for use by PKWARE)
 
 
-   # 4.4.28
+   ### 4.4.28
    extra field: (Variable)
 
      This SHOULD be used for storage expansion.  If additional 
@@ -1168,10 +1182,9 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
      Existing extra fields are defined in the section
      Extensible data fields that follows.
 
-## 4.5 Extensible data fields
---------------------------
+## 4.5 Extensible data fields
 
-   # 4.5.1
+   ### 4.5.1
    In order to allow different programs and different types
    of information to be stored in the 'extra' field in .ZIP
    files, the following structure MUST be used for all
@@ -1193,7 +1206,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    The remaining IDs can be used by third party vendors for
    proprietary usage.
 
-   # 4.5.2
+   ### 4.5.2
    The current Header ID mappings defined by PKWARE are:
 
       0x0001        Zip64 extended information extra field
@@ -1224,7 +1237,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       0x4690        POSZIP 4690 (reserved) 
 
 
-   # 4.5.3
+   ### 4.5.3
    -Zip64 Extended Information Extra Field (0x0001):
 
       The following is the layout of the zip64 extended 
@@ -1260,7 +1273,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       Local Header for the original file size will be zero.
 
 
-   # 4.5.4
+   ### 4.5.4
    -OS/2 Extra Field (0x0009):
 
       The following is the layout of the OS/2 attributes "extra" 
@@ -1282,7 +1295,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       structure.  There will only ever be one "block" of data in 
       VarFields[].
 
-   # 4.5.5
+   ### 4.5.5
    -NTFS Extra Field (0x000a):
 
       The following is the layout of the NTFS attributes 
@@ -1317,7 +1330,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
          Atime      8 bytes    File last access time
          Ctime      8 bytes    File creation time
 
-   # 4.5.6
+   ### 4.5.6
    -OpenVMS Extra Field (0x000c):
 
        The following is the layout of the OpenVMS attributes 
@@ -1342,20 +1355,23 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
 
        OpenVMS Extra Field Rules:
 
-          4.5.6.1. There will be one or more attributes present, which 
+          ### 4.5.6
+  .1. There will be one or more attributes present, which 
           will each be preceded by the above TagX & SizeX values.  
           These values are identical to the ATR$C_XXXX and ATR$S_XXXX 
           constants which are defined in ATR.H under OpenVMS C.  Neither 
           of these values will ever be zero.
 
-          4.5.6.2. No word alignment or padding is performed.
+          ### 4.5.6
+  .2. No word alignment or padding is performed.
 
-          4.5.6.3. A well-behaved PKZIP/OpenVMS program SHOULD NOT produce
+          ### 4.5.6
+  .3. A well-behaved PKZIP/OpenVMS program SHOULD NOT produce
           more than one sub-block with the same TagX value.  Also, there MUST 
           NOT be more than one "extra" block of type 0x000c in a particular 
           directory record.
 
-   # 4.5.7
+   ### 4.5.7
    -UNIX Extra Field (0x000d):
 
         The following is the layout of the UNIX "extra" block.
@@ -1386,10 +1402,11 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
         will be the major device number, and the second the minor
         device number.
                           
-   # 4.5.8
+   ### 4.5.8
    -PATCH Descriptor Extra Field (0x000f):
 
-        4.5.8.1 The following is the layout of the Patch Descriptor 
+        ### 4.5.8
+  .1 The following is the layout of the Patch Descriptor 
         "extra" block.
 
         Note: all fields stored in Intel low-byte/high-byte order.
@@ -1405,7 +1422,8 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
         NewSize   4 bytes  Size of the resulting file 
         NewCRC    4 bytes  32-bit CRC of the resulting file 
 
-        4.5.8.2 Actions and reactions
+        ### 4.5.8
+  .2 Actions and reactions
 
         Bits          Description
         ----          ----------------
@@ -1420,7 +1438,8 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
         14-15         RESERVED
         16-31         RESERVED
 
-           4.5.8.2.1 Actions
+           ### 4.5.8
+  .2.1 Actions
 
            Action       Value
            ------       ----- 
@@ -1429,7 +1448,8 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
            delete       2
            patch        3
 
-           4.5.8.2.2 Reactions
+           ### 4.5.8
+  .2.2 Reactions
         
            Reaction     Value
            --------     -----
@@ -1438,7 +1458,8 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
            ignore       2
            fail         3
 
-        4.5.8.3 Patch support is provided by PKPatchMaker(tm) technology 
+        ### 4.5.8
+  .3 Patch support is provided by PKPatchMaker(tm) technology 
         and is covered under U.S. Patents and Patents Pending. The use or 
         implementation in a product of certain technological aspects set
         forth in the current APPNOTE, including those with regard to 
@@ -1447,7 +1468,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
         PKWARE Proprietary Technology into Your Product" for more 
         information. 
 
-   # 4.5.9
+   ### 4.5.9
    -PKCS#7 Store for X.509 Certificates (0x0014):
 
         This field MUST contain information about each of the certificates 
@@ -1467,7 +1488,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
         TData     TSize    Data about the store
 
 
-   # 4.5.10
+   ### 4.5.10
    -X.509 Certificate ID and Signature for individual file (0x0015):
 
         This field contains the information about which certificate in 
@@ -1483,7 +1504,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
         TSize     2 bytes  Size of data that follows
         TData     TSize    Signature Data
 
-   # 4.5.11
+   ### 4.5.11
    -X.509 Certificate ID and Signature for central directory (0x0016):
 
         This field contains the information about which certificate in 
@@ -1500,7 +1521,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
         TSize     2 bytes  Size of data that follows
         TData     TSize    Data
 
-   # 4.5.12
+   ### 4.5.12
    -Strong Encryption Header (0x0017):
 
         Value     Size     Description
@@ -1522,7 +1543,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
         "Incorporating PKWARE Proprietary Technology into Your Product" 
         for more information.
 
-   # 4.5.13
+   ### 4.5.13
    -Record Management Controls (0x0018):
 
           Value     Size     Description
@@ -1540,7 +1561,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
           DataN     SizeN    Attribute N data
 
 
-   # 4.5.14
+   ### 4.5.14
    -PKCS#7 Encryption Recipient Certificate List (0x0019): 
 
         This field MAY contain information about each of the certificates
@@ -1571,7 +1592,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
          "Incorporating PKWARE Proprietary Technology into Your Product" 
          for more information.
 
-   # 4.5.15
+   ### 4.5.15
    -MVS Extra Field (0x0065):
 
         The following is the layout of the MVS "extra" block.
@@ -1586,7 +1607,7 @@ Value     Size      Description
         (var)     TSize-4   Attribute data (see APPENDIX B)
 
 
-   # 4.5.16
+   ### 4.5.16
    -OS/400 Extra Field (0x0065):
 
         The following is the layout of the OS/400 "extra" block.
@@ -1601,7 +1622,7 @@ Value     Size      Description
                              "T4MV" for TargetFour
         (var)     TSize-4    Attribute data (see APPENDIX A)
 
-   # 4.5.17
+   ### 4.5.17
    -Policy Decryption Key Record Extra Field (0x0021):
 
         The following is the layout of the Policy Decryption Key "extra" block.
@@ -1619,7 +1640,7 @@ Value     Size      Description
         TSize     2 bytes    Size for the following data block
         TData     TSize      Data about the key
 
-   # 4.5.18
+   ### 4.5.18
    -Key Provider Record Extra Field (0x0022):
 
         The following is the layout of the Key Provider "extra" block.
@@ -1637,7 +1658,7 @@ Value     Size      Description
         TSize     2 bytes    Size for the following data block
         TData     TSize      Data about the key
 
-   # 4.5.19
+   ### 4.5.19
    -Policy Key Data Record Record Extra Field (0x0023):
 
         The following is the layout of the Policy Key Data "extra" block.
@@ -1655,10 +1676,9 @@ Value     Size      Description
         TSize     2 bytes    Size for the following data block
         TData     TSize      Data about the key
 
-## 4.6 Third Party Mappings
-------------------------
+## 4.6 Third Party Mappings
                  
-   # 4.6.1
+   ### 4.6.1
    Third party mappings commonly used are:
 
           0x07c8        Macintosh
@@ -1696,7 +1716,7 @@ Value     Size      Description
    PKWARE does not guarantee the accuracy of any published
    third party data.
 
-   # 4.6.2
+   ### 4.6.2
    Third-party Extra Fields MUST include a Header ID using
    the format defined in the section of this document 
    titled Extensible Data Fields (section 4.5).
@@ -1710,7 +1730,7 @@ Value     Size      Description
          header, including the file name, comment, and extra
          field SHOULD NOT exceed 64K in size.
 
-   # 4.6.3
+   ### 4.6.3
    In case two different programs appropriate the same
    Header ID value, it is strongly recommended that each
    program SHOULD place a unique signature of at least two bytes in
@@ -1722,7 +1742,7 @@ Value     Size      Description
          
    Third-party Mappings:
           
-   # 4.6.4
+   ### 4.6.4
    -ZipIt Macintosh Extra Field (long) (0x2605):
 
       The following is the layout of the ZipIt extra block 
@@ -1742,7 +1762,7 @@ Value     Size      Description
           Creator       Byte[4]     four-byte Mac creator string
 
 
-   # 4.6.5
+   ### 4.6.5
    -ZipIt Macintosh Extra Field (short, for files) (0x2705):
 
       The following is the layout of a shortened variant of the
@@ -1763,7 +1783,7 @@ Value     Size      Description
          0x0000        beShort     reserved, MAY be omitted
 
 
-   # 4.6.6
+   ### 4.6.6
    -ZipIt Macintosh Extra Field (short, for directories) (0x2805):
 
       The following is the layout of a shortened variant of the
@@ -1790,7 +1810,7 @@ Value     Size      Description
         bits 1-15       reserved, zero;
 
 
-   # 4.6.7
+   ### 4.6.7
    -FWKCS MD5 Extra Field (0x4b46):
 
       The FWKCS Contents_Signature System, used in
@@ -1825,7 +1845,7 @@ Value     Size      Description
           standard."
 
 
-   # 4.6.8
+   ### 4.6.8
    -Info-ZIP Unicode Comment Extra Field (0x6375):
 
       Stores the UTF-8 version of the file comment as stored in the
@@ -1868,7 +1888,7 @@ Value     Size      Description
        Directory Header for a file.
 
 
-   # 4.6.9
+   ### 4.6.9
    -Info-ZIP Unicode Path Extra Field (0x7075):
 
        Stores the UTF-8 version of the file name field as stored in the
@@ -1911,7 +1931,7 @@ Value     Size      Description
       Directory Header for a file.
  
 
-   # 4.6.10
+   ### 4.6.10
    -Microsoft Open Packaging Growth Hint (0xa220):
 
           Value         Size        Description
@@ -1922,7 +1942,7 @@ Value     Size      Description
           PadVal        Short       Initial padding value
           Padding       variable    filled with NULL characters
 
-    # 4.6.11
+    ### 4.6.11
    -Data Stream Alignment (Apache Commons-Compress) (0xa11e):
 
        (per Zbynek Vyskovsky) Defines alignment of data stream of this 
@@ -1949,10 +1969,9 @@ Value     Size      Description
        alignment changes. (see https://issues.apache.org/jira/browse/COMPRESS-391)
 
 
-## 4.7 Manifest Files
-------------------
+## 4.7 Manifest Files
 
-    # 4.7.1
+    ### 4.7.1
    Applications using ZIP files MAY have a need for additional 
     information that MUST be included with the files placed into
     a ZIP file. Application specific information that cannot be
@@ -1963,7 +1982,7 @@ Value     Size      Description
     example is the META-INF/MANIFEST.MF file used in ZIP formatted
     files having the .JAR extension (JAR files).  
 
-    # 4.7.2
+    ### 4.7.2
    A manifest file is a file created for the application process
     that requires this information.  A manifest file MAY be of any 
     file type required by the defining application process.  It is 
@@ -1971,27 +1990,25 @@ Value     Size      Description
     applies. By convention, this file is typically the first file placed
     into the ZIP file and it MAY include a defined directory path.
 
-    # 4.7.3
+    ### 4.7.3
    Manifest files MAY be compressed or encrypted as needed for
     application processing of the files inside the ZIP files.
 
     Manifest files are outside of the scope of this specification.
 
 
-## 5.0 Explanation of compression methods
---------------------------------------
+## 5.0 Explanation of compression methods
 
 
-## 5.1 UnShrinking - Method 1
---------------------------
+## 5.1 UnShrinking - Method 1
 
-    # 5.1.1
+    ### 5.1.1
    Shrinking is a Dynamic Ziv-Lempel-Welch compression algorithm
     with partial clearing.  The initial code size is 9 bits, and the 
     maximum code size is 13 bits.  Shrinking differs from conventional 
     Dynamic Ziv-Lempel-Welch implementations in several respects:
 
-    # 5.1.2
+    ### 5.1.2
    The code size is controlled by the compressor, and is 
     not automatically increased when codes larger than the current
     code size are created (but not necessarily used).  When
@@ -2005,7 +2022,7 @@ Value     Size      Description
     increase the code size used until the sequence 256,1 is
     encountered.
 
-    # 5.1.3
+    ### 5.1.3
    When the table becomes full, total clearing is not
     performed.  Rather, when the compressor emits the code
     sequence 256,2 (decimal), the decompressor SHOULD clear
@@ -2016,17 +2033,16 @@ Value     Size      Description
     re-used last.  The compressor can emit the sequence 256,2
     at any time.
 
-## 5.2 Expanding - Methods 2-5
----------------------------
+## 5.2 Expanding - Methods 2-5
 
-    # 5.2.1
+    ### 5.2.1
    The Reducing algorithm is actually a combination of two
     distinct algorithms.  The first algorithm compresses repeated
     byte sequences, and the second algorithm takes the compressed
     stream from the first algorithm and applies a probabilistic
     compression method.
 
-    # 5.2.2
+    ### 5.2.2
    The probabilistic compression stores an array of 'follower
     sets' S(j), for j=0 to 255, corresponding to each possible
     ASCII character.  Each set contains between 0 and 32
@@ -2035,7 +2051,7 @@ Value     Size      Description
     Reduced file, in reverse order, with S(255) first, and S(0)
     last.
 
-    # 5.2.3
+    ### 5.2.3
    The sets are encoded as { N(j), S(j)[0],...,S(j)[N(j)-1] },
     where N(j) is the size of set S(j).  N(j) can be 0, in which
     case the follower set for S(j) is empty.  Each N(j) value is
@@ -2044,7 +2060,7 @@ Value     Size      Description
     N(j) is 0, then no values for S(j) are stored, and the value
     for N(j-1) immediately follows.
 
-    # 5.2.4
+    ### 5.2.4
    Immediately after the follower sets, is the compressed data
     stream.  The compressed data stream can be interpreted for the
     probabilistic decompression as follows:
@@ -2072,7 +2088,7 @@ Value     Size      Description
     B(N(j)) is defined as the minimal number of bits required to
     encode the value N(j)-1.
 
-    # 5.2.5
+    ### 5.2.5
    The decompressed stream from above can then be expanded to
     re-create the original file as follows:
 
@@ -2126,23 +2142,22 @@ Value     Size      Description
         F(X) equals 2 if X equals 15 otherwise F(X) equals 3.
         D(X,Y) equals the (upper 4 bits of X) * 256 + Y + 1.
 
-## 5.3 Imploding - Method 6
-------------------------
+## 5.3 Imploding - Method 6
 
-    # 5.3.1
+    ### 5.3.1
    The Imploding algorithm is actually a combination of two 
     distinct algorithms.  The first algorithm compresses repeated byte
     sequences using a sliding dictionary.  The second algorithm is
     used to compress the encoding of the sliding dictionary output,
     using multiple Shannon-Fano trees.
 
-    # 5.3.2
+    ### 5.3.2
    The Imploding algorithm can use a 4K or 8K sliding dictionary
     size. The dictionary size used can be determined by bit 1 in the
     general purpose flag word; a 0 bit indicates a 4K dictionary
     while a 1 bit indicates an 8K dictionary.
 
-    # 5.3.3
+    ### 5.3.3
    The Shannon-Fano trees are stored at the start of the 
     compressed file. The number of trees stored is defined by bit 2 in 
     the general purpose flag word; a 0 bit indicates two trees stored, 
@@ -2153,7 +2168,7 @@ Value     Size      Description
     Distance information.  When 2 Shannon-Fano trees are stored, the
     Length tree is stored first, followed by the Distance tree.
 
-    # 5.3.4
+    ### 5.3.4
    The Literal Shannon-Fano tree, if present is used to represent
     the entire ASCII character set, and contains 256 values.  This
     tree is used to compress any data not compressed by the sliding
@@ -2161,13 +2176,13 @@ Value     Size      Description
     Match Length for the sliding dictionary is 3.  If this tree is
     not present, the Minimum Match Length is 2.
 
-    # 5.3.5
+    ### 5.3.5
    The Length Shannon-Fano tree is used to compress the Length 
     part of the (length,distance) pairs from the sliding dictionary
     output.  The Length tree contains 64 values, ranging from the
     Minimum Match Length, to 63 plus the Minimum Match Length.
 
-    # 5.3.6
+    ### 5.3.6
    The Distance Shannon-Fano tree is used to compress the Distance
     part of the (length,distance) pairs from the sliding dictionary
     output. The Distance tree contains 64 values, ranging from 0 to
@@ -2175,7 +2190,7 @@ Value     Size      Description
     distance values themselves will be between 0 and the sliding
     dictionary size, either 4K or 8K.
 
-    # 5.3.7
+    ### 5.3.7
    The Shannon-Fano trees themselves are stored in a compressed
     format. The first byte of the tree data represents the number of
     bytes of data representing the (compressed) Shannon-Fano tree
@@ -2185,7 +2200,7 @@ Value     Size      Description
         High 4 bits: Number of values at this bit length + 1. (1 - 16)
         Low  4 bits: Bit Length needed to represent value + 1. (1 - 16)
 
-    # 5.3.8
+    ### 5.3.8
    The Shannon-Fano codes can be constructed from the bit lengths
     using the following algorithm:
 
@@ -2257,7 +2272,7 @@ Value     Size      Description
     schemes used for Huffman variable length decoding, such as the
     Greenlaw algorithm, can be successfully applied.
 
-    # 5.3.9
+    ### 5.3.9
    The compressed data stream begins immediately after the
     compressed Shannon-Fano data.  The compressed data stream can be
     interpreted as follows:
@@ -2296,21 +2311,19 @@ Value     Size      Description
             the output stream is filled with zeros).
     end loop
 
-## 5.4 Tokenizing - Method 7
--------------------------
+## 5.4 Tokenizing - Method 7
 
-    # 5.4.1
+    ### 5.4.1
    This method is not used by PKZIP.
 
-## 5.5 Deflating - Method 8
-------------------------
+## 5.5 Deflating - Method 8
 
-    # 5.5.1
+    ### 5.5.1
    The Deflate algorithm is similar to the Implode algorithm using
     a sliding dictionary of up to 32K with secondary compression
     from Huffman/Shannon-Fano codes.
 
-    # 5.5.2
+    ### 5.5.2
    The compressed data is stored in blocks with a header describing
     the block and the Huffman codes used in the data block.  The header
     format is as follows:
@@ -2339,7 +2352,7 @@ Value     Size      Description
 
           11 (3) - Reserved - Flag a "Error in compressed data" if seen.
 
-    # 5.5.3
+    ### 5.5.3
    Expanding Huffman Codes
     
     If the data block is stored with dynamic Huffman codes, the Huffman
@@ -2410,7 +2423,7 @@ Value     Size      Description
        6   2   9-12   14   6  129-192   22   10 2049-3072
        7   2  13-16   15   6  193-256   23   10 3073-4096
 
-    # 5.5.4
+    ### 5.5.4
    The compressed data stream begins immediately after the
     compressed header data.  The compressed data stream can be
     interpreted as follows:
@@ -2444,26 +2457,23 @@ Value     Size      Description
        read crc and sizes
     endif
 
-## 5.6 Enhanced Deflating - Method 9
----------------------------------
+## 5.6 Enhanced Deflating - Method 9
 
-    # 5.6.1
+    ### 5.6.1
    The Enhanced Deflating algorithm is similar to Deflate but uses 
     a sliding dictionary of up to 64K. Deflate64(tm) is supported
     by the Deflate extractor. 
 
-## 5.7 BZIP2 - Method 12
----------------------
+## 5.7 BZIP2 - Method 12
 
-    # 5.7.1
+    ### 5.7.1
    BZIP2 is an open-source data compression algorithm developed by 
     Julian Seward.  Information and source code for this algorithm
     can be found on the internet.
 
-## 5.8 LZMA - Method 14 
----------------------
+## 5.8 LZMA - Method 14 
 
-    # 5.8.1
+    ### 5.8.1
    LZMA is a block-oriented, general purpose data compression 
     algorithm developed and maintained by Igor Pavlov.  It is a derivative 
     of LZ77 that utilizes Markov chains and a range coder.  Information and 
@@ -2473,17 +2483,17 @@ Value     Size      Description
 
     Support for LZMA within the ZIP format is defined as follows:   
 
-    # 5.8.2
+    ### 5.8.2
    The Compression method field within the ZIP Local and Central 
     Header records will be set to the value 14 to indicate data was
     compressed using LZMA. 
 
-    # 5.8.3
+    ### 5.8.3
    The Version needed to extract field within the ZIP Local and 
     Central Header records will be set to 6.3 to indicate the minimum 
     ZIP format version supporting this feature.
 
-    # 5.8.4
+    ### 5.8.4
    File data compressed using the LZMA algorithm MUST be placed 
     immediately following the Local Header for the file.  If a standard 
     ZIP encryption header is required, it will follow the Local Header 
@@ -2496,7 +2506,7 @@ Value     Size      Description
         [data descriptor 1]
         [local header file 2]
 
-    # 5.8.5
+    ### 5.8.5
    The encryption header and data descriptor records MAY
     be conditionally present.  The LZMA Compressed Data Segment 
     will consist of an LZMA Properties Header followed by the 
@@ -2505,19 +2515,19 @@ Value     Size      Description
         [LZMA properties header for file 1]
         [LZMA compressed data for file 1]
 
-    # 5.8.6
+    ### 5.8.6
    The LZMA Compressed Data will be stored as provided by the 
     LZMA compression library.  Compressed size, uncompressed size and 
     other file characteristics about the file being compressed MUST be 
     stored in standard ZIP storage format.
 
-    # 5.8.7
+    ### 5.8.7
    The LZMA Properties Header will store specific data required 
     to decompress the LZMA compressed Data.  This data is set by the 
     LZMA compression engine using the function WriteCoderProperties() 
     as documented within the LZMA SDK. 
          
-    # 5.8.8
+    ### 5.8.8
    Storage fields for the property information within the LZMA 
     Properties Header are as follows:
 
@@ -2525,24 +2535,28 @@ Value     Size      Description
          LZMA Properties Size 2 bytes
          LZMA Properties Data variable, defined by "LZMA Properties Size"
 
-       5.8.8.1 LZMA Version Information - this field identifies which version 
+       ### 5.8.8
+  .1 LZMA Version Information - this field identifies which version 
        of the LZMA SDK was used to compress a file.  The first byte will 
        store the major version number of the LZMA SDK and the second 
        byte will store the minor number.  
 
-       5.8.8.2 LZMA Properties Size - this field defines the size of the 
+       ### 5.8.8
+  .2 LZMA Properties Size - this field defines the size of the 
        remaining property data.  Typically this size SHOULD be determined by 
        the version of the SDK.  This size field is included as a convenience
        and to help avoid any ambiguity arising in the future due
        to changes in this compression algorithm. 
 
-       5.8.8.3 LZMA Property Data - this variable sized field records the 
+       ### 5.8.8
+  .3 LZMA Property Data - this variable sized field records the 
        required values for the decompressor as defined by the LZMA SDK.  
        The data stored in this field SHOULD be obtained using the 
        WriteCoderProperties() in the version of the SDK defined by 
        the "LZMA Version Information" field.  
 
-       5.8.8.4 The layout of the "LZMA Properties Data" field is a function of 
+       ### 5.8.8
+  .4 The layout of the "LZMA Properties Data" field is a function of 
        the LZMA compression algorithm.  It is possible that this layout MAY be
        changed by the author over time.  The data layout in version 4.3 of the 
        LZMA SDK defines a 5 byte array that uses 4 bytes to store the dictionary 
@@ -2556,7 +2570,7 @@ Value     Size      Description
        Refer to the LZMA documentation for a more detailed explanation of 
        these fields.  
 
-    # 5.8.9
+    ### 5.8.9
    Data compressed with method 14, LZMA, MAY include an end-of-stream
     (EOS) marker ending the compressed data stream.  This marker is not
     required, but its use is highly recommended to facilitate processing
@@ -2564,10 +2578,9 @@ Value     Size      Description
     When the EOS marker is used, general purpose bit 1 MUSY be set.  If
     general purpose bit 1 is not set, the EOS marker is not present.
 
-## 5.9 WavPack - Method 97
------------------------
+## 5.9 WavPack - Method 97
 
-    # 5.9.1
+    ### 5.9.1
    Information describing the use of compression method 97 is 
     provided by WinZIP International, LLC.  This method relies on the
     open source WavPack audio compression utility developed by David Bryant.  
@@ -2575,7 +2588,7 @@ Value     Size      Description
     with the author of this algorithm for information on terms and 
     restrictions on use.
 
-    # 5.9.2
+    ### 5.9.2
    WavPack data for a file begins immediately after the end of the
     local header data.  This data is the output from WavPack compression
     routines.  Within the ZIP file, the use of WavPack compression is
@@ -2584,7 +2597,7 @@ Value     Size      Description
     needed to extract and version made by fields use the same values as are 
     used for data compressed using the Deflate algorithm.
 
-    # 5.9.3
+    ### 5.9.3
    An implementation note for storing digital sample data when using 
     WavPack compression within ZIP files is that all of the bytes of
     the sample data SHOULD be compressed.  This includes any unused
@@ -2595,10 +2608,9 @@ Value     Size      Description
     state.  To avoid this, the full 16 bits of the sample data size
     SHOULD be provided. 
 
-## 5.10 PPMd - Method 98
----------------------
+## 5.10 PPMd - Method 98
 
-    # 5.10.1
+    ### 5.10.1
    PPMd is a data compression algorithm developed by Dmitry Shkarin
     which includes a carryless rangecoder developed by Dmitry Subbotin.
     This algorithm is based on predictive phrase matching on multiple
@@ -2606,12 +2618,12 @@ Value     Size      Description
     can be found on the internet. Consult with the author of this
     algorithm for information on terms or restrictions on use.
 
-    # 5.10.2
+    ### 5.10.2
    Support for PPMd within the ZIP format currently is provided only 
     for version I, revision 1 of the algorithm.  Storage requirements
     for using this algorithm are as follows:
 
-    # 5.10.3
+    ### 5.10.3
    Parameters needed to control the algorithm are stored in the two
     bytes immediately preceding the compressed data.  These bytes are
     used to store the following fields:
@@ -2629,7 +2641,7 @@ Value     Size      Description
                     1 - cut off model - decreases performance by as much as 2x
                     2 - freeze context tree - not recommended
 
-    # 5.10.4
+    ### 5.10.4
    An example for packing these fields into the 2 byte storage field is
     illustrated below.  These values are stored in Intel low-byte/high-byte
     order.
@@ -2639,26 +2651,19 @@ Value     Size      Description
             (Model restoration method << 12)
 
 
-## 5.11 AE-x Encryption marker - Method 99
--------------------------------------------
+## 5.11 AE-x Encryption marker - Method 99
 
-## 5.12 JPEG variant - Method 96
--------------------------------------------
+## 5.12 JPEG variant - Method 96
 
-## 5.13 PKWARE Data Compression Library Imploding -  Method 10
------------------------------------------------------------
+## 5.13 PKWARE Data Compression Library Imploding -  Method 10
 
-## 5.14 Reserved -  Method 11
--------------------------------------------
+## 5.14 Reserved -  Method 11
 
-## 5.15 Reserved -  Method 13
--------------------------------------------
+## 5.15 Reserved -  Method 13
 
-## 5.16 Reserved -  Method 15
--------------------------------------------
+## 5.16 Reserved -  Method 15
 
-## 5.17 IBM z/OS CMPSC Compression - Method 16
--------------------------------------------
+## 5.17 IBM z/OS CMPSC Compression - Method 16
 
 Method 16 utilizes the IBM hardware compression facility available
 on most IBM mainframes.  Hardware compression can significantly 
@@ -2711,19 +2716,15 @@ from 9-13).  Flag values are defined below.
     0x10 - Reserved
 
 
-## 5.18 Reserved -  Method 17
--------------------------------------------
+## 5.18 Reserved -  Method 17
 
-## 5.19 IBM TERSE -  Method 18
--------------------------------------------
+## 5.19 IBM TERSE -  Method 18
 
-## 5.20 IBM LZ77 z Architecture -  Method 19
------------------------------------------
+## 5.20 IBM LZ77 z Architecture -  Method 19
 
-## 6.0  Traditional PKWARE Encryption
-----------------------------------
+## 6.0  Traditional PKWARE Encryption
 
-    # 6.0.1
+    ### 6.0.1
    The following information discusses the decryption steps
     required to support traditional PKWARE encryption.  This
     form of encryption is considered weak by today's standards
@@ -2731,20 +2732,19 @@ from 9-13).  Flag values are defined below.
     low security needs or for compatibility with older .ZIP 
     applications.
 
-## 6.1 Traditional PKWARE Decryption
----------------------------------
+## 6.1 Traditional PKWARE Decryption
 
-    # 6.1.1
+    ### 6.1.1
    PKWARE is grateful to Mr. Roger Schlafly for his expert 
     contribution towards the development of PKWARE's traditional 
     encryption.
 
-    # 6.1.2
+    ### 6.1.2
    PKZIP encrypts the compressed data stream.  Encrypted files 
     MUST be decrypted before they can be extracted to their original
     form.
 
-    # 6.1.3
+    ### 6.1.3
    Each encrypted file has an extra 12 bytes stored at the start 
     of the data area defining the encryption header for that file.  The
     encryption header is originally set to random values, and then
@@ -2754,7 +2754,7 @@ from 9-13).  Flag values are defined below.
     generation techniques in combination with the same CRC-32 algorithm
     used in PKZIP and described elsewhere in this document.
 
-    # 6.1.4
+    ### 6.1.4
    The following are the basic steps required to decrypt a file:
 
     1) Initialize the three 32-bit keys with the password.
@@ -2763,7 +2763,7 @@ from 9-13).  Flag values are defined below.
     3) Read and decrypt the compressed data stream using the
        encryption keys.
 
-    # 6.1.5
+    ### 6.1.5
    Initializing the encryption keys
         
     Key(0) <- 305419896
@@ -2787,7 +2787,7 @@ from 9-13).  Flag values are defined below.
     character, returns an updated CRC value after applying the CRC-32
     algorithm described elsewhere in this document.
 
-    # 6.1.6
+    ### 6.1.6
    Decrypting the encryption header
         
     The purpose of this step is to further initialize the encryption
@@ -2818,7 +2818,7 @@ from 9-13).  Flag values are defined below.
     used on versions after 2.0.  This can be used to test if the password
     supplied is correct or not.
 
-    # 6.1.7
+    ### 6.1.7
    Decrypting the compressed data stream
     
     The compressed data stream can be decrypted as follows:
@@ -2831,19 +2831,17 @@ from 9-13).  Flag values are defined below.
     end loop
 
 
-## 7.0 Strong Encryption Specification
------------------------------------
+## 7.0 Strong Encryption Specification
 
-   # 7.0.1
+   ### 7.0.1
    Portions of the Strong Encryption technology defined in this 
    specification are covered under patents and pending patent applications.
    Refer to the section in this document entitled "Incorporating 
    PKWARE Proprietary Technology into Your Product" for more information.
 
-## 7.1 Strong Encryption Overview
-------------------------------
+## 7.1 Strong Encryption Overview
 
-   # 7.1.1
+   ### 7.1.1
    Version 5.x of this specification introduced support for strong 
    encryption algorithms.  These algorithms can be used with either 
    a password or an X.509v3 digital certificate to encrypt each file. 
@@ -2853,7 +2851,7 @@ from 9-13).  Flag values are defined below.
    environments, and to ensure interoperability between different 
    computing platforms that are running a ZIP program.  
 
-   # 7.1.2
+   ### 7.1.2
    Password based encryption is the most common form of encryption 
    people are familiar with.  However, inherent weaknesses with 
    passwords (e.g. susceptibility to dictionary/brute force attack) 
@@ -2865,7 +2863,7 @@ from 9-13).  Flag values are defined below.
    administrative options, and more robust security over traditional 
    password based encryption. 
 
-   # 7.1.3
+   ### 7.1.3
    Most standard encryption algorithms are supported with this
    specification. Reference implementations for many of these 
    algorithms are available from either commercial or open source 
@@ -2878,7 +2876,7 @@ from 9-13).  Flag values are defined below.
    you have a good understanding of data encryption before reading 
    further.
 
-   # 7.1.4
+   ### 7.1.4
    The algorithms introduced in Version 5.0 of this specification 
    include:
 
@@ -2892,12 +2890,12 @@ from 9-13).  Flag values are defined below.
       AES 128 bit, 192 bit, and 256 bit
 
 
-   # 7.1.5
+   ### 7.1.5
    Version 6.1 introduces encryption data changes to support 
    interoperability with Smartcard and USB Token certificate storage 
    methods which do not support the OAEP strengthening standard.
 
-   # 7.1.6
+   ### 7.1.6
    Version 6.2 introduces support for encrypting metadata by compressing 
    and encrypting the central directory data structure to reduce information 
    leakage.   Information leakage can occur in legacy ZIP applications 
@@ -2907,7 +2905,7 @@ from 9-13).  Flag values are defined below.
    specification.  This includes data such as a file's name, its original 
    size, timestamp and CRC32 value. 
 
-   # 7.1.7
+   ### 7.1.7
    Version 6.3 introduces support for encrypting data using the Blowfish
    and Twofish algorithms.  These are symmetric block ciphers developed 
    by Bruce Schneier.  Blowfish supports using a variable length key from 
@@ -2919,7 +2917,7 @@ from 9-13).  Flag values are defined below.
    Twofish algorithms can be found on the internet.  Consult with the author
    of these algorithms for information on terms or restrictions on use.
 
-   # 7.1.8
+   ### 7.1.8
    Central Directory Encryption provides greater protection against 
    information leakage by encrypting the Central Directory structure and 
    by masking key values that are replicated in the unencrypted Local 
@@ -2927,7 +2925,7 @@ from 9-13).  Flag values are defined below.
    Central Directory structure cannot rely on the data in the corresponding 
    Local Header for decompression information.  
 
-   # 7.1.9
+   ### 7.1.9
    Extra Field records that MAY contain information about a file that SHOULD 
    not be exposed SHOULD NOT be stored in the Local Header and SHOULD only 
    be written to the Central Directory where they can be encrypted.  This 
@@ -2938,7 +2936,7 @@ from 9-13).  Flag values are defined below.
    requires the appropriate password or private key for decryption prior to 
    viewing any files, or any information about the files, in the archive.  
 
-   # 7.1.10
+   ### 7.1.10
    Older ZIP compatible programs not familiar with the Central Directory 
    Encryption feature will no longer be able to recognize the Central 
    Directory and MAY assume the ZIP file is corrupt.  Programs that 
@@ -2948,21 +2946,20 @@ from 9-13).  Flag values are defined below.
    ZIP files not using Central Directory Encryption SHOULD operate as 
    in the past. 
 
-   # 7.1.11
+   ### 7.1.11
    This strong encryption feature specification is intended to provide for 
    scalable, cross-platform encryption needs ranging from simple password
    encryption to authenticated public/private key encryption.  
 
-   # 7.1.12
+   ### 7.1.12
    Encryption provides data confidentiality and privacy.  It is 
    recommended that you combine X.509 digital signing with encryption 
    to add authentication and non-repudiation.
 
 
-## 7.2 Single Password Symmetric Encryption Method
------------------------------------------------
+## 7.2 Single Password Symmetric Encryption Method
 
-   # 7.2.1
+   ### 7.2.1
    The Single Password Symmetric Encryption Method using strong    
    encryption algorithms operates similarly to the traditional 
    PKWARE encryption defined in this format.  Additional data 
@@ -2971,7 +2968,7 @@ from 9-13).  Flag values are defined below.
 
    The Strong Encryption data structures are:
 
-   # 7.2.2
+   ### 7.2.2
    General Purpose Bits - Bits 0 and 6 of the General Purpose bit 
    flag in both local and central header records.  Both bits set 
    indicates strong encryption.  Bit 13, when set indicates the Central
@@ -2979,15 +2976,17 @@ from 9-13).  Flag values are defined below.
    are masked to hide their actual value.
 
 
-    # 7.2.3
+    ### 7.2.3
    Extra Field 0x0017 in central header only.
 
     Fields to consider in this record are:
 
-       7.2.3.1 Format - the data format identifier for this record.  The only
+       ### 7.2.3
+  .1 Format - the data format identifier for this record.  The only
        value allowed at this time is the integer value 2.
 
-       7.2.3.2 AlgId - integer identifier of the encryption algorithm from the
+       ### 7.2.3
+  .2 AlgId - integer identifier of the encryption algorithm from the
        following range
 
                  0x6601 - DES
@@ -3003,11 +3002,13 @@ from 9-13).  Flag values are defined below.
                  0x6801 - RC4
                  0xFFFF - Unknown algorithm
 
-       7.2.3.3 Bitlen - Explicit bit length of key
+       ### 7.2.3
+  .3 Bitlen - Explicit bit length of key
 
                  32 - 448 bits
            
-       7.2.3.4 Flags - Processing flags needed for decryption
+       ### 7.2.3
+  .4 Flags - Processing flags needed for decryption
 
                  0x0001 - Password is required to decrypt
                  0x0002 - Certificates only
@@ -3016,7 +3017,7 @@ from 9-13).  Flag values are defined below.
                  Values > 0x0003 reserved for certificate processing
 
 
-   # 7.2.4
+   ### 7.2.4
    Decryption header record preceding compressed file data.
 
                  -Decryption Header:
@@ -3038,17 +3039,20 @@ from 9-13).  Flag values are defined below.
                   VData     VSize-4  Password validation data
                   VCRC32    4 bytes  Standard ZIP CRC32 of password validation data
 
-       7.2.4.1 IVData - The size of the IV SHOULD match the algorithm block size.
+       ### 7.2.4
+  .1 IVData - The size of the IV SHOULD match the algorithm block size.
        The IVData can be completely random data.  If the size of
        the randomly generated data does not match the block size
        it SHOULD be complemented with zero's or truncated as
        necessary.  If IVSize is 0,then IV = CRC32 + Uncompressed
        File Size (as a 64 bit little-endian, unsigned integer value).
 
-       7.2.4.2 Format - the data format identifier for this record.  The only
+       ### 7.2.4
+  .2 Format - the data format identifier for this record.  The only
        value allowed at this time is the integer value 3.
 
-       7.2.4.3 AlgId - integer identifier of the encryption algorithm from the
+       ### 7.2.4
+  .3 AlgId - integer identifier of the encryption algorithm from the
        following range
 
                      0x6601 - DES
@@ -3064,11 +3068,13 @@ from 9-13).  Flag values are defined below.
                      0x6801 - RC4
                      0xFFFF - Unknown algorithm
 
-        7.2.4.4 Bitlen - Explicit bit length of key
+        ### 7.2.4
+  .4 Bitlen - Explicit bit length of key
 
                      32 - 448 bits
                
-        7.2.4.5 Flags - Processing flags needed for decryption
+        ### 7.2.4
+  .5 Flags - Processing flags needed for decryption
 
                      0x0001 - Password is required to decrypt
                      0x0002 - Certificates only
@@ -3076,7 +3082,8 @@ from 9-13).  Flag values are defined below.
 
                      Values > 0x0003 reserved for certificate processing
 
-        7.2.4.6 ErdData - Encrypted random data is used to store random data that
+        ### 7.2.4
+  .6 ErdData - Encrypted random data is used to store random data that
         is used to generate a file session key for encrypting 
         each file.  SHA1 is used to calculate hash data used to 
         derive keys.  File session keys are derived from a master 
@@ -3087,31 +3094,36 @@ from 9-13).  Flag values are defined below.
         then the ErdData field MUST be decrypted using AlgId.
 
 
-        7.2.4.7 Reserved1 - Reserved for certificate processing, if value is
+        ### 7.2.4
+  .7 Reserved1 - Reserved for certificate processing, if value is
         zero, then Reserved2 data is absent.  See the explanation
         under the Certificate Processing Method for details on
         this data structure.
 
-        7.2.4.8 Reserved2 - If present, the size of the Reserved2 data structure 
+        ### 7.2.4
+  .8 Reserved2 - If present, the size of the Reserved2 data structure 
         is located by skipping the first 4 bytes of this field 
         and using the next 2 bytes as the remaining size.  See
         the explanation under the Certificate Processing Method
         for details on this data structure.
 
-        7.2.4.9 VSize - This size value will always include the 4 bytes of the
+        ### 7.2.4
+  .9 VSize - This size value will always include the 4 bytes of the
         VCRC32 data and will be greater than 4 bytes.
 
-        7.2.4.10 VData - Random data for password validation.  This data is VSize
+        ### 7.2.4
+  .10 VData - Random data for password validation.  This data is VSize
         in length and VSize MUST be a multiple of the encryption
         block size.  VCRC32 is a checksum value of VData.  
         VData and VCRC32 are stored encrypted and start the
         stream of encrypted data for a file.
 
 
-    # 7.2.5
+    ### 7.2.5
    Useful Tips
 
-        7.2.5.1 Strong Encryption is always applied to a file after compression. The
+        ### 7.2.5
+  .1 Strong Encryption is always applied to a file after compression. The
         block oriented algorithms all operate in Cypher Block Chaining (CBC) 
         mode.  The block size used for AES encryption is 16.  All other block
         algorithms use a block size of 8.  Two IDs are defined for RC2 to 
@@ -3121,7 +3133,8 @@ from 9-13).  Flag values are defined below.
         not be encrypted, however programs SHOULD be prepared to extract them
         if they are found within a ZIP file.
 
-        7.2.5.2 A pseudo-code representation of the encryption process is as follows:
+        ### 7.2.5
+  .2 A pseudo-code representation of the encryption process is as follows:
 
             Password = GetUserPassword()
             MasterSessionKey = DeriveKey(SHA1(Password)) 
@@ -3135,7 +3148,8 @@ from 9-13).  Flag values are defined below.
                Encrypt(VData + VCRC32 + FileData, FileSessionKey,IV)
             Done
 
-        7.2.5.3 The function names and parameter requirements will depend on
+        ### 7.2.5
+  .3 The function names and parameter requirements will depend on
         the choice of the cryptographic toolkit selected.  Almost any
         toolkit supporting the reference implementations for each
         algorithm can be used.  The RSA BSAFE(r), OpenSSL, and Microsoft
@@ -3145,7 +3159,7 @@ from 9-13).  Flag values are defined below.
  7.3 Single Password - Central Directory Encryption
  --------------------------------------------------
         
-    # 7.3.1
+    ### 7.3.1
    Central Directory Encryption is achieved within the .ZIP format by 
     encrypting the Central Directory structure.  This encapsulates the metadata 
     most often used for processing .ZIP files.  Additional metadata is stored for 
@@ -3154,7 +3168,7 @@ from 9-13).  Flag values are defined below.
     the Local Header.  To avoid information leakage from the exposed metadata 
     in the Local Header, the fields containing information about a file are masked.  
 
-    # 7.3.2
+    ### 7.3.2
    Local Header
 
     Masking replaces the true content of the fields for a file in the Local 
@@ -3190,7 +3204,7 @@ from 9-13).  Flag values are defined below.
     Fields having a value of 0xFFFF or 0xFFFFFFFF for the ZIP64 format
     SHOULD NOT be masked.  
 
-    # 7.3.3
+    ### 7.3.3
    Encrypting the Central Directory
 
     Encryption of the Central Directory does not include encryption of the 
@@ -3228,7 +3242,7 @@ from 9-13).  Flag values are defined below.
     Directory With Respect to the Starting Disk Number will begin the 
     new fields defining Version 2 of this record.  
 
-    # 7.3.4
+    ### 7.3.4
    New fields for Version 2
 
     Note: all fields stored in Intel low-byte/high-byte order.
@@ -3272,7 +3286,7 @@ from 9-13).  Flag values are defined below.
              0x800D          SHA384
              0x800E          SHA512
 
-     # 7.3.5
+     ### 7.3.5
    When the Central Directory data is signed, the same hash algorithm
      used to hash the Central Directory for signing SHOULD be used.
      This is recommended for processing efficiency, however, it is 
@@ -3288,7 +3302,7 @@ from 9-13).  Flag values are defined below.
      be 0.  These records will no longer support random access when
      encrypting the Central Directory.
 
-     # 7.3.6
+     ### 7.3.6
    When the Central Directory is compressed and/or encrypted, the
      End of Central Directory record will store the value 0xFFFFFFFF
      as the value for the Total Number of Entries in the Central
@@ -3297,7 +3311,7 @@ from 9-13).  Flag values are defined below.
      values will be stored in the equivalent fields of the Zip64
      End of Central Directory record.
 
-     # 7.3.7
+     ### 7.3.7
    Decrypting and decompressing the Central Directory is accomplished
      in the same manner as decrypting and decompressing a file.
 
@@ -3307,7 +3321,7 @@ from 9-13).  Flag values are defined below.
     The Certificate Processing Method for ZIP file encryption 
     defines the following additional data fields:
 
-    # 7.4.1
+    ### 7.4.1
    Certificate Flag Values
 
     Additional processing flags that can be present in the Flags field of both 
@@ -3326,7 +3340,7 @@ from 9-13).  Flag values are defined below.
          0x8000 - reserved for future use
 
 
-    # 7.4.2
+    ### 7.4.2
    CertData - Extra Field 0x0017 record certificate data structure
 
     The data structure used to store certificate data within the section
@@ -3360,7 +3374,7 @@ from 9-13).  Flag values are defined below.
                    SRList is determined using RCount * HSize.
 
 
-    # 7.4.3
+    ### 7.4.3
    Reserved1 - Certificate Decryption Header Reserved1 Data
 
           Value     Size     Description
@@ -3372,7 +3386,7 @@ from 9-13).  Flag values are defined below.
                    the number of elements in the REList field defined below.
 
 
-    # 7.4.4
+    ### 7.4.4
    Reserved2 - Certificate Decryption Header Reserved2 Data Structures
 
 
@@ -3422,10 +3436,9 @@ from 9-13).  Flag values are defined below.
                        supported at this time is 0x02 as defined by
                        Microsoft.
 
-## 7.5 Certificate Processing - Central Directory Encryption
----------------------------------------------------------
+## 7.5 Certificate Processing - Central Directory Encryption
         
-    # 7.5.1
+    ### 7.5.1
    Central Directory Encryption using Digital Certificates will 
     operate in a manner similar to that of Single Password Central
     Directory Encryption.  This record will only be present when there 
@@ -3438,7 +3451,7 @@ from 9-13).  Flag values are defined below.
     data structure and will be located immediately after the Archive 
     Decryption Header if the Central Directory is encrypted.
 
-    # 7.5.2
+    ### 7.5.2
    The Archive Extra Data record will be used to store the following
     information.  Additional data MAY be added in future versions.
 
@@ -3456,16 +3469,15 @@ from 9-13).  Flag values are defined below.
     Central Directory record.  The Archive Extra Data record will also 
     be used to store the 0x0019 data. 
 
-    # 7.5.3
+    ### 7.5.3
    When present, the size of the Archive Extra Data record will be
     included in the size of the Central Directory.  The data of the
     Archive Extra Data record will also be compressed and encrypted
     along with the Central Directory data structure.
 
-## 7.6 Certificate Processing Differences
---------------------------------------
+## 7.6 Certificate Processing Differences
 
-    # 7.6.1
+    ### 7.6.1
    The Certificate Processing Method of encryption differs from the
     Single Password Symmetric Encryption Method as follows.  Instead
     of using a user-defined password to generate a master session key,
@@ -3474,17 +3486,16 @@ from 9-13).  Flag values are defined below.
     is wrapped using the public key of each recipient that will need
     to decrypt the file using their corresponding private key.
 
-    # 7.6.2
+    ### 7.6.2
    This specification currently assumes digital certificates will follow
     the X.509 V3 format for 1024 bit and higher RSA format digital
     certificates.  Implementation of this Certificate Processing Method
     requires supporting logic for key access and management.  This logic
     is outside the scope of this specification.
 
-## 7.7 OAEP Processing with Certificate-based Encryption
------------------------------------------------------
+## 7.7 OAEP Processing with Certificate-based Encryption
 
-    # 7.7.1
+    ### 7.7.1
    OAEP stands for Optimal Asymmetric Encryption Padding.  It is a
     strengthening technique used for small encoded items such as decryption
     keys.  This is commonly applied in cryptographic key-wrapping techniques
@@ -3492,7 +3503,7 @@ from 9-13).  Flag values are defined below.
     were designed to support OAEP key-wrapping for certificate-based 
     decryption keys for additional security.  
 
-    # 7.7.2
+    ### 7.7.2
    Support for private keys stored on Smartcards or Tokens introduced
     a conflict with this OAEP logic.  Most card and token products do 
     not support the additional strengthening applied to OAEP key-wrapped 
@@ -3500,7 +3511,7 @@ from 9-13).  Flag values are defined below.
     specification will no longer support OAEP when encrypting using 
     digital certificates. 
 
-    # 7.7.3
+    ### 7.7.3
    Versions of PKZIP available during initial development of the 
     certificate processing method set a value of 61 into the 
     version needed to extract field for a file.  This indicates that 
@@ -3511,10 +3522,9 @@ from 9-13).  Flag values are defined below.
     encryption and certificate encryption.  Files encrypted with both
     methods can safely be decrypted using the password methods documented.
 
-## 7.8 Additional Encryption/Decryption Data Records
------------------------------------------------------
+## 7.8 Additional Encryption/Decryption Data Records
 
-    # 7.8.1
+    ### 7.8.1
    Additional information MAY be stored within a ZIP file in support
     of the strong password and certificate encryption methods defined above.
     These include, but are not limited to the following record types.
@@ -3523,19 +3533,18 @@ from 9-13).  Flag values are defined below.
       0x0022        Smartcrypt Key Provider Record
       0x0023        Smartcrypt Policy Key Data Record
 
-## 8.0  Splitting and Spanning ZIP files
--------------------------------------
+## 8.0  Splitting and Spanning ZIP files
 
     8.1 Spanned ZIP files
 
-      # 8.1.1
+      ### 8.1.1
    Spanning is the process of segmenting a ZIP file across 
       multiple removable media. This support has typically only 
       been provided for DOS formatted floppy diskettes. 
 
     8.2 Split ZIP files
 
-      # 8.2.1
+      ### 8.2.1
    File splitting is a newer derivation of spanning.  
       Splitting follows the same segmentation process as
       spanning, however, it does not require writing each
@@ -3545,21 +3554,21 @@ from 9-13).  Flag values are defined below.
 
     8.3  File Naming Differences
 
-      # 8.3.1
+      ### 8.3.1
    A key difference between spanned and split ZIP files is
       that all pieces of a spanned ZIP file have the same name.  
       Since each piece is written to a separate volume, no name 
       collisions occur and each segment can reuse the original 
       .ZIP file name given to the archive.
 
-      # 8.3.2
+      ### 8.3.2
    Sequence ordering for DOS spanned archives uses the DOS 
       volume label to determine segment numbers.  Volume labels
       for each segment are written using the form PKBACK#xxx, 
       where xxx is the segment number written as a decimal 
       value from 001 - nnn.
 
-      # 8.3.3
+      ### 8.3.3
    Split ZIP files are typically written to the same location
       and are subject to name collisions if the spanned name
       format is used since each segment will reside on the same 
@@ -3570,14 +3579,14 @@ from 9-13).  Flag values are defined below.
       Segment n-1 = filename.z(n-1)
       Segment n   = filename.zip
 
-      # 8.3.4
+      ### 8.3.4
    The .ZIP extension is used on the last segment to support
       quickly reading the central directory.  The segment number
       n SHOULD be a decimal value.
         
     8.4  Spanned Self-extracting ZIP Files
         
-      # 8.4.1
+      ### 8.4.1
    Spanned ZIP files MAY be PKSFX Self-extracting ZIP files.
       PKSFX files MAY also be split, however, in this case
       the first segment MUST be named filename.exe.  The first
@@ -3586,7 +3595,7 @@ from 9-13).  Flag values are defined below.
 
     8.5  Capacities and Markers
         
-      # 8.5.1
+      ### 8.5.1
    Capacities for split archives are as follows:
 
       Maximum number of segments = 4,294,967,295 - 1
@@ -3594,7 +3603,7 @@ from 9-13).  Flag values are defined below.
       Minimum segment size = 64K
       Maximum PKSFX segment size = 2,147,483,647 bytes
           
-      # 8.5.2
+      ### 8.5.2
    Segment sizes MAY be different however by convention, all 
       segment sizes SHOULD be the same with the exception of the 
       last, which MAY be smaller.  Local and central directory 
@@ -3606,7 +3615,7 @@ from 9-13).  Flag values are defined below.
       boundaries, but no single record in the central directory
       SHOULD be split across segments.
 
-      # 8.5.3
+      ### 8.5.3
    Spanned/Split archives created using PKZIP for Windows
       (V2.50 or greater), PKZIP Command Line (V2.50 or greater),
       or PKZIP Explorer will include a special spanning 
@@ -3615,7 +3624,7 @@ from 9-13).  Flag values are defined below.
       followed immediately by the local header signature for
       the first file in the archive.  
 
-      # 8.5.4
+      ### 8.5.4
    A special spanning marker MAY also appear in spanned/split 
       archives if the spanning or splitting process starts but 
       only requires one segment.  In this case the 0x08074b50 
@@ -3624,7 +3633,7 @@ from 9-13).  Flag values are defined below.
       only be uncompressed by other versions of PKZIP that
       know how to create a split archive.
 
-      # 8.5.5
+      ### 8.5.5
    The signature value 0x08074b50 is also used by some
       ZIP implementations as a marker for the Data Descriptor 
       record.  Conflict in this alternate assignment can be
@@ -3632,8 +3641,7 @@ from 9-13).  Flag values are defined below.
       within the ZIP file to determine the use for which it
       is intended.  
 
-## 9.0 Change Process
-------------------
+## 9.0 Change Process
 
    9.1 In order for the .ZIP file format to remain a viable technology, this
    specification SHOULD be considered as open for periodic review and
@@ -3654,8 +3662,7 @@ from 9-13).  Flag values are defined below.
    comments and feedback that MAY help improve clarity or content.
 
 
-## 10.0 Incorporating PKWARE Proprietary Technology into Your Product
-------------------------------------------------------------------
+## 10.0 Incorporating PKWARE Proprietary Technology into Your Product
 
    10.1 The Use or Implementation in a product of APPNOTE technological 
    components pertaining to either strong encryption or patching requires 
@@ -3666,15 +3673,13 @@ from 9-13).  Flag values are defined below.
    10.2 Additional information regarding PKWARE proprietary technology is 
    available at http://www.pkware.com/appnote.
 
-## 11.0 Acknowledgements
----------------------
+## 11.0 Acknowledgements
 
    In addition to the above mentioned contributors to PKZIP and PKUNZIP,
    PKWARE would like to extend special thanks to Robert Mahoney for 
    suggesting the extension .ZIP for this software.
 
-## 12.0 References
----------------
+## 12.0 References
 
    Fiala, Edward R., and Greene, Daniel H., "Data compression with
       finite windows",  Communications of the ACM, Volume 32, Number 4,
@@ -3707,7 +3712,7 @@ from 9-13).  Flag values are defined below.
       Volume 24, Number 5, September 1978, pages 530-536.
 
 
-## APPENDIX A - AS/400 Extra Field (0x0065) Attribute Definitions
+APPENDIX A - AS/400 Extra Field (0x0065) Attribute Definitions
 --------------------------------------------------------------
 
 A.1 Field Definition Structure:
@@ -3733,7 +3738,7 @@ A.2 Field Code  Description
    005C     Length of the records in the file   2 bytes
    0068     GZIP two words                      8 bytes
 
-## APPENDIX B - z/OS Extra Field (0x0065) Attribute Definitions
+APPENDIX B - z/OS Extra Field (0x0065) Attribute Definitions
 ------------------------------------------------------------
 
 B.1 Field Definition Structure:
@@ -3868,7 +3873,7 @@ B.2 Field Code  Description
    4101     IBMCMPSC Compression Info           variable
    4102     IBMCMPSC Compression Size           8 bytes  Big Endian
 
-## APPENDIX C - Zip64 Extensible Data Sector Mappings 
+APPENDIX C - Zip64 Extensible Data Sector Mappings 
 ---------------------------------------------------
 
          -Z390   Extra Field:
@@ -3897,7 +3902,7 @@ B.2 Field Code  Description
           Subcode74   2 bytes       FirstVol file sequence
           FileSeq     2 bytes       Sequence 
 
-## APPENDIX D - Language Encoding (EFS)
+APPENDIX D - Language Encoding (EFS)
 ------------------------------------
 
 D.1 The ZIP format has historically supported only the original IBM PC character 
@@ -3959,7 +3964,7 @@ files.  Use of the 0x6375 and 0x7075 records will result in a ZIP file
 that SHOULD always be readable by older ZIP programs, but requires more 
 storage per file to write file name and/or file comment fields.
 
-## APPENDIX E - AE-x encryption marker
+APPENDIX E - AE-x encryption marker
 -----------------------------------
 
 E.1 AE-x defines an alternate password-based encryption method used 
@@ -3989,4 +3994,3 @@ E.6 Two versions are defined for the 0x9901 structure.
    (section 4.4.7). 
 
    E.6.2 Version 2 stores a value of 0 in the CRC-32 field.
-
