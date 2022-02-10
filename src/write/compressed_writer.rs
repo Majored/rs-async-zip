@@ -2,26 +2,26 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::spec::compression::Compression;
-use crate::write::offset_writer::OffsetAsyncWriter;
 
 use std::io::Error;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use async_compression::tokio::write::{BzEncoder, DeflateEncoder, LzmaEncoder, XzEncoder, ZstdEncoder};
+use async_io_utilities::AsyncOffsetWriter;
 use tokio::io::AsyncWrite;
 
 pub enum CompressedAsyncWriter<'b, W: AsyncWrite + Unpin> {
-    Stored(&'b mut OffsetAsyncWriter<W>),
-    Deflate(DeflateEncoder<&'b mut OffsetAsyncWriter<W>>),
-    Bz(BzEncoder<&'b mut OffsetAsyncWriter<W>>),
-    Lzma(LzmaEncoder<&'b mut OffsetAsyncWriter<W>>),
-    Zstd(ZstdEncoder<&'b mut OffsetAsyncWriter<W>>),
-    Xz(XzEncoder<&'b mut OffsetAsyncWriter<W>>),
+    Stored(&'b mut AsyncOffsetWriter<W>),
+    Deflate(DeflateEncoder<&'b mut AsyncOffsetWriter<W>>),
+    Bz(BzEncoder<&'b mut AsyncOffsetWriter<W>>),
+    Lzma(LzmaEncoder<&'b mut AsyncOffsetWriter<W>>),
+    Zstd(ZstdEncoder<&'b mut AsyncOffsetWriter<W>>),
+    Xz(XzEncoder<&'b mut AsyncOffsetWriter<W>>),
 }
 
 impl<'b, W: AsyncWrite + Unpin> CompressedAsyncWriter<'b, W> {
-    pub fn from_raw(writer: &'b mut OffsetAsyncWriter<W>, compression: Compression) -> Self {
+    pub fn from_raw(writer: &'b mut AsyncOffsetWriter<W>, compression: Compression) -> Self {
         match compression {
             Compression::Stored => CompressedAsyncWriter::Stored(writer),
             Compression::Deflate => CompressedAsyncWriter::Deflate(DeflateEncoder::new(writer)),
@@ -32,7 +32,7 @@ impl<'b, W: AsyncWrite + Unpin> CompressedAsyncWriter<'b, W> {
         }
     }
 
-    pub fn into_inner(self) -> &'b mut OffsetAsyncWriter<W> {
+    pub fn into_inner(self) -> &'b mut AsyncOffsetWriter<W> {
         match self {
             CompressedAsyncWriter::Stored(inner) => inner,
             CompressedAsyncWriter::Deflate(inner) => inner.into_inner(),

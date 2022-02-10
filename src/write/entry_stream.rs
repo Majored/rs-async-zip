@@ -4,7 +4,6 @@
 use crate::error::Result;
 use crate::spec::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
 use crate::write::compressed_writer::CompressedAsyncWriter;
-use crate::write::offset_writer::OffsetAsyncWriter;
 use crate::write::CentralDirectoryEntry;
 use crate::write::{EntryOptions, ZipFileWriter};
 
@@ -15,6 +14,7 @@ use std::task::{Context, Poll};
 use chrono::Utc;
 use crc32fast::Hasher;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
+use async_io_utilities::AsyncOffsetWriter;
 
 /// An entry writer which supports the streaming of data (ie. the writing of unknown size or data at runtime).
 ///
@@ -23,7 +23,7 @@ use tokio::io::{AsyncWrite, AsyncWriteExt};
 /// - [`EntryStreamWriter::close()`] must be called before a stream writer goes out of scope.
 /// - Utilities for working with [`AsyncWrite`] values are provided by [`AsyncWriteExt`].
 pub struct EntryStreamWriter<'b, W: AsyncWrite + Unpin> {
-    writer: OffsetAsyncWriter<CompressedAsyncWriter<'b, W>>,
+    writer: AsyncOffsetWriter<CompressedAsyncWriter<'b, W>>,
     cd_entries: &'b mut Vec<CentralDirectoryEntry>,
     options: EntryOptions,
     hasher: Hasher,
@@ -43,7 +43,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
 
         let cd_entries = &mut writer.cd_entries;
         let writer =
-            OffsetAsyncWriter::from_raw(CompressedAsyncWriter::from_raw(&mut writer.writer, options.compression));
+            AsyncOffsetWriter::new(CompressedAsyncWriter::from_raw(&mut writer.writer, options.compression));
 
         Ok(EntryStreamWriter { writer, cd_entries, options, lfh, lfh_offset, data_offset, hasher: Hasher::new() })
     }

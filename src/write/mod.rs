@@ -47,7 +47,6 @@
 pub(crate) mod compressed_writer;
 pub(crate) mod entry_stream;
 pub(crate) mod entry_whole;
-pub(crate) mod offset_writer;
 
 pub use entry_stream::EntryStreamWriter;
 
@@ -55,7 +54,7 @@ use crate::error::Result;
 use crate::spec::compression::Compression;
 use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
 use entry_whole::EntryWholeWriter;
-use offset_writer::OffsetAsyncWriter;
+use async_io_utilities::AsyncOffsetWriter;
 
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
@@ -96,7 +95,7 @@ pub(crate) struct CentralDirectoryEntry {
 /// # Note
 /// - [`ZipFileWriter::close()`] must be called before a stream writer goes out of scope.
 pub struct ZipFileWriter<W: AsyncWrite + Unpin> {
-    pub(crate) writer: OffsetAsyncWriter<W>,
+    pub(crate) writer: AsyncOffsetWriter<W>,
     pub(crate) cd_entries: Vec<CentralDirectoryEntry>,
     comment_opt: Option<String>,
 }
@@ -104,7 +103,7 @@ pub struct ZipFileWriter<W: AsyncWrite + Unpin> {
 impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
     /// Construct a new ZIP file writer from a mutable reference to a writer.
     pub fn new(writer: W) -> Self {
-        Self { writer: OffsetAsyncWriter::from_raw(writer), cd_entries: Vec::new(), comment_opt: None }
+        Self { writer: AsyncOffsetWriter::new(writer), cd_entries: Vec::new(), comment_opt: None }
     }
 
     /// Write a new ZIP entry of known size and data.
