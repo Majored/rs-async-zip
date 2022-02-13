@@ -33,6 +33,7 @@ use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt};
 
 use std::io::SeekFrom;
+use async_io_utilities::AsyncDelimiterReader;
 
 /// A reader which acts over a seekable source.
 pub struct ZipFileReader<'a, R: AsyncRead + AsyncSeek + Unpin> {
@@ -53,16 +54,20 @@ impl<'a, R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<'a, R> {
     pub async fn entry_reader<'b>(&'b mut self, index: usize) -> Result<ZipEntryReader<'b, R>> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
-        if entry.data_descriptor() {
-            return Err(ZipError::FeatureNotSupported("Entries with data descriptors"));
-        }
-
         self.reader.seek(SeekFrom::Start(entry.data_offset())).await?;
 
-        let reader = self.reader.take(entry.compressed_size.unwrap().into());
-        let reader = CompressionReader::from_reader_borrow(entry.compression(), reader);
+        if entry.data_descriptor() {
+            let delimiter = crate::spec::signature::DATA_DESCRIPTOR.to_le_bytes();
+            let reader = AsyncDelimiterReader::new(&mut *self.reader, &delimiter);
+            let reader = CompressionReader::from_reader(entry.compression(), reader.take(u64::MAX));
 
-        Ok(ZipEntryReader::from_raw(entry, reader, false))
+            Ok(ZipEntryReader::with_data_descriptor(entry, reader, false))
+        } else {
+            let reader = self.reader.take(entry.compressed_size.unwrap().into());
+            let reader = CompressionReader::from_reader_borrow(entry.compression(), reader);
+
+            Ok(ZipEntryReader::from_raw(entry, reader, false))
+        }
     }
 }
 

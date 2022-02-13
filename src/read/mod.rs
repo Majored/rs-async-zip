@@ -20,6 +20,7 @@ use async_compression::tokio::bufread::{BzDecoder, DeflateDecoder, LzmaDecoder, 
 use chrono::{DateTime, Utc};
 use crc32fast::Hasher;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, BufReader, ReadBuf, Take};
+use async_io_utilities::AsyncDelimiterReader;
 
 /// An entry within a larger ZIP file reader.
 #[derive(Debug)]
@@ -98,19 +99,39 @@ impl ZipEntry {
     }
 }
 
+pub(crate) enum LocalReader<'a, R: AsyncRead + Unpin> {
+    Standard(CompressionReader<'a, R>),
+    Stream(CompressionReader<'a, AsyncDelimiterReader<&'a mut R>>),
+}
+
+impl<'a, R: AsyncRead + Unpin> AsyncRead for LocalReader<'a, R> {
+    fn poll_read(mut self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
+        match *self {
+            LocalReader::Standard(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            LocalReader::Stream(ref mut inner) => Pin::new(inner).poll_read(c, b)
+        }
+    }
+}
+
 /// A ZIP file entry reader which may implement decompression.
 pub struct ZipEntryReader<'a, R: AsyncRead + Unpin> {
     pub(crate) entry: &'a ZipEntry,
-    pub(crate) reader: CompressionReader<'a, R>,
+    pub(crate) reader: LocalReader<'a, R>,
     pub(crate) hasher: Hasher,
     pub(crate) consumed: bool,
-    pub(crate) stream: bool,
 }
 
 impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     /// Construct an entry reader from its raw parts (a shared reference to the entry and an inner reader).
-    pub(crate) fn from_raw(entry: &'a ZipEntry, reader: CompressionReader<'a, R>, stream: bool) -> Self {
-        ZipEntryReader { entry, reader, stream, hasher: Hasher::new(), consumed: false }
+    pub(crate) fn from_raw(entry: &'a ZipEntry, reader: CompressionReader<'a, R>, _: bool) -> Self {
+        let reader = LocalReader::Standard(reader);
+        ZipEntryReader { entry, reader, hasher: Hasher::new(), consumed: false }
+    }
+
+    /// Construct an entry reader from its raw parts (a shared reference to the entry and an inner reader).
+    pub(crate) fn with_data_descriptor(entry: &'a ZipEntry, reader: CompressionReader<'a, AsyncDelimiterReader<&'a mut R>>, _: bool) -> Self {
+        let reader = LocalReader::Stream(reader);
+        ZipEntryReader { entry, reader, hasher: Hasher::new(), consumed: false }
     }
 
     /// Returns a reference to the inner entry's data.
@@ -194,14 +215,6 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
 
         self.hasher.update(&b.filled()[prev_len..b.filled().len()]);
         poll
-    }
-}
-
-impl<'a, R: AsyncRead + Unpin> Drop for ZipEntryReader<'a, R> {
-    fn drop(&mut self) {
-        if self.stream && !self.consumed {
-            panic!("Not all bytes of this reader were consumed before being dropped.");
-        }
     }
 }
 
