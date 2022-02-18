@@ -36,15 +36,15 @@ use std::io::SeekFrom;
 use async_io_utilities::AsyncDelimiterReader;
 
 /// A reader which acts over a seekable source.
-pub struct ZipFileReader<'a, R: AsyncRead + AsyncSeek + Unpin> {
-    pub(crate) reader: &'a mut R,
+pub struct ZipFileReader<R: AsyncRead + AsyncSeek + Unpin> {
+    pub(crate) reader: R,
     pub(crate) entries: Vec<ZipEntry>,
 }
 
-impl<'a, R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<'a, R> {
+impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
     /// Constructs a new ZIP file reader from a mutable reference to a reader.
-    pub async fn new(reader: &'a mut R) -> Result<ZipFileReader<'a, R>> {
-        let entries = read_cd(reader).await?;
+    pub async fn new(mut reader: R) -> Result<ZipFileReader<R>> {
+        let entries = read_cd(&mut reader).await?;
         Ok(ZipFileReader { reader, entries })
     }
 
@@ -58,12 +58,12 @@ impl<'a, R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<'a, R> {
 
         if entry.data_descriptor() {
             let delimiter = crate::spec::signature::DATA_DESCRIPTOR.to_le_bytes();
-            let reader = AsyncDelimiterReader::new(&mut *self.reader, &delimiter);
+            let reader = AsyncDelimiterReader::new(&mut self.reader, &delimiter);
             let reader = CompressionReader::from_reader(entry.compression(), reader.take(u64::MAX));
 
             Ok(ZipEntryReader::with_data_descriptor(entry, reader, false))
         } else {
-            let reader = self.reader.take(entry.compressed_size.unwrap().into());
+            let reader = (&mut self.reader).take(entry.compressed_size.unwrap().into());
             let reader = CompressionReader::from_reader_borrow(entry.compression(), reader);
 
             Ok(ZipEntryReader::from_raw(entry, reader, false))

@@ -15,15 +15,15 @@ use crate::spec::header::LocalFileHeader;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 /// A reader which acts over a non-seekable source.
-pub struct ZipFileReader<'a, R: AsyncRead + Unpin> {
-    pub(crate) reader: &'a mut R,
+pub struct ZipFileReader<R: AsyncRead + Unpin> {
+    pub(crate) reader: R,
     pub(crate) entry: Option<ZipEntry>,
     pub(crate) finished: bool,
 }
 
-impl<'a, R: AsyncRead + Unpin> ZipFileReader<'a, R> {
+impl<R: AsyncRead + Unpin> ZipFileReader<R> {
     /// Constructs a new ZIP file reader from a mutable reference to a reader.
-    pub fn new(reader: &'a mut R) -> Self {
+    pub fn new(reader: R) -> Self {
         ZipFileReader { reader, entry: None, finished: false }
     }
 
@@ -38,7 +38,7 @@ impl<'a, R: AsyncRead + Unpin> ZipFileReader<'a, R> {
 
         if self.finished {
             return Ok(None);
-        } else if let Some(inner) = read_lfh(self.reader).await? {
+        } else if let Some(inner) = read_lfh(&mut self.reader).await? {
             self.entry = Some(inner);
         } else {
             self.finished = true;
@@ -51,7 +51,7 @@ impl<'a, R: AsyncRead + Unpin> ZipFileReader<'a, R> {
             return Err(ZipError::FeatureNotSupported("Entries with data descriptors"));
         }
 
-        let reader = self.reader.take(entry_borrow.compressed_size.unwrap().into());
+        let reader = (&mut self.reader).take(entry_borrow.compressed_size.unwrap().into());
         let reader = CompressionReader::from_reader_borrow(entry_borrow.compression(), reader);
 
         Ok(Some(ZipEntryReader::from_raw(entry_borrow, reader, true)))
