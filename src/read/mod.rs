@@ -199,6 +199,23 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         Ok(())
     }
 
+    pub(crate) fn reset_reader(&mut self) {
+        if let LocalReader::Stream(ref mut inner) = self.reader {
+            let inner_mut = inner.get_mut();
+            inner_mut.reset();
+
+            let mut buffer = Vec::new();
+            buffer.extend_from_slice(inner_mut.buffer());
+
+            if let PrependReader::Prepend(inner) = inner_mut.get_mut() {
+                match inner {
+                    OwnedReader::Owned(inner) => inner.prepend(&buffer),
+                    OwnedReader::Borrow(inner) => inner.prepend(&buffer),
+                };
+            }
+        }
+    }
+
     /// A convenience method similar to `AsyncReadExt::read_to_end()` but with the final CRC32 check integrated.
     ///
     /// Reads all bytes until EOF and returns an owned vector of them.
@@ -206,9 +223,7 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         let mut buffer = Vec::with_capacity(self.entry.uncompressed_size.unwrap().try_into().unwrap());
         self.read_to_end(&mut buffer).await?;
 
-        if let LocalReader::Stream(ref mut inner) = self.reader {
-            inner.get_mut().reset();
-        }
+        self.reset_reader();
 
         if self.compare_crc().await? {
             Ok(buffer)
@@ -224,9 +239,7 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         let mut buffer = String::with_capacity(self.entry.uncompressed_size.unwrap().try_into().unwrap());
         self.read_to_string(&mut buffer).await?;
 
-        if let LocalReader::Stream(ref mut inner) = self.reader {
-            inner.get_mut().reset();
-        }
+        self.reset_reader();
 
         if self.compare_crc().await? {
             Ok(buffer)
@@ -248,9 +261,7 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         let mut reader = BufReader::with_capacity(buffer, &mut self);
         tokio::io::copy_buf(&mut reader, writer).await.unwrap();
 
-        if let LocalReader::Stream(ref mut inner) = self.reader {
-            inner.get_mut().reset();
-        }
+        self.reset_reader();
 
         if self.compare_crc().await? {
             Ok(())
