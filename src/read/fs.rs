@@ -26,6 +26,7 @@
 use super::CompressionReader;
 use crate::error::{Result, ZipError};
 use crate::read::{ZipEntry, ZipEntryReader, OwnedReader, PrependReader};
+use crate::spec::header::LocalFileHeader;
 
 use std::io::SeekFrom;
 use tokio::fs::File;
@@ -54,7 +55,11 @@ impl ZipFileReader {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
         let mut fs_file = File::open(&self.filename).await?;
-        fs_file.seek(SeekFrom::Start(entry.data_offset())).await?;
+        fs_file.seek(SeekFrom::Start(entry.offset.unwrap() as u64 + 4)).await?;
+
+        let header = LocalFileHeader::from_reader(&mut fs_file).await?;
+        let data_offset = (header.file_name_length + header.extra_field_length) as i64;
+        fs_file.seek(SeekFrom::Current(data_offset)).await?;
 
         if entry.data_descriptor() {
             let delimiter = crate::spec::signature::DATA_DESCRIPTOR.to_le_bytes();

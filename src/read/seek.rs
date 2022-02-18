@@ -28,7 +28,7 @@
 use crate::error::{Result, ZipError};
 use crate::read::{CompressionReader, ZipEntry, ZipEntryReader, OwnedReader, PrependReader};
 use crate::spec::compression::Compression;
-use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
+use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader, LocalFileHeader};
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt};
 
@@ -54,7 +54,11 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
     pub async fn entry_reader<'b>(&'b mut self, index: usize) -> Result<ZipEntryReader<'b, R>> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
-        self.reader.seek(SeekFrom::Start(entry.data_offset())).await?;
+        self.reader.seek(SeekFrom::Start(entry.offset.unwrap() as u64 + 4)).await?;
+
+        let header = LocalFileHeader::from_reader(&mut self.reader).await?;
+        let data_offset = (header.file_name_length + header.extra_field_length) as i64;
+        self.reader.seek(SeekFrom::Current(data_offset)).await?;
 
         if entry.data_descriptor() {
             let delimiter = crate::spec::signature::DATA_DESCRIPTOR.to_le_bytes();

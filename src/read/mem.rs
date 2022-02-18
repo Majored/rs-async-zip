@@ -5,6 +5,7 @@
 
 use crate::error::{Result, ZipError};
 use crate::read::{CompressionReader, ZipEntry, ZipEntryReader, OwnedReader, PrependReader};
+use crate::spec::header::LocalFileHeader;
 
 use std::io::{Cursor, SeekFrom};
 
@@ -34,7 +35,11 @@ impl<'a> ZipFileReader<'a> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
         let mut cursor = Cursor::new(self.data.clone());
-        cursor.seek(SeekFrom::Start(entry.data_offset())).await?;
+        cursor.seek(SeekFrom::Start(entry.offset.unwrap() as u64 + 4)).await?;
+
+        let header = LocalFileHeader::from_reader(&mut cursor).await?;
+        let data_offset = (header.file_name_length + header.extra_field_length) as i64;
+        cursor.seek(SeekFrom::Current(data_offset)).await?;
 
         if entry.data_descriptor() {
             let delimiter = crate::spec::signature::DATA_DESCRIPTOR.to_le_bytes();

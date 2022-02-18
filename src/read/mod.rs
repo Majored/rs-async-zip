@@ -92,11 +92,6 @@ impl ZipEntry {
     pub fn compression(&self) -> &Compression {
         &self.compression
     }
-
-    /// Returns the offset at which data for this entry starts.
-    pub(crate) fn data_offset(&self) -> u64 {
-        30 + self.offset.unwrap() as u64 + (self.name().len() + self.extra().unwrap().len()) as u64
-    }
 }
 
 pub(crate) enum PrependReader<'a, R: AsyncRead + Unpin> {
