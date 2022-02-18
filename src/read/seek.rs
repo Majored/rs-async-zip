@@ -26,7 +26,7 @@
 //! ```
 
 use crate::error::{Result, ZipError};
-use crate::read::{CompressionReader, ZipEntry, ZipEntryReader};
+use crate::read::{CompressionReader, ZipEntry, ZipEntryReader, OwnedReader, PrependReader};
 use crate::spec::compression::Compression;
 use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
 
@@ -58,13 +58,17 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
 
         if entry.data_descriptor() {
             let delimiter = crate::spec::signature::DATA_DESCRIPTOR.to_le_bytes();
-            let reader = AsyncDelimiterReader::new(&mut self.reader, &delimiter);
+            let reader = OwnedReader::Borrow(&mut self.reader);
+            let reader = PrependReader::Normal(reader);
+            let reader = AsyncDelimiterReader::new(reader, &delimiter);
             let reader = CompressionReader::from_reader(entry.compression(), reader.take(u64::MAX));
 
             Ok(ZipEntryReader::with_data_descriptor(entry, reader, false))
         } else {
-            let reader = (&mut self.reader).take(entry.compressed_size.unwrap().into());
-            let reader = CompressionReader::from_reader_borrow(entry.compression(), reader);
+            let reader = OwnedReader::Borrow(&mut self.reader);
+            let reader = PrependReader::Normal(reader);
+            let reader = reader.take(entry.compressed_size.unwrap().into());
+            let reader = CompressionReader::from_reader(entry.compression(), reader);
 
             Ok(ZipEntryReader::from_raw(entry, reader, false))
         }

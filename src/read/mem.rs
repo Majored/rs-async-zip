@@ -4,7 +4,7 @@
 //! A module for reading ZIP file entries concurrently from an in-memory buffer.
 
 use crate::error::{Result, ZipError};
-use crate::read::{CompressionReader, ZipEntry, ZipEntryReader};
+use crate::read::{CompressionReader, ZipEntry, ZipEntryReader, OwnedReader, PrependReader};
 
 use std::io::{Cursor, SeekFrom};
 
@@ -39,7 +39,9 @@ impl<'a> ZipFileReader<'a> {
         let mut cursor = Cursor::new(self.data.clone());
         cursor.seek(SeekFrom::Start(entry.data_offset())).await?;
 
-        let reader = cursor.take(entry.compressed_size.unwrap().into());
+        let reader = OwnedReader::Owned(cursor);
+        let reader = PrependReader::Normal(reader);
+        let reader = reader.take(entry.compressed_size.unwrap().into());
         let reader = CompressionReader::from_reader(entry.compression(), reader);
 
         Ok(ZipEntryReader::from_raw(entry, reader, false))
