@@ -169,39 +169,31 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     }
 
     /// Returns true if the computed CRC32 value of all bytes read so far matches the expected value.
-    pub async fn compare_crc(&mut self) -> Result<bool> {
-        if self.entry().data_descriptor() {
-            self.read_data_descriptor().await?;
-        }
-
+    pub fn compare_crc(&mut self) -> bool {
         let hasher = std::mem::take(&mut self.hasher);
         let final_crc = hasher.finalize();
 
         if self.entry().data_descriptor() {
-            Ok(self.data_descriptor.unwrap().0 == final_crc)
+            self.data_descriptor.unwrap().0 == final_crc
         } else {
-            Ok(self.entry().crc32().unwrap() == final_crc)
+            self.entry().crc32().unwrap() == final_crc
         }
     }
 
-    // https://github.com/Majored/rs-async-zip/blob/main/src/spec/APPNOTE.md#439
-    pub(crate) async fn read_data_descriptor(&mut self) -> Result<()> {
-        let crc = self.read_u32_le().await?;
-        let compressed = self.read_u32_le().await?;
-        let uncompressed = self.read_u32_le().await?;
-
-        self.data_descriptor = Some((crc, compressed, uncompressed));
-        Ok(())
-    }
-
-    pub(crate) fn reset_reader(&mut self) {
+    pub(crate) async fn reset_reader(&mut self) -> Result<()> {
         if let LocalReader::Stream(ref mut inner) = self.reader {
             let inner_mut = inner.get_mut();
             inner_mut.reset();
 
+            let crc = inner_mut.read_u32_le().await?;
+            let compressed = inner_mut.read_u32_le().await?;
+            let uncompressed = inner_mut.read_u32_le().await?;
+
+            self.data_descriptor = Some((crc, compressed, uncompressed));
+
             let mut buffer = Vec::new();
             buffer.extend_from_slice(inner_mut.buffer());
-
+            
             if let PrependReader::Prepend(inner) = inner_mut.get_mut() {
                 match inner {
                     OwnedReader::Owned(inner) => inner.prepend(&buffer),
@@ -209,6 +201,8 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
                 };
             }
         }
+
+        Ok(())
     }
 
     /// A convenience method similar to `AsyncReadExt::read_to_end()` but with the final CRC32 check integrated.
@@ -218,9 +212,9 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         let mut buffer = Vec::with_capacity(self.entry.uncompressed_size.unwrap().try_into().unwrap());
         self.read_to_end(&mut buffer).await?;
 
-        self.reset_reader();
+        self.reset_reader().await?;
 
-        if self.compare_crc().await? {
+        if self.compare_crc() {
             Ok(buffer)
         } else {
             Err(ZipError::CRC32CheckError)
@@ -234,9 +228,9 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         let mut buffer = String::with_capacity(self.entry.uncompressed_size.unwrap().try_into().unwrap());
         self.read_to_string(&mut buffer).await?;
 
-        self.reset_reader();
+        self.reset_reader().await?;
 
-        if self.compare_crc().await? {
+        if self.compare_crc() {
             Ok(buffer)
         } else {
             Err(ZipError::CRC32CheckError)
@@ -256,9 +250,9 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         let mut reader = BufReader::with_capacity(buffer, &mut self);
         tokio::io::copy_buf(&mut reader, writer).await.unwrap();
 
-        self.reset_reader();
+        self.reset_reader().await?;
 
-        if self.compare_crc().await? {
+        if self.compare_crc() {
             Ok(())
         } else {
             Err(ZipError::CRC32CheckError)

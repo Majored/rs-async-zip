@@ -30,11 +30,11 @@ impl GeneralPurposeFlag {
     pub fn to_slice(&self) -> [u8; 2] {
         let encrypted: u16 = match self.encrypted {
             false => 0x0,
-            true => 0b1 << 14,
+            true => 0b1,
         };
         let data_descriptor: u16 = match self.data_descriptor {
             false => 0x0,
-            true => 0b1 << 12,
+            true => 0x8,
         };
 
         (encrypted | data_descriptor).to_le_bytes()
