@@ -33,6 +33,25 @@ async fn zero_length_zip() {
 }
 
 #[tokio::test]
+async fn single_entry_with_comment() {
+    use crate::read::seek::ZipFileReader;
+
+    let comment = "Foo bar.";
+    let mut input_stream = Cursor::new(Vec::<u8>::new());
+    let mut zip_writer = ZipFileWriter::new(&mut input_stream);
+
+    zip_writer.comment(String::from(comment));
+    zip_writer.close().await.expect("failed to close writer");
+
+    input_stream.set_position(0);
+
+    let zip_reader_res = ZipFileReader::new(&mut input_stream).await.expect("failed to open reader");
+
+    assert!(zip_reader_res.comment().is_some());
+    assert_eq!(zip_reader_res.comment().unwrap(), comment);
+}
+
+#[tokio::test]
 async fn single_entry_no_data() {
     use crate::read::seek::ZipFileReader;
 
