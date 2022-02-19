@@ -80,17 +80,39 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
 }
 
 pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) -> Result<Vec<ZipEntry>> {
-    // Assume no ZIP comment exists for the moment so we can seek directly to EOCD header.
-    reader.seek(SeekFrom::End(-22)).await?;
-    crate::utils::assert_signature(reader, crate::spec::signature::END_OF_CENTRAL_DIRECTORY).await?;
+    const MAX_ENDING_LENGTH: u64 = (u16::MAX - 2) as u64;
 
-    let eocdh = EndOfCentralDirectoryHeader::from_reader(reader).await?;
+    let length = reader.seek(SeekFrom::End(0)).await?;
+    let seek_to = match length.checked_sub(MAX_ENDING_LENGTH) {
+        Some(seek_to) => seek_to,
+        None => 0,
+    };
+
+    reader.seek(SeekFrom::Start(seek_to)).await?;
+
+    let delimiter = crate::spec::signature::END_OF_CENTRAL_DIRECTORY.to_le_bytes();
+    let mut reader = AsyncDelimiterReader::new(reader, &delimiter);
+
+    loop {
+        let mut buffer = [0; async_io_utilities::SUGGESTED_BUFFER_SIZE];
+        if reader.read(&mut buffer).await? == 0 {
+            break;
+        }
+    }
+
+    if !reader.matched() {
+        return Err(ZipError::UnexpectedHeaderError(0, crate::spec::signature::END_OF_CENTRAL_DIRECTORY));
+    }
+
+    reader.reset();
+    let eocdh = EndOfCentralDirectoryHeader::from_reader(&mut reader).await?;
 
     // Outdated feature so unlikely to ever make it into this crate.
     if eocdh.disk_num != eocdh.start_cent_dir_disk || eocdh.num_of_entries != eocdh.num_of_entries_disk {
         return Err(ZipError::FeatureNotSupported("Spanned/split files"));
     }
 
+    let reader = reader.into_inner();
     reader.seek(SeekFrom::Start(eocdh.cent_dir_offset.into())).await?;
     let mut entries = Vec::with_capacity(eocdh.num_of_entries.into());
 
