@@ -56,6 +56,91 @@ async fn single_entry_no_data() {
     assert_eq!(Compression::Stored, *zip_reader.entry("foo.bar").unwrap().1.compression());
 }
 
+#[tokio::test]
+async fn data_descriptor_single() {
+    use crate::read::seek::ZipFileReader;
+    use tokio::io::AsyncWriteExt;
+
+    let mut input_stream = Cursor::new(Vec::<u8>::new());
+
+    let mut zip_writer = ZipFileWriter::new(&mut input_stream);
+    let open_opts = EntryOptions::new("foo.bar".to_string(), Compression::Deflate);
+
+    let data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt...";
+    let mut entry_writer = zip_writer.write_entry_stream(open_opts).await.expect("failed to open write entry");
+    entry_writer.write_all(data.as_bytes()).await.expect("failed to write entry");
+
+    entry_writer.close().await.expect("failed to close entry");
+    zip_writer.close().await.expect("failed to close writer");
+
+    input_stream.set_position(0);
+
+    let mut zip_reader = ZipFileReader::new(&mut input_stream).await.expect("failed to open reader");
+
+    assert_eq!(1, zip_reader.entries().len());
+
+    let entry = zip_reader.entry("foo.bar").expect("no 'foo.bar' entry");
+    assert_eq!(0, entry.0);
+    assert!(entry.1.compressed_size().is_some());
+    assert!(entry.1.data_descriptor);
+    assert_eq!(data.len() as u32, entry.1.uncompressed_size().expect("no uncompressed size"));
+    assert_eq!(Compression::Deflate, *entry.1.compression());
+
+    let entry_reader = zip_reader.entry_reader(0).await.expect("failed to open entry reader");
+    let buffer = entry_reader.read_to_string_crc().await.expect("failed to read entry to string");
+
+    assert_eq!(data, buffer);
+}
+
+#[tokio::test]
+async fn data_descriptor_double_stream() {
+    use crate::read::stream::ZipFileReader;
+    use tokio::io::AsyncWriteExt;
+
+    let mut input_stream = Cursor::new(Vec::<u8>::new());
+
+    let mut zip_writer = ZipFileWriter::new(&mut input_stream);
+    let data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt...";
+
+    let open_opts = EntryOptions::new("foo.bar".to_string(), Compression::Deflate);
+    let mut entry_writer = zip_writer.write_entry_stream(open_opts).await.expect("failed to open write entry");
+    entry_writer.write_all(data.as_bytes()).await.expect("failed to write entry");
+    entry_writer.close().await.expect("failed to close entry");
+
+    let open_opts = EntryOptions::new("test.bar".to_string(), Compression::Deflate);
+    let mut entry_writer = zip_writer.write_entry_stream(open_opts).await.expect("failed to open write entry");
+    entry_writer.write_all(data.as_bytes()).await.expect("failed to write entry");
+    entry_writer.close().await.expect("failed to close entry");
+
+    zip_writer.close().await.expect("failed to close writer");
+
+    input_stream.set_position(0);
+
+    let mut zip_reader = ZipFileReader::new(&mut input_stream);
+
+    assert!(!zip_reader.finished());
+    let entry_reader = zip_reader.entry_reader().await.expect("failed to open entry reader");
+    assert!(entry_reader.is_some());
+    let entry_reader = entry_reader.unwrap();
+
+    let buffer = entry_reader.read_to_string_crc().await.expect("failed to read entry to string");
+    assert_eq!(data, buffer);
+
+    assert!(!zip_reader.finished());
+    let entry_reader = zip_reader.entry_reader().await.expect("failed to open entry reader");
+    assert!(entry_reader.is_some());
+    let entry_reader = entry_reader.unwrap();
+
+    let buffer = entry_reader.read_to_string_crc().await.expect("failed to read entry to string");
+    assert_eq!(data, buffer);
+
+    assert!(!zip_reader.finished());
+    
+    let entry_reader = zip_reader.entry_reader().await.expect("failed to open entry reader");
+    assert!(entry_reader.is_none());
+    assert!(zip_reader.finished());
+}
+
 macro_rules! single_entry_gen {
     ($name:ident, $typ:expr) => {
         #[tokio::test]
