@@ -39,13 +39,14 @@ use async_io_utilities::AsyncDelimiterReader;
 pub struct ZipFileReader<R: AsyncRead + AsyncSeek + Unpin> {
     pub(crate) reader: R,
     pub(crate) entries: Vec<ZipEntry>,
+    pub(crate) comment: Option<String>,
 }
 
 impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
     /// Constructs a new ZIP file reader from a mutable reference to a reader.
     pub async fn new(mut reader: R) -> Result<ZipFileReader<R>> {
-        let entries = read_cd(&mut reader).await?;
-        Ok(ZipFileReader { reader, entries })
+        let (entries, comment) = read_cd(&mut reader).await?;
+        Ok(ZipFileReader { reader, entries, comment })
     }
 
     crate::read::reader_entry_impl!();
@@ -79,7 +80,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
     }
 }
 
-pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) -> Result<Vec<ZipEntry>> {
+pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) -> Result<(Vec<ZipEntry>, Option<String>)> {
     const MAX_ENDING_LENGTH: u64 = (u16::MAX - 2) as u64;
 
     let length = reader.seek(SeekFrom::End(0)).await?;
@@ -90,6 +91,7 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
 
     reader.seek(SeekFrom::Start(seek_to)).await?;
 
+    let mut comment = None;
     let delimiter = crate::spec::signature::END_OF_CENTRAL_DIRECTORY.to_le_bytes();
     let mut reader = AsyncDelimiterReader::new(reader, &delimiter);
 
@@ -112,6 +114,10 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
         return Err(ZipError::FeatureNotSupported("Spanned/split files"));
     }
 
+    if eocdh.file_comm_length > 0 {
+        comment = Some(crate::utils::read_string(&mut reader, eocdh.file_comm_length as usize).await?);
+    }
+
     let reader = reader.into_inner();
     reader.seek(SeekFrom::Start(eocdh.cent_dir_offset.into())).await?;
     let mut entries = Vec::with_capacity(eocdh.num_of_entries.into());
@@ -120,7 +126,7 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
         entries.push(read_cd_entry(reader).await?);
     }
 
-    Ok(entries)
+    Ok((entries, comment))
 }
 
 pub(crate) async fn read_cd_entry<R: AsyncRead + Unpin>(reader: &mut R) -> Result<ZipEntry> {

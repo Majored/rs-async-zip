@@ -37,15 +37,16 @@ use async_io_utilities::AsyncDelimiterReader;
 pub struct ZipFileReader {
     pub(crate) filename: String,
     pub(crate) entries: Vec<ZipEntry>,
+    pub(crate) comment: Option<String>,
 }
 
 impl ZipFileReader {
     /// Constructs a new ZIP file reader from a filename.
     pub async fn new(filename: String) -> Result<ZipFileReader> {
         let mut fs_file = File::open(&filename).await?;
-        let entries = crate::read::seek::read_cd(&mut fs_file).await?;
+        let (entries, comment) = crate::read::seek::read_cd(&mut fs_file).await?;
 
-        Ok(ZipFileReader { filename, entries })
+        Ok(ZipFileReader { filename, entries, comment })
     }
 
     crate::read::reader_entry_impl!();

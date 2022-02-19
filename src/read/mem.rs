@@ -19,13 +19,14 @@ pub type ConcurrentReader<'b, 'a> = ZipEntryReader<'b, Cursor<&'a [u8]>>;
 pub struct ZipFileReader<'a> {
     pub(crate) data: &'a [u8],
     pub(crate) entries: Vec<ZipEntry>,
+    pub(crate) comment: Option<String>,
 }
 
 impl<'a> ZipFileReader<'a> {
     /// Constructs a new ZIP file reader from an in-memory buffer.
     pub async fn new(data: &'a [u8]) -> Result<ZipFileReader<'a>> {
-        let entries = crate::read::seek::read_cd(&mut Cursor::new(data)).await?;
-        Ok(ZipFileReader { data, entries })
+        let (entries, comment) = crate::read::seek::read_cd(&mut Cursor::new(data)).await?;
+        Ok(ZipFileReader { data, entries, comment })
     }
 
     crate::read::reader_entry_impl!();

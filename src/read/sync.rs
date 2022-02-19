@@ -31,6 +31,7 @@ use async_io_utilities::AsyncDelimiterReader;
 pub struct ZipFileReader<R: AsyncRead + AsyncSeek + Unpin> {
     pub(crate) reader: Arc<Mutex<R>>,
     pub(crate) entries: Vec<ZipEntry>,
+    pub(crate) comment: Option<String>,
 }
 
 #[allow(unreachable_code, unused_variables)]
@@ -39,8 +40,8 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
     pub async fn new(reader: R) -> Result<ZipFileReader<R>> {
         unimplemented!();
 
-        let entries = crate::read::seek::read_cd(&mut reader).await?;
-        Ok(ZipFileReader { reader: Arc::new(Mutex::new(reader)), entries })
+        let (entries, comment) = crate::read::seek::read_cd(&mut reader).await?;
+        Ok(ZipFileReader { reader: Arc::new(Mutex::new(reader)), entries, comment })
     }
 
     crate::read::reader_entry_impl!();

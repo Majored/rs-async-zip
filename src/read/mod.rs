@@ -347,6 +347,11 @@ macro_rules! reader_entry_impl {
             }
             None
         }
+
+        /// Returns an optional ending comment.
+        pub fn comment(&self) -> Option<&str> {
+            self.comment.as_ref().map(|x| &x[..])
+        }
     };
 }
 
