@@ -17,7 +17,7 @@ An asynchronous ZIP archive reading/writing crate powered by [`tokio`](https://c
 
 ```toml
 [dependencies]
-async_zip = "0.0.5"
+async_zip = "0.0.6"
 ```
 
 A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-zip/tree/main/examples) can be found under the `/examples` directory.
