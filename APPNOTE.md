@@ -4,9 +4,9 @@ Status: FINAL - replaces version 6.3.8
 Revised: July 15, 2020
 Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
 
-## 1.0 Introduction
+## 1.0 Introduction
 
-## 1.1 Purpose
+## 1.1 Purpose
 
    ### 1.1.1
    This specification is intended to define a cross-platform,
@@ -18,7 +18,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    application developers that use and benefit from this format 
    will share and support this commitment to interoperability.
 
-## 1.2 Scope
+## 1.2 Scope
 
    ### 1.2.1
    ZIP is one of the most widely used compressed file formats. It is 
@@ -29,7 +29,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    creating ZIP files.  Information is provided on the records and 
    fields that describe what a ZIP file is. 
 
-## 1.3 Trademarks
+## 1.3 Trademarks
 
    ### 1.3.1
    PKWARE, PKZIP, Smartcrypt, SecureZIP, and PKSFX are registered 
@@ -39,7 +39,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    purposes only and are the property of their respective owners.
    
 
-## 1.4 Permitted Use 
+## 1.4 Permitted Use 
 
    ### 1.4.1
    This document, "APPNOTE.TXT -  .ZIP File Format Specification" is the
@@ -62,7 +62,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    'Refer to the section in this document entitled  "Incorporating 
    PKWARE Proprietary Technology into Your Product" for more information'.
 
-## 1.5 Contacting PKWARE
+## 1.5 Contacting PKWARE
 
    ### 1.5.1
    If you have questions on this format, its use, or licensing, or if you 
@@ -81,7 +81,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
 
      http://www.pkware.com/appnote
 
-## 1.6 Disclaimer
+## 1.6 Disclaimer
 
    ### 1.6.1
    Although PKWARE will attempt to supply current and accurate
@@ -99,9 +99,9 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    programs and/or the algorithms used by the subject programs is
    subject to change without notice.
 
-## 2.0 Revisions
+## 2.0 Revisions
 
-## 2.1 Document Status
+## 2.1 Document Status
 
    ### 2.1.1
    If the STATUS of this file is marked as DRAFT, the content 
@@ -121,7 +121,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    specification are intended to remain interoperable with all prior 
    versions whenever technically possible.  
 
-## 2.2 Change Log
+## 2.2 Change Log
 
    Version       Change Description                        Date
    -------       ------------------                       ----------
@@ -244,7 +244,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
 
 
 
-## 3.0 Notations
+## 3.0 Notations
 
    3.1 Use of the term MUST or SHALL indicates a required element. 
 
@@ -257,9 +257,9 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    3.5 MAY indicates an OPTIONAL element.
 
 
-## 4.0 ZIP Files
+## 4.0 ZIP Files
 
-## 4.1 What is a ZIP file
+## 4.1 What is a ZIP file
 
    ### 4.1.1
    ZIP files MAY be identified by the standard .ZIP file extension 
@@ -339,7 +339,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    ### 4.1.12
    ZIP files MAY be placed within other ZIP files.
 
-## 4.2 ZIP Metadata
+## 4.2 ZIP Metadata
 
    ### 4.2.1
    ZIP files are identified by metadata consisting of defined record types 
@@ -349,7 +349,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
    two byte constant marker of 0x4b50, representing the characters "PK".
 
 
-## 4.3 General Format of a .ZIP file
+## 4.3 General Format of a .ZIP file
 
    ### 4.3.1
    A ZIP file MUST contain an "end of central directory record". A ZIP 
@@ -694,7 +694,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
       .ZIP file comment length        2 bytes
       .ZIP file comment       (variable size)
                 
-## 4.4  Explanation of fields
+## 4.4  Explanation of fields
       
    ### 4.4.1
    General notes on fields
@@ -1182,7 +1182,7 @@ Copyright (c) 1989 - 2014, 2018, 2019, 2020 PKWARE Inc., All Rights Reserved.
      Existing extra fields are defined in the section
      Extensible data fields that follows.
 
-## 4.5 Extensible data fields
+## 4.5 Extensible data fields
 
    ### 4.5.1
    In order to allow different programs and different types
@@ -1676,7 +1676,7 @@ Value     Size      Description
         TSize     2 bytes    Size for the following data block
         TData     TSize      Data about the key
 
-## 4.6 Third Party Mappings
+## 4.6 Third Party Mappings
                  
    ### 4.6.1
    Third party mappings commonly used are:
@@ -1969,7 +1969,7 @@ Value     Size      Description
        alignment changes. (see https://issues.apache.org/jira/browse/COMPRESS-391)
 
 
-## 4.7 Manifest Files
+## 4.7 Manifest Files
 
     ### 4.7.1
    Applications using ZIP files MAY have a need for additional 
@@ -1997,10 +1997,10 @@ Value     Size      Description
     Manifest files are outside of the scope of this specification.
 
 
-## 5.0 Explanation of compression methods
+## 5.0 Explanation of compression methods
 
 
-## 5.1 UnShrinking - Method 1
+## 5.1 UnShrinking - Method 1
 
     ### 5.1.1
    Shrinking is a Dynamic Ziv-Lempel-Welch compression algorithm
@@ -2033,7 +2033,7 @@ Value     Size      Description
     re-used last.  The compressor can emit the sequence 256,2
     at any time.
 
-## 5.2 Expanding - Methods 2-5
+## 5.2 Expanding - Methods 2-5
 
     ### 5.2.1
    The Reducing algorithm is actually a combination of two
@@ -2142,7 +2142,7 @@ Value     Size      Description
         F(X) equals 2 if X equals 15 otherwise F(X) equals 3.
         D(X,Y) equals the (upper 4 bits of X) * 256 + Y + 1.
 
-## 5.3 Imploding - Method 6
+## 5.3 Imploding - Method 6
 
     ### 5.3.1
    The Imploding algorithm is actually a combination of two 
@@ -2311,12 +2311,12 @@ Value     Size      Description
             the output stream is filled with zeros).
     end loop
 
-## 5.4 Tokenizing - Method 7
+## 5.4 Tokenizing - Method 7
 
     ### 5.4.1
    This method is not used by PKZIP.
 
-## 5.5 Deflating - Method 8
+## 5.5 Deflating - Method 8
 
     ### 5.5.1
    The Deflate algorithm is similar to the Implode algorithm using
@@ -2457,21 +2457,21 @@ Value     Size      Description
        read crc and sizes
     endif
 
-## 5.6 Enhanced Deflating - Method 9
+## 5.6 Enhanced Deflating - Method 9
 
     ### 5.6.1
    The Enhanced Deflating algorithm is similar to Deflate but uses 
     a sliding dictionary of up to 64K. Deflate64(tm) is supported
     by the Deflate extractor. 
 
-## 5.7 BZIP2 - Method 12
+## 5.7 BZIP2 - Method 12
 
     ### 5.7.1
    BZIP2 is an open-source data compression algorithm developed by 
     Julian Seward.  Information and source code for this algorithm
     can be found on the internet.
 
-## 5.8 LZMA - Method 14 
+## 5.8 LZMA - Method 14 
 
     ### 5.8.1
    LZMA is a block-oriented, general purpose data compression 
@@ -2578,7 +2578,7 @@ Value     Size      Description
     When the EOS marker is used, general purpose bit 1 MUSY be set.  If
     general purpose bit 1 is not set, the EOS marker is not present.
 
-## 5.9 WavPack - Method 97
+## 5.9 WavPack - Method 97
 
     ### 5.9.1
    Information describing the use of compression method 97 is 
@@ -2608,7 +2608,7 @@ Value     Size      Description
     state.  To avoid this, the full 16 bits of the sample data size
     SHOULD be provided. 
 
-## 5.10 PPMd - Method 98
+## 5.10 PPMd - Method 98
 
     ### 5.10.1
    PPMd is a data compression algorithm developed by Dmitry Shkarin
@@ -2651,19 +2651,19 @@ Value     Size      Description
             (Model restoration method << 12)
 
 
-## 5.11 AE-x Encryption marker - Method 99
+## 5.11 AE-x Encryption marker - Method 99
 
-## 5.12 JPEG variant - Method 96
+## 5.12 JPEG variant - Method 96
 
-## 5.13 PKWARE Data Compression Library Imploding -  Method 10
+## 5.13 PKWARE Data Compression Library Imploding -  Method 10
 
-## 5.14 Reserved -  Method 11
+## 5.14 Reserved -  Method 11
 
-## 5.15 Reserved -  Method 13
+## 5.15 Reserved -  Method 13
 
-## 5.16 Reserved -  Method 15
+## 5.16 Reserved -  Method 15
 
-## 5.17 IBM z/OS CMPSC Compression - Method 16
+## 5.17 IBM z/OS CMPSC Compression - Method 16
 
 Method 16 utilizes the IBM hardware compression facility available
 on most IBM mainframes.  Hardware compression can significantly 
@@ -2716,13 +2716,13 @@ from 9-13).  Flag values are defined below.
     0x10 - Reserved
 
 
-## 5.18 Reserved -  Method 17
+## 5.18 Reserved -  Method 17
 
-## 5.19 IBM TERSE -  Method 18
+## 5.19 IBM TERSE -  Method 18
 
-## 5.20 IBM LZ77 z Architecture -  Method 19
+## 5.20 IBM LZ77 z Architecture -  Method 19
 
-## 6.0  Traditional PKWARE Encryption
+## 6.0  Traditional PKWARE Encryption
 
     ### 6.0.1
    The following information discusses the decryption steps
@@ -2732,7 +2732,7 @@ from 9-13).  Flag values are defined below.
     low security needs or for compatibility with older .ZIP 
     applications.
 
-## 6.1 Traditional PKWARE Decryption
+## 6.1 Traditional PKWARE Decryption
 
     ### 6.1.1
    PKWARE is grateful to Mr. Roger Schlafly for his expert 
@@ -2831,7 +2831,7 @@ from 9-13).  Flag values are defined below.
     end loop
 
 
-## 7.0 Strong Encryption Specification
+## 7.0 Strong Encryption Specification
 
    ### 7.0.1
    Portions of the Strong Encryption technology defined in this 
@@ -2839,7 +2839,7 @@ from 9-13).  Flag values are defined below.
    Refer to the section in this document entitled "Incorporating 
    PKWARE Proprietary Technology into Your Product" for more information.
 
-## 7.1 Strong Encryption Overview
+## 7.1 Strong Encryption Overview
 
    ### 7.1.1
    Version 5.x of this specification introduced support for strong 
@@ -2957,7 +2957,7 @@ from 9-13).  Flag values are defined below.
    to add authentication and non-repudiation.
 
 
-## 7.2 Single Password Symmetric Encryption Method
+## 7.2 Single Password Symmetric Encryption Method
 
    ### 7.2.1
    The Single Password Symmetric Encryption Method using strong    
@@ -3436,7 +3436,7 @@ from 9-13).  Flag values are defined below.
                        supported at this time is 0x02 as defined by
                        Microsoft.
 
-## 7.5 Certificate Processing - Central Directory Encryption
+## 7.5 Certificate Processing - Central Directory Encryption
         
     ### 7.5.1
    Central Directory Encryption using Digital Certificates will 
@@ -3475,7 +3475,7 @@ from 9-13).  Flag values are defined below.
     Archive Extra Data record will also be compressed and encrypted
     along with the Central Directory data structure.
 
-## 7.6 Certificate Processing Differences
+## 7.6 Certificate Processing Differences
 
     ### 7.6.1
    The Certificate Processing Method of encryption differs from the
@@ -3493,7 +3493,7 @@ from 9-13).  Flag values are defined below.
     requires supporting logic for key access and management.  This logic
     is outside the scope of this specification.
 
-## 7.7 OAEP Processing with Certificate-based Encryption
+## 7.7 OAEP Processing with Certificate-based Encryption
 
     ### 7.7.1
    OAEP stands for Optimal Asymmetric Encryption Padding.  It is a
@@ -3522,7 +3522,7 @@ from 9-13).  Flag values are defined below.
     encryption and certificate encryption.  Files encrypted with both
     methods can safely be decrypted using the password methods documented.
 
-## 7.8 Additional Encryption/Decryption Data Records
+## 7.8 Additional Encryption/Decryption Data Records
 
     ### 7.8.1
    Additional information MAY be stored within a ZIP file in support
@@ -3533,7 +3533,7 @@ from 9-13).  Flag values are defined below.
       0x0022        Smartcrypt Key Provider Record
       0x0023        Smartcrypt Policy Key Data Record
 
-## 8.0  Splitting and Spanning ZIP files
+## 8.0  Splitting and Spanning ZIP files
 
     8.1 Spanned ZIP files
 
@@ -3641,7 +3641,7 @@ from 9-13).  Flag values are defined below.
       within the ZIP file to determine the use for which it
       is intended.  
 
-## 9.0 Change Process
+## 9.0 Change Process
 
    9.1 In order for the .ZIP file format to remain a viable technology, this
    specification SHOULD be considered as open for periodic review and
@@ -3662,7 +3662,7 @@ from 9-13).  Flag values are defined below.
    comments and feedback that MAY help improve clarity or content.
 
 
-## 10.0 Incorporating PKWARE Proprietary Technology into Your Product
+## 10.0 Incorporating PKWARE Proprietary Technology into Your Product
 
    10.1 The Use or Implementation in a product of APPNOTE technological 
    components pertaining to either strong encryption or patching requires 
@@ -3673,13 +3673,13 @@ from 9-13).  Flag values are defined below.
    10.2 Additional information regarding PKWARE proprietary technology is 
    available at http://www.pkware.com/appnote.
 
-## 11.0 Acknowledgements
+## 11.0 Acknowledgements
 
    In addition to the above mentioned contributors to PKZIP and PKUNZIP,
    PKWARE would like to extend special thanks to Robert Mahoney for 
    suggesting the extension .ZIP for this software.
 
-## 12.0 References
+## 12.0 References
 
    Fiala, Edward R., and Greene, Daniel H., "Data compression with
       finite windows",  Communications of the ACM, Volume 32, Number 4,
