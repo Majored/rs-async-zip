@@ -69,7 +69,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
         };
 
         self.writer.writer.write_all(&crate::spec::signature::LOCAL_FILE_HEADER.to_le_bytes()).await?;
-        self.writer.writer.write_all(&lf_header.to_slice()).await?;
+        self.writer.writer.write_all(&lf_header.as_slice()).await?;
         self.writer.writer.write_all(self.opts.filename.as_bytes()).await?;
         self.writer.writer.write_all(&self.opts.extra).await?;
         self.writer.writer.write_all(compressed_data).await?;

@@ -7,12 +7,12 @@ use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader, G
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 impl LocalFileHeader {
-    pub fn to_slice(&self) -> [u8; 26] {
+    pub fn as_slice(&self) -> [u8; 26] {
         let mut array = [0; 26];
         let mut cursor = 0;
 
         array_push!(array, cursor, self.version.to_le_bytes());
-        array_push!(array, cursor, self.flags.to_slice());
+        array_push!(array, cursor, self.flags.as_slice());
         array_push!(array, cursor, self.compression.to_le_bytes());
         array_push!(array, cursor, self.mod_time.to_le_bytes());
         array_push!(array, cursor, self.mod_date.to_le_bytes());
@@ -27,7 +27,7 @@ impl LocalFileHeader {
 }
 
 impl GeneralPurposeFlag {
-    pub fn to_slice(&self) -> [u8; 2] {
+    pub fn as_slice(&self) -> [u8; 2] {
         let encrypted: u16 = match self.encrypted {
             false => 0x0,
             true => 0b1,
@@ -42,13 +42,13 @@ impl GeneralPurposeFlag {
 }
 
 impl CentralDirectoryHeader {
-    pub fn to_slice(&self) -> [u8; 42] {
+    pub fn as_slice(&self) -> [u8; 42] {
         let mut array = [0; 42];
         let mut cursor = 0;
 
         array_push!(array, cursor, self.v_made_by.to_le_bytes());
         array_push!(array, cursor, self.v_needed.to_le_bytes());
-        array_push!(array, cursor, self.flags.to_slice());
+        array_push!(array, cursor, self.flags.as_slice());
         array_push!(array, cursor, self.compression.to_le_bytes());
         array_push!(array, cursor, self.mod_time.to_le_bytes());
         array_push!(array, cursor, self.mod_date.to_le_bytes());
@@ -68,7 +68,7 @@ impl CentralDirectoryHeader {
 }
 
 impl EndOfCentralDirectoryHeader {
-    pub fn to_slice(&self) -> [u8; 18] {
+    pub fn as_slice(&self) -> [u8; 18] {
         let mut array = [0; 18];
         let mut cursor = 0;
 
@@ -103,14 +103,8 @@ impl From<[u8; 26]> for LocalFileHeader {
 
 impl From<u16> for GeneralPurposeFlag {
     fn from(value: u16) -> GeneralPurposeFlag {
-        let encrypted = match value & 0x1 {
-            0 => false,
-            _ => true,
-        };
-        let data_descriptor = match (value & 0x8) >> 3 {
-            0 => false,
-            _ => true,
-        };
+        let encrypted = !matches!(value & 0x1, 0);
+        let data_descriptor = !matches!((value & 0x8) >> 3, 0);
 
         GeneralPurposeFlag { encrypted, data_descriptor }
     }

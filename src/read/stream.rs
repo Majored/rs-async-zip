@@ -35,7 +35,7 @@ impl<R: AsyncRead + Unpin> ZipFileReader<R> {
     }
 
     /// Opens the next entry for reading if the central directory hasn't already been reached.
-    pub async fn entry_reader<'b>(&'b mut self) -> Result<Option<ZipEntryReader<'b, R>>> {
+    pub async fn entry_reader(&mut self) -> Result<Option<ZipEntryReader<'_, R>>> {
         // TODO: Ensure the previous entry has been fully read.
 
         if self.finished {

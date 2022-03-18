@@ -47,7 +47,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
     crate::read::reader_entry_impl!();
 
     /// Opens an entry at the provided index for reading.
-    pub async fn entry_reader<'a>(&'a self, index: usize) -> Result<ZipEntryReader<'a, GuardedReader<R>>> {
+    pub async fn entry_reader(&self, index: usize) -> Result<ZipEntryReader<'_, GuardedReader<R>>> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
         let mut guarded_reader = GuardedReader { reader: self.reader.clone() };

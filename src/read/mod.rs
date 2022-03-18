@@ -60,7 +60,7 @@ impl ZipEntry {
 
     /// Returns whether or not the entry represents a directory.
     pub fn dir(&self) -> bool {
-        self.name.ends_with("/")
+        self.name.ends_with('/')
     }
 
     /// Returns an optional CRC32 value for the entry.

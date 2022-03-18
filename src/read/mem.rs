@@ -35,7 +35,7 @@ impl<'a> ZipFileReader<'a> {
     pub async fn entry_reader<'b>(&'b mut self, index: usize) -> Result<ConcurrentReader<'b, 'a>> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
-        let mut cursor = Cursor::new(self.data.clone());
+        let mut cursor = Cursor::new(<&[u8]>::clone(&self.data));
         cursor.seek(SeekFrom::Start(entry.offset.unwrap() as u64 + 4)).await?;
 
         let header = LocalFileHeader::from_reader(&mut cursor).await?;

@@ -65,7 +65,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         };
 
         writer.writer.write_all(&crate::spec::signature::LOCAL_FILE_HEADER.to_le_bytes()).await?;
-        writer.writer.write_all(&lfh.to_slice()).await?;
+        writer.writer.write_all(&lfh.as_slice()).await?;
         writer.writer.write_all(options.filename.as_bytes()).await?;
         writer.writer.write_all(&options.extra).await?;
 

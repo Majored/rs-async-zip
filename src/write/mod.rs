@@ -112,7 +112,7 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
     }
 
     /// Write an entry of unknown size and data via streaming (ie. using a data descriptor).
-    pub async fn write_entry_stream<'b>(&'b mut self, options: EntryOptions) -> Result<EntryStreamWriter<'b, W>> {
+    pub async fn write_entry_stream(&mut self, options: EntryOptions) -> Result<EntryStreamWriter<'_, W>> {
         EntryStreamWriter::from_raw(self, options).await
     }
 
@@ -134,7 +134,7 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
 
         for entry in &self.cd_entries {
             self.writer.write_all(&crate::spec::signature::CENTRAL_DIRECTORY_FILE_HEADER.to_le_bytes()).await?;
-            self.writer.write_all(&entry.header.to_slice()).await?;
+            self.writer.write_all(&entry.header.as_slice()).await?;
             self.writer.write_all(entry.opts.filename.as_bytes()).await?;
             self.writer.write_all(&entry.opts.extra).await?;
             self.writer.write_all(entry.opts.comment.as_bytes()).await?;
@@ -151,7 +151,7 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
         };
 
         self.writer.write_all(&crate::spec::signature::END_OF_CENTRAL_DIRECTORY.to_le_bytes()).await?;
-        self.writer.write_all(&header.to_slice()).await?;
+        self.writer.write_all(&header.as_slice()).await?;
         if let Some(comment) = self.comment_opt {
             self.writer.write_all(comment.as_bytes()).await?;
         }

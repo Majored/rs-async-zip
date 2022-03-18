@@ -52,7 +52,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
     crate::read::reader_entry_impl!();
 
     /// Opens an entry at the provided index for reading.
-    pub async fn entry_reader<'b>(&'b mut self, index: usize) -> Result<ZipEntryReader<'b, R>> {
+    pub async fn entry_reader(&mut self, index: usize) -> Result<ZipEntryReader<'_, R>> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
         self.reader.seek(SeekFrom::Start(entry.offset.unwrap() as u64 + 4)).await?;
@@ -84,10 +84,7 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
     const MAX_ENDING_LENGTH: u64 = (u16::MAX - 2) as u64;
 
     let length = reader.seek(SeekFrom::End(0)).await?;
-    let seek_to = match length.checked_sub(MAX_ENDING_LENGTH) {
-        Some(seek_to) => seek_to,
-        None => 0,
-    };
+    let seek_to = length.saturating_sub(MAX_ENDING_LENGTH);
 
     reader.seek(SeekFrom::Start(seek_to)).await?;
 
