@@ -1,7 +1,7 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-// https://github.com/Majored/rs-async-zip/blob/main/src/spec/APPNOTE.md#437
+// https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#437
 pub struct LocalFileHeader {
     pub version: u16,
     pub flags: GeneralPurposeFlag,
@@ -15,14 +15,14 @@ pub struct LocalFileHeader {
     pub extra_field_length: u16,
 }
 
-// https://github.com/Majored/rs-async-zip/blob/main/src/spec/APPNOTE.md#444
+// https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#444
 #[derive(Copy, Clone)]
 pub struct GeneralPurposeFlag {
     pub encrypted: bool,
     pub data_descriptor: bool,
 }
 
-// https://github.com/Majored/rs-async-zip/blob/main/src/spec/APPNOTE.md#4312
+// https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4312
 pub struct CentralDirectoryHeader {
     pub v_made_by: u16,
     pub v_needed: u16,
@@ -42,7 +42,7 @@ pub struct CentralDirectoryHeader {
     pub lh_offset: u32,
 }
 
-// https://github.com/Majored/rs-async-zip/blob/main/src/spec/APPNOTE.md#4316
+// https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4316
 pub struct EndOfCentralDirectoryHeader {
     pub(crate) disk_num: u16,
     pub(crate) start_cent_dir_disk: u16,

@@ -3,7 +3,7 @@
 
 use chrono::{DateTime, Datelike, TimeZone, Timelike, Utc};
 
-// https://github.com/Majored/rs-async-zip/blob/main/src/spec/APPNOTE.md#446
+// https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#446
 
 // Converts a date and time stored within ZIP headers into a `chrono` structure.
 pub fn zip_date_to_chrono(date: u16, time: u16) -> DateTime<Utc> {

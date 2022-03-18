@@ -16,7 +16,7 @@ pub enum Compression {
 
 impl Compression {
     // Convert a supported compression method into its relevant u16 stored with little endianness.
-    // https://github.com/Majored/rs-async-zip/blob/main/src/spec/APPNOTE.md#445
+    // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#445
     pub fn to_u16(&self) -> u16 {
         match self {
             Compression::Stored => 0,
@@ -29,7 +29,7 @@ impl Compression {
     }
 
     // Convert a u16 stored with little endianness into a supported compression method.
-    // https://github.com/Majored/rs-async-zip/blob/main/src/spec/APPNOTE.md#445
+    // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#445
     pub fn from_u16(value: u16) -> Result<Compression> {
         match value {
             0 => Ok(Compression::Stored),
