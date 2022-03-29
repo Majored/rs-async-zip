@@ -36,8 +36,12 @@ impl GeneralPurposeFlag {
             false => 0x0,
             true => 0x8,
         };
-
-        (encrypted | data_descriptor).to_le_bytes()
+        let filename_unicode: u16 = match self.filename_unicode {
+            false => 0x0,
+            true => 0x800,
+        };
+        
+        (encrypted | data_descriptor | filename_unicode).to_le_bytes()
     }
 }
 
@@ -105,8 +109,9 @@ impl From<u16> for GeneralPurposeFlag {
     fn from(value: u16) -> GeneralPurposeFlag {
         let encrypted = !matches!(value & 0x1, 0);
         let data_descriptor = !matches!((value & 0x8) >> 3, 0);
+        let filename_unicode = !matches!((value & 0x800) >> 11, 0);
 
-        GeneralPurposeFlag { encrypted, data_descriptor }
+        GeneralPurposeFlag { encrypted, data_descriptor, filename_unicode }
     }
 }
 

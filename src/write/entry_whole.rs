@@ -46,7 +46,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             mod_time,
             mod_date,
             version: 0,
-            flags: GeneralPurposeFlag { data_descriptor: false, encrypted: false },
+            flags: GeneralPurposeFlag { data_descriptor: false, encrypted: false, filename_unicode: !self.opts.filename.is_ascii() },
         };
 
         let header = CentralDirectoryHeader {

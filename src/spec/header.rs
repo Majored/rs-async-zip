@@ -20,6 +20,7 @@ pub struct LocalFileHeader {
 pub struct GeneralPurposeFlag {
     pub encrypted: bool,
     pub data_descriptor: bool,
+    pub filename_unicode: bool,
 }
 
 // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4312

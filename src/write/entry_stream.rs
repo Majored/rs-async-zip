@@ -61,7 +61,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             mod_time,
             mod_date,
             version: 0,
-            flags: GeneralPurposeFlag { data_descriptor: true, encrypted: false },
+            flags: GeneralPurposeFlag { data_descriptor: true, encrypted: false, filename_unicode: !options.filename.is_ascii() },
         };
 
         writer.writer.write_all(&crate::spec::signature::LOCAL_FILE_HEADER.to_le_bytes()).await?;
