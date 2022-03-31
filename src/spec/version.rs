@@ -4,6 +4,8 @@
 use crate::spec::compression::Compression;
 use crate::write::EntryOptions;
 
+pub(crate) const SPEC_VERSION_MADE_BY: u16 = 63;
+
 // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#443
 pub fn as_needed_to_extract(options: &EntryOptions) -> u16 {
     let mut version = match options.compression {
@@ -18,4 +20,10 @@ pub fn as_needed_to_extract(options: &EntryOptions) -> u16 {
     }
 
     version
+}
+
+// https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#442
+pub fn as_made_by() -> u16 {
+    // Default to UNIX mapping for the moment.
+    3 << 8 | SPEC_VERSION_MADE_BY
 }

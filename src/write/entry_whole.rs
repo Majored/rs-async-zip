@@ -50,8 +50,8 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
         };
 
         let header = CentralDirectoryHeader {
-            v_made_by: 0,
-            v_needed: 0,
+            v_made_by: crate::spec::version::as_made_by(),
+            v_needed: lf_header.version,
             compressed_size: lf_header.compressed_size,
             uncompressed_size: lf_header.uncompressed_size,
             compression: lf_header.compression,
