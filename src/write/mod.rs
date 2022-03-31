@@ -60,8 +60,8 @@ use tokio::io::{AsyncWrite, AsyncWriteExt};
 
 /// A set of options for opening new ZIP entries.
 pub struct EntryOptions {
-    filename: String,
-    compression: Compression,
+    pub(crate) filename: String,
+    pub(crate) compression: Compression,
     extra: Vec<u8>,
     comment: String,
 }

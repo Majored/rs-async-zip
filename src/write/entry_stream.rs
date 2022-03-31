@@ -60,7 +60,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             file_name_length: options.filename.as_bytes().len() as u16,
             mod_time,
             mod_date,
-            version: 0,
+            version: crate::spec::version::as_needed_to_extract(options),
             flags: GeneralPurposeFlag { data_descriptor: true, encrypted: false, filename_unicode: !options.filename.is_ascii() },
         };
 

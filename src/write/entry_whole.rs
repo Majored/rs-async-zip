@@ -45,7 +45,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             file_name_length: self.opts.filename.as_bytes().len() as u16,
             mod_time,
             mod_date,
-            version: 0,
+            version: crate::spec::version::as_needed_to_extract(&self.opts),
             flags: GeneralPurposeFlag { data_descriptor: false, encrypted: false, filename_unicode: !self.opts.filename.is_ascii() },
         };
 
