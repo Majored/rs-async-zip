@@ -4,16 +4,17 @@
 use async_zip::write::{ZipFileWriter, EntryOptions};
 use async_zip::Compression;
 
+use std::path::{Path, PathBuf};
+
 use anyhow::{Result, bail, anyhow};
-use std::path::Path;
 use tokio::fs::File;
-use tokio::io::AsyncWriteExt;
+use tokio::io::AsyncReadExt;
 
 #[tokio::main]
 async fn main() {
     if let Err(err) = run().await {
         eprintln!("Error: {}", err);
-        eprintln!("Usage: cli_compress <input file or directory> <output ZIP file name - defaults to 'Archive.zip'>");
+        eprintln!("Usage: cli_compress <input file or directory> <output ZIP file name>");
         std::process::exit(1);
     }
 }
@@ -24,8 +25,11 @@ async fn run() -> Result<()> {
     let input_str = args.next().ok_or(anyhow!("No input file or directory specified."))?;
     let input_path = Path::new(&input_str);
 
-    let output_str = args.next().unwrap_or("./Archive.zip".to_string());
+    let output_str = args.next().ok_or(anyhow!("No output file specified."))?;
     let output_path = Path::new(&output_str);
+
+    let input_pathbuf = input_path.canonicalize().map_err(|_| anyhow!("Unable to canonicalise input path."))?;
+    let input_path = input_pathbuf.as_path();
 
     if output_path.exists() {
         bail!("The output file specified already exists.");
@@ -34,50 +38,76 @@ async fn run() -> Result<()> {
         bail!("The input file or directory specified doesn't exist.");
     }
 
-    let mut output_file = File::create(output_path).await?;
-    let mut output_writer = ZipFileWriter::new(&mut output_file);
-    let mut count = 0;
+    let mut output_writer = ZipFileWriter::new(File::create(output_path).await?);
 
     if input_path.is_dir() {
-        let mut dir_stream = tokio::fs::read_dir(input_path).await?;
-
-        while let Some(entry) = dir_stream.next_entry().await? {
-            // TODO: Negate irrelevant path segments. The path of the input is mirrored into the ZIP file name
-            // currently, meaning entering './' will prefix all entry file names with './'.
-            write_entry(entry.path().as_path(), &output_path, &mut output_writer).await?;
-            count += 1;
-        }
+        handle_directory(input_path, &mut output_writer).await?;
     } else {
-        write_entry(input_path,&output_path, &mut output_writer).await?;
-        count += 1;
+        handle_singular(input_path, &mut output_writer).await?;
     }
 
     output_writer.close().await?;
-    output_file.shutdown().await?;
-
-    println!("Successfully written {} ZIP entry(ies) to '{}'.", count, output_path.display());
+    println!("Successfully written ZIP file '{}'.", output_path.display());
 
     Ok(())
 }
 
-async fn write_entry(entry_path: &Path, output_path: &Path, writer: &mut ZipFileWriter<'_, File>) -> Result<()> {
-    let mut input_file = File::open(entry_path).await?;
+async fn handle_singular(input_path: &Path, writer: &mut ZipFileWriter<File>) -> Result<()> {
+    let filename = input_path.file_name().ok_or(anyhow!("Input path terminates in '...'."))?;
+    let filename = filename.to_str().ok_or(anyhow!("Input path not valid UTF-8."))?;
 
-    let filename = entry_path.file_name().ok_or(anyhow!("No input file name."))?;
-    let filename = filename.to_str().ok_or(anyhow!("Input filename is not Unicode."))?;
+    write_entry(filename, input_path, writer).await
+}
 
-    let mut path = output_path.to_path_buf();
-    path.push(entry_path.parent().ok_or(anyhow!("No parent file."))?);
-    path.set_file_name(filename);
+async fn handle_directory(input_path: &Path, writer: &mut ZipFileWriter<File>) -> Result<()> {
+    let entries = walk_dir(input_path.into()).await?;
+    let input_dir_str = input_path.as_os_str().to_str().ok_or(anyhow!("Input path not valid UTF-8."))?;
 
-    let filename = path.to_str().ok_or(anyhow!("Input filename is not Unicode."))?.to_owned();
+    for entry_path_buf in entries {
+        let entry_path = entry_path_buf.as_path();
+        let entry_str = entry_path.as_os_str().to_str().ok_or(anyhow!("Directory file path not valid UTF-8."))?;
 
-    let entry_options = EntryOptions::new(filename, Compression::Deflate);
-    let mut entry_writer = writer.write_entry_stream(entry_options).await?;
+        if !entry_str.starts_with(input_dir_str) {
+            bail!("Directory file path does not start with base input directory path.");
+        }
 
-    // TODO: Use buffered reader and set capacity to 65536.
-    tokio::io::copy(&mut input_file, &mut entry_writer).await?;
-    entry_writer.close().await?;
+        let entry_str = &entry_str[input_dir_str.len() + 1..];
+        write_entry(entry_str, entry_path, writer).await?;
+    }
+    
+    Ok(())
+}
+
+async fn write_entry(filename: &str, input_path: &Path, writer: &mut ZipFileWriter<File>) -> Result<()> {
+    let mut input_file = File::open(input_path).await?;
+    let input_file_size = input_file.metadata().await?.len() as usize;
+
+    let mut buffer = Vec::with_capacity(input_file_size);
+    input_file.read_to_end(&mut buffer).await?;
+
+    let entry_options = EntryOptions::new(filename.into(), Compression::Deflate);
+    writer.write_entry_whole(entry_options, &buffer).await?;
 
     Ok(())
+}
+
+async fn walk_dir(dir: PathBuf) -> Result<Vec<PathBuf>> {
+    let mut dirs = vec![dir];
+    let mut files = vec![];
+
+    while !dirs.is_empty() {
+        let mut dir_iter = tokio::fs::read_dir(dirs.remove(0)).await?;
+        
+        while let Some(entry) = dir_iter.next_entry().await? {
+            let entry_path_buf = entry.path();
+
+            if entry_path_buf.is_dir() {
+                dirs.push(entry_path_buf);
+            } else {
+                files.push(entry_path_buf);
+            }
+        }
+    }
+
+    Ok(files)
 }
