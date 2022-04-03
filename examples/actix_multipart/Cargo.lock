@@ -92,6 +92,7 @@ dependencies = [
  "actix-web",
  "anyhow",
  "async_zip",
+ "derive_more",
  "futures",
  "sanitize-filename",
  "tokio",
