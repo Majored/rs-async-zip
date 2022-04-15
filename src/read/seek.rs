@@ -112,7 +112,7 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) ->
     }
 
     if eocdh.file_comm_length > 0 {
-        comment = Some(crate::utils::read_string(&mut reader, eocdh.file_comm_length as usize).await?);
+        comment = Some(async_io_utilities::read_string(&mut reader, eocdh.file_comm_length as usize).await?);
     }
 
     let reader = reader.into_inner();
@@ -130,9 +130,9 @@ pub(crate) async fn read_cd_entry<R: AsyncRead + Unpin>(reader: &mut R) -> Resul
     crate::utils::assert_signature(reader, crate::spec::signature::CENTRAL_DIRECTORY_FILE_HEADER).await?;
 
     let header = CentralDirectoryHeader::from_reader(reader).await?;
-    let filename = crate::utils::read_string(reader, header.file_name_length.into()).await?;
-    let extra = crate::utils::read_bytes(reader, header.extra_field_length.into()).await?;
-    let comment = crate::utils::read_string(reader, header.file_comment_length.into()).await?;
+    let filename = async_io_utilities::read_string(reader, header.file_name_length.into()).await?;
+    let extra = async_io_utilities::read_bytes(reader, header.extra_field_length.into()).await?;
+    let comment = async_io_utilities::read_string(reader, header.file_comment_length.into()).await?;
 
     let entry = ZipEntry {
         name: filename,

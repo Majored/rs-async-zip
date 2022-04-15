@@ -76,8 +76,8 @@ pub(crate) async fn read_lfh<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Opt
     };
 
     let header = LocalFileHeader::from_reader(reader).await?;
-    let filename = crate::utils::read_string(reader, header.file_name_length.into()).await?;
-    let extra = crate::utils::read_bytes(reader, header.extra_field_length.into()).await?;
+    let filename = async_io_utilities::read_string(reader, header.file_name_length.into()).await?;
+    let extra = async_io_utilities::read_bytes(reader, header.extra_field_length.into()).await?;
 
     let entry = ZipEntry {
         name: filename,
