@@ -70,7 +70,13 @@ pub struct EntryOptions {
 impl EntryOptions {
     /// Construct a new set of options from its required constituents.
     pub fn new(filename: String, compression: Compression) -> Self {
-        EntryOptions { filename, compression, extra: Vec::new(), comment: String::new() }
+        EntryOptions { 
+            filename, 
+            compression,
+            extra: Vec::new(),
+            comment: String::new(),
+            unix_permissions: 0,
+        }
     }
 
     /// Consume the options and override the extra field data.
