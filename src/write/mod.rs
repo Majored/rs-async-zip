@@ -64,6 +64,7 @@ pub struct EntryOptions {
     pub(crate) compression: Compression,
     extra: Vec<u8>,
     comment: String,
+    unix_permissions: u32,
 }
 
 impl EntryOptions {
@@ -81,6 +82,12 @@ impl EntryOptions {
     /// Consume the options and override the file comment.
     pub fn comment(mut self, comment: String) -> Self {
         self.comment = comment;
+        self
+    }
+
+    /// Consume unix permissions option for zip files (ex. 0o755)
+    pub fn unix_permissions(mut self, unix_permissions: u32) -> Self {
+        self.unix_permissions = unix_permissions;
         self
     }
 }
