@@ -64,7 +64,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             flags: lf_header.flags,
             disk_start: 0,
             inter_attr: 0,
-            exter_attr: 0,
+            exter_attr: self.opts.unix_permissions << 16,
             lh_offset: self.writer.writer.offset() as u32,
         };
 
