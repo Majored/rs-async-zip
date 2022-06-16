@@ -15,7 +15,13 @@ pub fn zip_date_to_chrono(date: u16, time: u16) -> DateTime<Utc> {
     let mins = ((time & 0x7E0) >> 5).into();
     let secs = ((time & 0x1F) << 1).into();
 
-    Utc.ymd(years, months, days).and_hms(hours, mins, secs)
+    match Utc.ymd_opt(years, months, days) {
+        chrono::LocalResult::Single(t) => match t.and_hms_opt(hours, mins, secs) {
+            Some(dt) => dt,
+            None => chrono::MIN_DATETIME
+        },
+        _ => chrono::MIN_DATETIME
+    }
 }
 
 // Converts a `chrono` structure into a date and time stored in ZIP headers.
