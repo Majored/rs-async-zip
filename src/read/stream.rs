@@ -8,12 +8,12 @@
 //! ```
 
 use crate::error::{Result, ZipError};
-use crate::read::{CompressionReader, ZipEntry, ZipEntryReader, OwnedReader, PrependReader};
+use crate::read::{CompressionReader, OwnedReader, PrependReader, ZipEntry, ZipEntryReader};
 use crate::spec::compression::Compression;
 use crate::spec::header::LocalFileHeader;
 
+use async_io_utilities::{AsyncDelimiterReader, AsyncPrependReader};
 use tokio::io::{AsyncRead, AsyncReadExt};
-use async_io_utilities::{AsyncPrependReader, AsyncDelimiterReader};
 
 /// A reader which acts over a non-seekable source.
 pub struct ZipFileReader<R: AsyncRead + Unpin> {

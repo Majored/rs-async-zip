@@ -7,38 +7,60 @@ use std::io::Error;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use async_compression::tokio::write::{BzEncoder, DeflateEncoder, LzmaEncoder, XzEncoder, ZstdEncoder};
+#[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
+use async_compression::tokio::write;
 use async_io_utilities::AsyncOffsetWriter;
 use tokio::io::AsyncWrite;
 
 pub enum CompressedAsyncWriter<'b, W: AsyncWrite + Unpin> {
     Stored(ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>),
-    Deflate(DeflateEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
-    Bz(BzEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
-    Lzma(LzmaEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
-    Zstd(ZstdEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
-    Xz(XzEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
+    #[cfg(feature = "deflate")]
+    Deflate(write::DeflateEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
+    #[cfg(feature = "bzip2")]
+    Bz(write::BzEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
+    #[cfg(feature = "lzma")]
+    Lzma(write::LzmaEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
+    #[cfg(feature = "zstd")]
+    Zstd(write::ZstdEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
+    #[cfg(feature = "xz")]
+    Xz(write::XzEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
 }
 
 impl<'b, W: AsyncWrite + Unpin> CompressedAsyncWriter<'b, W> {
     pub fn from_raw(writer: &'b mut AsyncOffsetWriter<W>, compression: Compression) -> Self {
         match compression {
-            Compression::Stored => CompressedAsyncWriter::Stored(ShutdownIgnoredWriter {0: writer}),
-            Compression::Deflate => CompressedAsyncWriter::Deflate(DeflateEncoder::new(ShutdownIgnoredWriter {0: writer})),
-            Compression::Bz => CompressedAsyncWriter::Bz(BzEncoder::new(ShutdownIgnoredWriter {0: writer})),
-            Compression::Lzma => CompressedAsyncWriter::Lzma(LzmaEncoder::new(ShutdownIgnoredWriter {0: writer})),
-            Compression::Zstd => CompressedAsyncWriter::Zstd(ZstdEncoder::new(ShutdownIgnoredWriter {0: writer})),
-            Compression::Xz => CompressedAsyncWriter::Xz(XzEncoder::new(ShutdownIgnoredWriter {0: writer})),
+            Compression::Stored => CompressedAsyncWriter::Stored(ShutdownIgnoredWriter { 0: writer }),
+            #[cfg(feature = "deflate")]
+            Compression::Deflate => {
+                CompressedAsyncWriter::Deflate(write::DeflateEncoder::new(ShutdownIgnoredWriter { 0: writer }))
+            }
+            #[cfg(feature = "bzip2")]
+            Compression::Bz => CompressedAsyncWriter::Bz(write::BzEncoder::new(ShutdownIgnoredWriter { 0: writer })),
+            #[cfg(feature = "lzma")]
+            Compression::Lzma => {
+                CompressedAsyncWriter::Lzma(write::LzmaEncoder::new(ShutdownIgnoredWriter { 0: writer }))
+            }
+            #[cfg(feature = "zstd")]
+            Compression::Zstd => {
+                CompressedAsyncWriter::Zstd(write::ZstdEncoder::new(ShutdownIgnoredWriter { 0: writer }))
+            }
+            #[cfg(feature = "xz")]
+            Compression::Xz => CompressedAsyncWriter::Xz(write::XzEncoder::new(ShutdownIgnoredWriter { 0: writer })),
         }
     }
 
     pub fn into_inner(self) -> &'b mut AsyncOffsetWriter<W> {
         match self {
             CompressedAsyncWriter::Stored(inner) => inner.into_inner(),
+            #[cfg(feature = "deflate")]
             CompressedAsyncWriter::Deflate(inner) => inner.into_inner().into_inner(),
+            #[cfg(feature = "bzip2")]
             CompressedAsyncWriter::Bz(inner) => inner.into_inner().into_inner(),
+            #[cfg(feature = "lzma")]
             CompressedAsyncWriter::Lzma(inner) => inner.into_inner().into_inner(),
+            #[cfg(feature = "zstd")]
             CompressedAsyncWriter::Zstd(inner) => inner.into_inner().into_inner(),
+            #[cfg(feature = "xz")]
             CompressedAsyncWriter::Xz(inner) => inner.into_inner().into_inner(),
         }
     }
@@ -48,10 +70,15 @@ impl<'b, W: AsyncWrite + Unpin> AsyncWrite for CompressedAsyncWriter<'b, W> {
     fn poll_write(mut self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<std::result::Result<usize, Error>> {
         match *self {
             CompressedAsyncWriter::Stored(ref mut inner) => Pin::new(inner).poll_write(cx, buf),
+            #[cfg(feature = "deflate")]
             CompressedAsyncWriter::Deflate(ref mut inner) => Pin::new(inner).poll_write(cx, buf),
+            #[cfg(feature = "bzip2")]
             CompressedAsyncWriter::Bz(ref mut inner) => Pin::new(inner).poll_write(cx, buf),
+            #[cfg(feature = "lzma")]
             CompressedAsyncWriter::Lzma(ref mut inner) => Pin::new(inner).poll_write(cx, buf),
+            #[cfg(feature = "zstd")]
             CompressedAsyncWriter::Zstd(ref mut inner) => Pin::new(inner).poll_write(cx, buf),
+            #[cfg(feature = "xz")]
             CompressedAsyncWriter::Xz(ref mut inner) => Pin::new(inner).poll_write(cx, buf),
         }
     }
@@ -59,10 +86,15 @@ impl<'b, W: AsyncWrite + Unpin> AsyncWrite for CompressedAsyncWriter<'b, W> {
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<std::result::Result<(), Error>> {
         match *self {
             CompressedAsyncWriter::Stored(ref mut inner) => Pin::new(inner).poll_flush(cx),
+            #[cfg(feature = "deflate")]
             CompressedAsyncWriter::Deflate(ref mut inner) => Pin::new(inner).poll_flush(cx),
+            #[cfg(feature = "bzip2")]
             CompressedAsyncWriter::Bz(ref mut inner) => Pin::new(inner).poll_flush(cx),
+            #[cfg(feature = "lzma")]
             CompressedAsyncWriter::Lzma(ref mut inner) => Pin::new(inner).poll_flush(cx),
+            #[cfg(feature = "zstd")]
             CompressedAsyncWriter::Zstd(ref mut inner) => Pin::new(inner).poll_flush(cx),
+            #[cfg(feature = "xz")]
             CompressedAsyncWriter::Xz(ref mut inner) => Pin::new(inner).poll_flush(cx),
         }
     }
@@ -70,10 +102,15 @@ impl<'b, W: AsyncWrite + Unpin> AsyncWrite for CompressedAsyncWriter<'b, W> {
     fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<std::result::Result<(), Error>> {
         match *self {
             CompressedAsyncWriter::Stored(ref mut inner) => Pin::new(inner).poll_shutdown(cx),
+            #[cfg(feature = "deflate")]
             CompressedAsyncWriter::Deflate(ref mut inner) => Pin::new(inner).poll_shutdown(cx),
+            #[cfg(feature = "bzip2")]
             CompressedAsyncWriter::Bz(ref mut inner) => Pin::new(inner).poll_shutdown(cx),
+            #[cfg(feature = "lzma")]
             CompressedAsyncWriter::Lzma(ref mut inner) => Pin::new(inner).poll_shutdown(cx),
+            #[cfg(feature = "zstd")]
             CompressedAsyncWriter::Zstd(ref mut inner) => Pin::new(inner).poll_shutdown(cx),
+            #[cfg(feature = "xz")]
             CompressedAsyncWriter::Xz(ref mut inner) => Pin::new(inner).poll_shutdown(cx),
         }
     }

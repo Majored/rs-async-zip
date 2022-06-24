@@ -25,13 +25,13 @@
 
 use super::CompressionReader;
 use crate::error::{Result, ZipError};
-use crate::read::{ZipEntry, ZipEntryReader, OwnedReader, PrependReader};
+use crate::read::{OwnedReader, PrependReader, ZipEntry, ZipEntryReader};
 use crate::spec::header::LocalFileHeader;
 
+use async_io_utilities::AsyncDelimiterReader;
 use std::io::SeekFrom;
 use tokio::fs::File;
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
-use async_io_utilities::AsyncDelimiterReader;
 
 /// A reader which acts concurrently over a filesystem file.
 pub struct ZipFileReader {
@@ -75,7 +75,7 @@ impl ZipFileReader {
             let reader = PrependReader::Normal(reader);
             let reader = reader.take(entry.compressed_size.unwrap().into());
             let reader = CompressionReader::from_reader(entry.compression(), reader);
-    
+
             Ok(ZipEntryReader::from_raw(entry, reader, false))
         }
     }

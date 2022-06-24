@@ -40,7 +40,7 @@ impl GeneralPurposeFlag {
             false => 0x0,
             true => 0x800,
         };
-        
+
         (encrypted | data_descriptor | filename_unicode).to_le_bytes()
     }
 }

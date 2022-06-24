@@ -6,6 +6,8 @@
 //! # Example
 //! ### Whole data (u8 slice)
 //! ```no_run
+//! # #[cfg(feature = "deflate")]
+//! # {
 //! # use async_zip::{Compression, write::{EntryOptions, ZipFileWriter}};
 //! # use tokio::{fs::File, io::AsyncWriteExt};
 //! # use async_zip::error::ZipError;
@@ -21,9 +23,12 @@
 //! writer.close().await?;
 //! #   Ok(())
 //! # }
+//! # }
 //! ```
 //! ### Stream data (unknown size & data)
 //! ```no_run
+//! # #[cfg(feature = "deflate")]
+//! # {
 //! # use async_zip::{Compression, write::{EntryOptions, ZipFileWriter}};
 //! # use tokio::{fs::File, io::AsyncWriteExt};
 //! # use async_zip::error::ZipError;
@@ -42,6 +47,7 @@
 //! writer.close().await?;
 //! #   Ok(())
 //! # }
+//! # }
 //! ```
 
 pub(crate) mod compressed_writer;
@@ -53,8 +59,8 @@ pub use entry_stream::EntryStreamWriter;
 use crate::error::Result;
 use crate::spec::compression::Compression;
 use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
-use entry_whole::EntryWholeWriter;
 use async_io_utilities::AsyncOffsetWriter;
+use entry_whole::EntryWholeWriter;
 
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
@@ -70,13 +76,7 @@ pub struct EntryOptions {
 impl EntryOptions {
     /// Construct a new set of options from its required constituents.
     pub fn new(filename: String, compression: Compression) -> Self {
-        EntryOptions { 
-            filename, 
-            compression,
-            extra: Vec::new(),
-            comment: String::new(),
-            unix_permissions: 0,
-        }
+        EntryOptions { filename, compression, extra: Vec::new(), comment: String::new(), unix_permissions: 0 }
     }
 
     /// Consume the options and override the extra field data.

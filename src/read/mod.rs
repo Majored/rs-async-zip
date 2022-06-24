@@ -16,11 +16,12 @@ use std::convert::TryInto;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use async_compression::tokio::bufread::{BzDecoder, DeflateDecoder, LzmaDecoder, XzDecoder, ZstdDecoder};
+#[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
+use async_compression::tokio::bufread;
+use async_io_utilities::{AsyncDelimiterReader, AsyncPrependReader};
 use chrono::{DateTime, Utc};
 use crc32fast::Hasher;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, BufReader, ReadBuf, Take};
-use async_io_utilities::{AsyncDelimiterReader, AsyncPrependReader};
 
 /// An entry within a larger ZIP file reader.
 #[derive(Debug)]
@@ -103,7 +104,7 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for PrependReader<'a, R> {
     fn poll_read(mut self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
         match *self {
             PrependReader::Normal(ref mut inner) => Pin::new(inner).poll_read(c, b),
-            PrependReader::Prepend(ref mut inner) => Pin::new(inner).poll_read(c, b)
+            PrependReader::Prepend(ref mut inner) => Pin::new(inner).poll_read(c, b),
         }
     }
 }
@@ -117,7 +118,7 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for OwnedReader<'a, R> {
     fn poll_read(mut self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
         match *self {
             OwnedReader::Owned(ref mut inner) => Pin::new(inner).poll_read(c, b),
-            OwnedReader::Borrow(ref mut inner) => Pin::new(inner).poll_read(c, b)
+            OwnedReader::Borrow(ref mut inner) => Pin::new(inner).poll_read(c, b),
         }
     }
 }
@@ -131,7 +132,7 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for LocalReader<'a, R> {
     fn poll_read(mut self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
         match *self {
             LocalReader::Standard(ref mut inner) => Pin::new(inner).poll_read(c, b),
-            LocalReader::Stream(ref mut inner) => Pin::new(inner).poll_read(c, b)
+            LocalReader::Stream(ref mut inner) => Pin::new(inner).poll_read(c, b),
         }
     }
 }
@@ -153,7 +154,11 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     }
 
     /// Construct an entry reader from its raw parts (a shared reference to the entry and an inner reader).
-    pub(crate) fn with_data_descriptor(entry: &'a ZipEntry, reader: CompressionReader<AsyncDelimiterReader<PrependReader<'a, R>>>, _: bool) -> Self {
+    pub(crate) fn with_data_descriptor(
+        entry: &'a ZipEntry,
+        reader: CompressionReader<AsyncDelimiterReader<PrependReader<'a, R>>>,
+        _: bool,
+    ) -> Self {
         let reader = LocalReader::Stream(reader);
         ZipEntryReader { entry, reader, hasher: Hasher::new(), consumed: false, data_descriptor: None }
     }
@@ -193,7 +198,7 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
 
             let mut buffer = Vec::new();
             buffer.extend_from_slice(inner_mut.buffer());
-            
+
             if let PrependReader::Prepend(inner) = inner_mut.get_mut() {
                 match inner {
                     OwnedReader::Owned(inner) => inner.prepend(&buffer),
@@ -285,34 +290,49 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
 /// This underpins entry reading functionality for all three sub-modules (stream, seek, and concurrent).
 pub(crate) enum CompressionReader<R: AsyncRead + Unpin> {
     Stored(Take<R>),
-    Deflate(DeflateDecoder<BufReader<Take<R>>>),
-    Bz(BzDecoder<BufReader<Take<R>>>),
-    Lzma(LzmaDecoder<BufReader<Take<R>>>),
-    Zstd(ZstdDecoder<BufReader<Take<R>>>),
-    Xz(XzDecoder<BufReader<Take<R>>>),
+    #[cfg(feature = "deflate")]
+    Deflate(bufread::DeflateDecoder<BufReader<Take<R>>>),
+    #[cfg(feature = "bzip2")]
+    Bz(bufread::BzDecoder<BufReader<Take<R>>>),
+    #[cfg(feature = "lzma")]
+    Lzma(bufread::LzmaDecoder<BufReader<Take<R>>>),
+    #[cfg(feature = "zstd")]
+    Zstd(bufread::ZstdDecoder<BufReader<Take<R>>>),
+    #[cfg(feature = "xz")]
+    Xz(bufread::XzDecoder<BufReader<Take<R>>>),
 }
 
 impl<R: AsyncRead + Unpin> CompressionReader<R> {
     pub(crate) fn get_mut(&mut self) -> &mut R {
         match self {
             CompressionReader::Stored(inner) => inner.get_mut(),
+            #[cfg(feature = "deflate")]
             CompressionReader::Deflate(inner) => inner.get_mut().get_mut().get_mut(),
+            #[cfg(feature = "bzip2")]
             CompressionReader::Bz(inner) => inner.get_mut().get_mut().get_mut(),
+            #[cfg(feature = "lzma")]
             CompressionReader::Lzma(inner) => inner.get_mut().get_mut().get_mut(),
+            #[cfg(feature = "zstd")]
             CompressionReader::Zstd(inner) => inner.get_mut().get_mut().get_mut(),
+            #[cfg(feature = "xz")]
             CompressionReader::Xz(inner) => inner.get_mut().get_mut().get_mut(),
         }
-    } 
+    }
 }
 
 impl<R: AsyncRead + Unpin> AsyncRead for CompressionReader<R> {
     fn poll_read(mut self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
         match *self {
             CompressionReader::Stored(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            #[cfg(feature = "deflate")]
             CompressionReader::Deflate(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            #[cfg(feature = "bzip2")]
             CompressionReader::Bz(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            #[cfg(feature = "lzma")]
             CompressionReader::Lzma(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            #[cfg(feature = "zstd")]
             CompressionReader::Zstd(ref mut inner) => Pin::new(inner).poll_read(c, b),
+            #[cfg(feature = "xz")]
             CompressionReader::Xz(ref mut inner) => Pin::new(inner).poll_read(c, b),
         }
     }
@@ -322,11 +342,16 @@ impl<'a, R: AsyncRead + Unpin> CompressionReader<R> {
     pub(crate) fn from_reader(compression: &Compression, reader: Take<R>) -> Self {
         match compression {
             Compression::Stored => CompressionReader::Stored(reader),
-            Compression::Deflate => CompressionReader::Deflate(DeflateDecoder::new(BufReader::new(reader))),
-            Compression::Bz => CompressionReader::Bz(BzDecoder::new(BufReader::new(reader))),
-            Compression::Lzma => CompressionReader::Lzma(LzmaDecoder::new(BufReader::new(reader))),
-            Compression::Zstd => CompressionReader::Zstd(ZstdDecoder::new(BufReader::new(reader))),
-            Compression::Xz => CompressionReader::Xz(XzDecoder::new(BufReader::new(reader))),
+            #[cfg(feature = "deflate")]
+            Compression::Deflate => CompressionReader::Deflate(bufread::DeflateDecoder::new(BufReader::new(reader))),
+            #[cfg(feature = "bzip2")]
+            Compression::Bz => CompressionReader::Bz(bufread::BzDecoder::new(BufReader::new(reader))),
+            #[cfg(feature = "lzma")]
+            Compression::Lzma => CompressionReader::Lzma(bufread::LzmaDecoder::new(BufReader::new(reader))),
+            #[cfg(feature = "zstd")]
+            Compression::Zstd => CompressionReader::Zstd(bufread::ZstdDecoder::new(BufReader::new(reader))),
+            #[cfg(feature = "xz")]
+            Compression::Xz => CompressionReader::Xz(bufread::XzDecoder::new(BufReader::new(reader))),
         }
     }
 }

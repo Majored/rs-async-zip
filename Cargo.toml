@@ -12,10 +12,18 @@ homepage = "https://github.com/Majored/rs-async-zip"
 keywords = ["async", "zip", "archive", "tokio"]
 categories = ["asynchronous", "compression"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = ["deflate", "bzip2", "lzma", "zstd", "xz"]
+
+deflate = ["async-compression/deflate"]
+bzip2 = ["async-compression/bzip2"]
+lzma = ["async-compression/lzma"]
+zstd = ["async-compression/zstd"]
+xz = ["async-compression/xz"]
 
 [dependencies]
-async-compression = { version = "0.3.14", features = ["tokio", "deflate", "bzip2", "lzma", "zstd", "xz"]}
+async-compression = { version = "0.3.14", default-features = false, features = ["tokio"] }
 async_io_utilities = { git = "https://github.com/Majored/rs-async-io-utilities" }
 tokio = { version = "1.19.2", features = ["io-util", "fs"] }
 chrono = "0.4.19"
@@ -24,4 +32,3 @@ thiserror = "1.0.31"
 
 [dev-dependencies]
 tokio = { version = "1.19.2", features = ["full"] }
-async-compression = { version = "0.3.14", features = ["all"]}
