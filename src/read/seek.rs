@@ -26,14 +26,14 @@
 //! ```
 
 use crate::error::{Result, ZipError};
-use crate::read::{CompressionReader, ZipEntry, ZipEntryReader, OwnedReader, PrependReader};
+use crate::read::{CompressionReader, OwnedReader, PrependReader, ZipEntry, ZipEntryReader};
 use crate::spec::compression::Compression;
 use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader, LocalFileHeader};
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt};
 
-use std::io::SeekFrom;
 use async_io_utilities::AsyncDelimiterReader;
+use std::io::SeekFrom;
 
 /// A reader which acts over a seekable source.
 pub struct ZipFileReader<R: AsyncRead + AsyncSeek + Unpin> {
@@ -80,8 +80,10 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
     }
 }
 
-pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(reader: &mut R) -> Result<(Vec<ZipEntry>, Option<String>)> {
-    const MAX_ENDING_LENGTH: u64 = (u16::MAX - 2) as u64;
+pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(
+    reader: &mut R,
+) -> Result<(Vec<ZipEntry>, Option<String>)> {
+    const MAX_ENDING_LENGTH: u64 = u16::MAX as u64 + 22;
 
     let length = reader.seek(SeekFrom::End(0)).await?;
     let seek_to = length.saturating_sub(MAX_ENDING_LENGTH);
