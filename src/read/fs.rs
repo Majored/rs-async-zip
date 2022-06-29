@@ -25,28 +25,29 @@
 
 use super::CompressionReader;
 use crate::error::{Result, ZipError};
-use crate::read::{ZipEntry, ZipEntryReader, OwnedReader, PrependReader};
+use crate::read::{OwnedReader, PrependReader, ZipEntry, ZipEntryReader};
 use crate::spec::header::LocalFileHeader;
 
+use async_io_utilities::AsyncDelimiterReader;
 use std::io::SeekFrom;
+use std::path::{Path, PathBuf};
 use tokio::fs::File;
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
-use async_io_utilities::AsyncDelimiterReader;
 
 /// A reader which acts concurrently over a filesystem file.
 pub struct ZipFileReader {
-    pub(crate) filename: String,
+    pub(crate) filename: PathBuf,
     pub(crate) entries: Vec<ZipEntry>,
     pub(crate) comment: Option<String>,
 }
 
 impl ZipFileReader {
     /// Constructs a new ZIP file reader from a filename.
-    pub async fn new(filename: String) -> Result<ZipFileReader> {
+    pub async fn new<P: AsRef<Path>>(filename: P) -> Result<ZipFileReader> {
         let mut fs_file = File::open(&filename).await?;
         let (entries, comment) = crate::read::seek::read_cd(&mut fs_file).await?;
 
-        Ok(ZipFileReader { filename, entries, comment })
+        Ok(ZipFileReader { filename: filename.as_ref().to_path_buf(), entries, comment })
     }
 
     crate::read::reader_entry_impl!();
@@ -75,7 +76,7 @@ impl ZipFileReader {
             let reader = PrependReader::Normal(reader);
             let reader = reader.take(entry.compressed_size.unwrap().into());
             let reader = CompressionReader::from_reader(entry.compression(), reader);
-    
+
             Ok(ZipEntryReader::from_raw(entry, reader, false))
         }
     }

@@ -18,9 +18,9 @@ pub fn zip_date_to_chrono(date: u16, time: u16) -> DateTime<Utc> {
     match Utc.ymd_opt(years, months, days) {
         chrono::LocalResult::Single(t) => match t.and_hms_opt(hours, mins, secs) {
             Some(dt) => dt,
-            None => chrono::MIN_DATETIME
+            None => chrono::MIN_DATETIME,
         },
-        _ => chrono::MIN_DATETIME
+        _ => chrono::MIN_DATETIME,
     }
 }
 

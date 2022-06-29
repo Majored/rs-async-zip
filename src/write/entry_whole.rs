@@ -6,9 +6,11 @@ use crate::spec::compression::Compression;
 use crate::spec::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
 use crate::write::{CentralDirectoryEntry, EntryOptions, ZipFileWriter};
 
+#[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use std::io::Cursor;
 
-use async_compression::tokio::write::{BzEncoder, DeflateEncoder, LzmaEncoder, XzEncoder, ZstdEncoder};
+#[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
+use async_compression::tokio::write;
 use chrono::Utc;
 use crc32fast::Hasher;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
@@ -28,6 +30,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
         let mut _compressed_data: Option<Vec<u8>> = None;
         let compressed_data = match &self.opts.compression {
             Compression::Stored => self.data,
+            #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
             _ => {
                 _compressed_data = Some(compress(&self.opts.compression, self.data).await);
                 _compressed_data.as_ref().unwrap()
@@ -46,7 +49,11 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             mod_time,
             mod_date,
             version: crate::spec::version::as_needed_to_extract(&self.opts),
-            flags: GeneralPurposeFlag { data_descriptor: false, encrypted: false, filename_unicode: !self.opts.filename.is_ascii() },
+            flags: GeneralPurposeFlag {
+                data_descriptor: false,
+                encrypted: false,
+                filename_unicode: !self.opts.filename.is_ascii(),
+            },
         };
 
         let header = CentralDirectoryHeader {
@@ -80,36 +87,42 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
     }
 }
 
+#[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 async fn compress(compression: &Compression, data: &[u8]) -> Vec<u8> {
     // TODO: Reduce reallocations of Vec by making a lower-bound estimate of the length reduction and
     // pre-initialising the Vec to that length. Then truncate() to the actual number of bytes written.
     match compression {
+        #[cfg(feature = "deflate")]
         Compression::Deflate => {
-            let mut writer = DeflateEncoder::new(Cursor::new(Vec::new()));
+            let mut writer = write::DeflateEncoder::new(Cursor::new(Vec::new()));
             writer.write_all(data).await.unwrap();
             writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()
         }
+        #[cfg(feature = "bzip2")]
         Compression::Bz => {
-            let mut writer = BzEncoder::new(Cursor::new(Vec::new()));
+            let mut writer = write::BzEncoder::new(Cursor::new(Vec::new()));
             writer.write_all(data).await.unwrap();
             writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()
         }
+        #[cfg(feature = "lzma")]
         Compression::Lzma => {
-            let mut writer = LzmaEncoder::new(Cursor::new(Vec::new()));
+            let mut writer = write::LzmaEncoder::new(Cursor::new(Vec::new()));
             writer.write_all(data).await.unwrap();
             writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()
         }
+        #[cfg(feature = "xz")]
         Compression::Xz => {
-            let mut writer = XzEncoder::new(Cursor::new(Vec::new()));
+            let mut writer = write::XzEncoder::new(Cursor::new(Vec::new()));
             writer.write_all(data).await.unwrap();
             writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()
         }
+        #[cfg(feature = "zstd")]
         Compression::Zstd => {
-            let mut writer = ZstdEncoder::new(Cursor::new(Vec::new()));
+            let mut writer = write::ZstdEncoder::new(Cursor::new(Vec::new()));
             writer.write_all(data).await.unwrap();
             writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()

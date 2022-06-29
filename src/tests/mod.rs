@@ -75,6 +75,7 @@ async fn single_entry_no_data() {
     assert_eq!(Compression::Stored, *zip_reader.entry("foo.bar").unwrap().1.compression());
 }
 
+#[cfg(feature = "deflate")]
 #[tokio::test]
 async fn data_descriptor_single() {
     use crate::read::seek::ZipFileReader;
@@ -111,6 +112,7 @@ async fn data_descriptor_single() {
     assert_eq!(data, buffer);
 }
 
+#[cfg(feature = "deflate")]
 #[tokio::test]
 async fn data_descriptor_double_stream() {
     use crate::read::stream::ZipFileReader;
@@ -154,7 +156,7 @@ async fn data_descriptor_double_stream() {
     assert_eq!(data, buffer);
 
     assert!(!zip_reader.finished());
-    
+
     let entry_reader = zip_reader.entry_reader().await.expect("failed to open entry reader");
     assert!(entry_reader.is_none());
     assert!(zip_reader.finished());
@@ -196,8 +198,13 @@ macro_rules! single_entry_gen {
 }
 
 single_entry_gen!(single_entry_stored, Compression::Stored);
+#[cfg(feature = "deflate")]
 single_entry_gen!(single_entry_deflate, Compression::Deflate);
+#[cfg(feature = "bzip2")]
 single_entry_gen!(single_entry_bz, Compression::Bz);
+#[cfg(feature = "lzma")]
 single_entry_gen!(single_entry_lzma, Compression::Lzma);
+#[cfg(feature = "zstd")]
 single_entry_gen!(single_entry_zstd, Compression::Zstd);
+#[cfg(feature = "xz")]
 single_entry_gen!(single_entry_xz, Compression::Xz);

@@ -15,7 +15,7 @@
 //! Feel free to open an issue/PR if you have a good approach for this.
 
 use crate::error::{Result, ZipError};
-use crate::read::{CompressionReader, ZipEntry, ZipEntryReader, OwnedReader, PrependReader};
+use crate::read::{CompressionReader, OwnedReader, PrependReader, ZipEntry, ZipEntryReader};
 use crate::spec::header::LocalFileHeader;
 
 use std::io::SeekFrom;
@@ -24,8 +24,8 @@ use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, ReadBuf};
 use async_io_utilities::AsyncDelimiterReader;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, ReadBuf};
 
 /// A reader which acts concurrently over an in-memory buffer.
 pub struct ZipFileReader<R: AsyncRead + AsyncSeek + Unpin> {
@@ -70,7 +70,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
             let reader = PrependReader::Normal(reader);
             let reader = reader.take(entry.compressed_size.unwrap().into());
             let reader = CompressionReader::from_reader(entry.compression(), reader);
-    
+
             Ok(ZipEntryReader::from_raw(entry, reader, false))
         }
     }

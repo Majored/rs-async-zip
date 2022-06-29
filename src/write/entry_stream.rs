@@ -11,10 +11,10 @@ use std::io::Error;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+use async_io_utilities::AsyncOffsetWriter;
 use chrono::Utc;
 use crc32fast::Hasher;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
-use async_io_utilities::AsyncOffsetWriter;
 
 /// An entry writer which supports the streaming of data (ie. the writing of unknown size or data at runtime).
 ///
@@ -42,8 +42,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         let data_offset = writer.writer.offset();
 
         let cd_entries = &mut writer.cd_entries;
-        let writer =
-            AsyncOffsetWriter::new(CompressedAsyncWriter::from_raw(&mut writer.writer, options.compression));
+        let writer = AsyncOffsetWriter::new(CompressedAsyncWriter::from_raw(&mut writer.writer, options.compression));
 
         Ok(EntryStreamWriter { writer, cd_entries, options, lfh, lfh_offset, data_offset, hasher: Hasher::new() })
     }
@@ -61,7 +60,11 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             mod_time,
             mod_date,
             version: crate::spec::version::as_needed_to_extract(options),
-            flags: GeneralPurposeFlag { data_descriptor: true, encrypted: false, filename_unicode: !options.filename.is_ascii() },
+            flags: GeneralPurposeFlag {
+                data_descriptor: true,
+                encrypted: false,
+                filename_unicode: !options.filename.is_ascii(),
+            },
         };
 
         writer.writer.write_all(&crate::spec::signature::LOCAL_FILE_HEADER.to_le_bytes()).await?;

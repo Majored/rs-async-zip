@@ -4,13 +4,13 @@
 //! A module for reading ZIP file entries concurrently from an in-memory buffer.
 
 use crate::error::{Result, ZipError};
-use crate::read::{CompressionReader, ZipEntry, ZipEntryReader, OwnedReader, PrependReader};
+use crate::read::{CompressionReader, OwnedReader, PrependReader, ZipEntry, ZipEntryReader};
 use crate::spec::header::LocalFileHeader;
 
 use std::io::{Cursor, SeekFrom};
 
-use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use async_io_utilities::AsyncDelimiterReader;
+use tokio::io::{AsyncReadExt, AsyncSeekExt};
 
 /// The type returned as an entry reader within this concurrent module.
 pub type ConcurrentReader<'b, 'a> = ZipEntryReader<'b, Cursor<&'a [u8]>>;
@@ -55,7 +55,7 @@ impl<'a> ZipFileReader<'a> {
             let reader = PrependReader::Normal(reader);
             let reader = reader.take(entry.compressed_size.unwrap().into());
             let reader = CompressionReader::from_reader(entry.compression(), reader);
-    
+
             Ok(ZipEntryReader::from_raw(entry, reader, false))
         }
     }
