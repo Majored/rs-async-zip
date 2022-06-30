@@ -112,7 +112,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             flags: self.lfh.flags,
             disk_start: 0,
             inter_attr: 0,
-            exter_attr: 0,
+            exter_attr: self.options.unix_permissions << 16,
             lh_offset: self.lfh_offset as u32,
         };
 
