@@ -1,7 +1,7 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-//! A module for reading ZIP file from a seekable source.
+//! A module for reading ZIP files from a seekable source.
 //!
 //! # Example
 //! ```no_run
@@ -43,7 +43,7 @@ pub struct ZipFileReader<R: AsyncRead + AsyncSeek + Unpin> {
 }
 
 impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
-    /// Constructs a new ZIP file reader from a mutable reference to a reader.
+    /// Constructs a new ZIP file reader from a reader which implements [`AsyncRead`] and [`AsyncSeek`].
     pub async fn new(mut reader: R) -> Result<ZipFileReader<R>> {
         let (entries, comment) = read_cd(&mut reader).await?;
         Ok(ZipFileReader { reader, entries, comment })
@@ -95,6 +95,10 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(
     let delimiter = crate::spec::signature::END_OF_CENTRAL_DIRECTORY.to_le_bytes();
     let mut reader = AsyncDelimiterReader::new(reader, &delimiter);
 
+    // We need to find the last EOCDH as there's a possibility that an inner ZIP file exists with the Stored
+    // compression method, so matching that would be undesirable. For the moment, we match all EOCDHs
+    // sequentially and store the latest's offest.
+    // TODO: Seeking in reverse may be a better a approach for this - needs some testing.
     'outer: loop {
         'inner: loop {
             let mut buffer = [0; async_io_utilities::SUGGESTED_BUFFER_SIZE];
