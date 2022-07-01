@@ -98,7 +98,7 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(
     'outer: loop {
         'inner: loop {
             let mut buffer = [0; async_io_utilities::SUGGESTED_BUFFER_SIZE];
-            if reader.read_exact(&mut buffer).await? == 0 {
+            if reader.read(&mut buffer).await? == 0 {
                 break 'inner;
             }
         }
