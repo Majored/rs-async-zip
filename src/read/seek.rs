@@ -90,22 +90,33 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(
 
     reader.seek(SeekFrom::Start(seek_to)).await?;
 
+    let mut matched_offset: Option<u64> = None;
     let mut comment = None;
     let delimiter = crate::spec::signature::END_OF_CENTRAL_DIRECTORY.to_le_bytes();
     let mut reader = AsyncDelimiterReader::new(reader, &delimiter);
 
-    loop {
-        let mut buffer = [0; async_io_utilities::SUGGESTED_BUFFER_SIZE];
-        if reader.read(&mut buffer).await? == 0 {
-            break;
+    'outer: loop {
+        'inner: loop {
+            let mut buffer = [0; async_io_utilities::SUGGESTED_BUFFER_SIZE];
+            if reader.read_exact(&mut buffer).await? == 0 {
+                break 'inner;
+            }
         }
+
+        if reader.matched() {
+            let inner_offset = reader.get_mut().seek(SeekFrom::Current(0)).await?;
+            matched_offset = Some(inner_offset - reader.buffer().len() as u64);
+        } else if matched_offset.is_some() {
+            break 'outer;
+        } else {
+            return Err(ZipError::UnexpectedHeaderError(0, crate::spec::signature::END_OF_CENTRAL_DIRECTORY));
+        }
+
+        reader.reset();
     }
 
-    if !reader.matched() {
-        return Err(ZipError::UnexpectedHeaderError(0, crate::spec::signature::END_OF_CENTRAL_DIRECTORY));
-    }
-
-    reader.reset();
+    let mut reader = reader.into_inner();
+    reader.seek(SeekFrom::Start(matched_offset.unwrap())).await?;
     let eocdh = EndOfCentralDirectoryHeader::from_reader(&mut reader).await?;
 
     // Outdated feature so unlikely to ever make it into this crate.
@@ -117,7 +128,6 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(
         comment = Some(async_io_utilities::read_string(&mut reader, eocdh.file_comm_length as usize).await?);
     }
 
-    let reader = reader.into_inner();
     reader.seek(SeekFrom::Start(eocdh.cent_dir_offset.into())).await?;
     let mut entries = Vec::with_capacity(eocdh.num_of_entries.into());
 
