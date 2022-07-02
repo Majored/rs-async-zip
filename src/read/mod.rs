@@ -11,6 +11,7 @@ pub mod sync;
 
 use crate::error::{Result, ZipError};
 use crate::spec::compression::Compression;
+use std::borrow::BorrowMut;
 
 use std::convert::TryInto;
 use std::pin::Pin;
@@ -143,14 +144,43 @@ pub struct ZipEntryReader<'a, R: AsyncRead + Unpin> {
     pub(crate) reader: LocalReader<'a, R>,
     pub(crate) hasher: Hasher,
     pub(crate) consumed: bool,
+    pub(crate) state: State,
     pub(crate) data_descriptor: Option<(u32, u32, u32)>,
+}
+
+/// The state of the ZIP entry reader.
+///
+/// The state is expected to go from [`State::ReadData`] to [`State::ReadDescriptor`] and
+/// to [`State::PrepareNext`] then back to [`State::ReadData`] **at most** once.
+/// It is allowed to never leave the [`State::ReadData`] state, but not allowed to advance
+/// its state more than one time, unless the [`ZipEntryReader::poll_data_descriptor`]
+/// is adapted to support this.
+///
+/// This enum is needed to support the [`ZipEntryReader::poll_data_descriptor`] method,
+/// `poll*` can be called multiple times and needs a State Machine to behave as intended.
+#[derive(Default, Clone, Copy)]
+pub(crate) enum State {
+    #[default]
+    ReadData,
+    // We could hold a ReadBuf here, but it also means that we would need to deal with lifetimes
+    // and early allocation of the buffer (or unsafe code to initialize it only when needed).
+    // Instead, we hold the buffer array and the its actually filled portion.
+    ReadDescriptor([u8; 12], usize),
+    PrepareNext([u8; 12]),
 }
 
 impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     /// Construct an entry reader from its raw parts (a shared reference to the entry and an inner reader).
     pub(crate) fn from_raw(entry: &'a ZipEntry, reader: CompressionReader<PrependReader<'a, R>>, _: bool) -> Self {
         let reader = LocalReader::Standard(reader);
-        ZipEntryReader { entry, reader, hasher: Hasher::new(), consumed: false, data_descriptor: None }
+        ZipEntryReader {
+            entry,
+            reader,
+            hasher: Hasher::new(),
+            consumed: false,
+            state: Default::default(),
+            data_descriptor: None,
+        }
     }
 
     /// Construct an entry reader from its raw parts (a shared reference to the entry and an inner reader).
@@ -160,7 +190,14 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         _: bool,
     ) -> Self {
         let reader = LocalReader::Stream(reader);
-        ZipEntryReader { entry, reader, hasher: Hasher::new(), consumed: false, data_descriptor: None }
+        ZipEntryReader {
+            entry,
+            reader,
+            hasher: Hasher::new(),
+            consumed: false,
+            state: Default::default(),
+            data_descriptor: None,
+        }
     }
 
     /// Returns a reference to the inner entry's data.
@@ -178,36 +215,147 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         let hasher = std::mem::take(&mut self.hasher);
         let final_crc = hasher.finalize();
 
+        // Note: I've seem this function panic because the data descriptor was not being
+        // read when using the regular `poll_read` API.
+        // Maybe, we can change `compare_crc` to return a `Result` instead of panicking,
+        // and fail if we don't have a data descriptor in the Zip file.
+        // We always expect the input to correctly implement the specification and follow
+        // the common standards, however, it's not guaranteed that we will find the data
+        // descriptor, so we should return an error if we don't find it and try to check the CRC.
         if self.entry().data_descriptor() {
-            self.data_descriptor.unwrap().0 == final_crc
+            self.data_descriptor.expect("Data descriptor was not read").0 == final_crc
         } else {
-            self.entry().crc32().unwrap() == final_crc
+            self.entry().crc32().expect("Missing CRC32 in Local file header") == final_crc
         }
     }
 
-    pub(crate) async fn reset_reader(&mut self) -> Result<()> {
-        if let LocalReader::Stream(ref mut inner) = self.reader {
-            let inner_mut = inner.get_mut();
-            inner_mut.reset();
+    /// For Streams, CRC-32, compressed size and uncompressed size may not be known yet (for example,
+    /// if the data is being compressed and transferred at the same time).
+    ///
+    /// This method polls for the **Data Descriptor** values using a State Machine, sets
+    /// [`Self::data_descriptor`] and prepares the next entry to be read.
+    ///
+    /// Note that, this function may fail (with `Poll::Ready(Err(_))`) if the data descriptor is
+    /// not present in the entry since it tries to read the 12 bytes corresponding
+    /// to **Data descriptor** fields (without the signature).
+    ///
+    /// The caller must ensure that it only calls this function if the data descriptor is present
+    /// (see [`Self::poll_read`] implementation).
+    ///
+    /// ## Additional notes
+    ///
+    /// ### Absent Data Descriptor
+    /// The data descriptor is not always present in the entry even when the descriptor is not found
+    /// in the *Local file header*, but this function is not tolerant for this specific case. If we
+    /// plan to skip the descriptor, we should also consider making [`Self::compare_crc`] return `Result`
+    /// instead of panicking.
+    ///
+    /// ### Zip64
+    ///
+    /// Zip64 uses 8 bytes for compressed and uncompressed size instead of 4 bytes, but we are
+    /// using `u32` for those values. To fully support Zip64, we need to change them to `8 bytes`
+    /// and use a buffer size of 20 bytes.
+    ///
+    /// However, it does not mean that we **must** change [`State::ReadDescriptor`] and [`State::PrepareNext`]
+    /// to use a slice (`&[u8]`) instead of a fixed-size array, we can just increase the buffer size to 20 bytes,
+    /// and only fill/read the relevant portion of it (12 bytes for Zip32 and 20 bytes for Zip64).
+    ///
+    /// The performance gains of keeping a fixed-size array instead of a slice
+    /// are negligible (if they exists at all), but for ergonomics, it differs a lot.
+    /// Slices can only be held behind references and it would come with some difficulties.
+    pub(crate) fn poll_data_descriptor(mut self: Pin<&mut Self>, c: &mut Context<'_>) -> Poll<tokio::io::Result<()>> {
+        let state = self.state;
 
-            let crc = inner_mut.read_u32_le().await?;
-            let compressed = inner_mut.read_u32_le().await?;
-            let uncompressed = inner_mut.read_u32_le().await?;
-
-            self.data_descriptor = Some((crc, compressed, uncompressed));
-
-            let mut buffer = Vec::new();
-            buffer.extend_from_slice(inner_mut.buffer());
-
-            if let PrependReader::Prepend(inner) = inner_mut.get_mut() {
-                match inner {
-                    OwnedReader::Owned(inner) => inner.prepend(&buffer),
-                    OwnedReader::Borrow(inner) => inner.prepend(&buffer),
-                };
+        if let LocalReader::Stream(ref mut inner) = self.borrow_mut().reader {
+            if matches!(state, State::ReadData) {
+                return Poll::Ready(Ok(()));
             }
+
+            let inner_mut = inner.get_mut();
+
+            // Although tokio provides `read_u32_le` and the `read_exact` helpers, they are helpers
+            // only for `async` functions, we need to implement our own version of them.
+            // The code below is not the best egornomic and reusable solution for this, but
+            // the ideal implementation would be a little trickier, because we need to `Pin` the `inner`
+            // reader and we can't do this while `ZipEntryReader` is owning the value.
+            // There may be a way to do this without significantly changing the ergonomics of the API,
+            // but I was not able to think about one at the moment. And, the code below is enough
+            // to solve the problem.
+            let state = if let State::ReadDescriptor(mut descriptor_buf, filled) = state {
+                inner_mut.reset();
+
+                let mut buf = ReadBuf::new(&mut descriptor_buf);
+                buf.set_filled(filled);
+                loop {
+                    let rem = buf.remaining();
+                    if rem != 0 {
+                        let poll = Pin::new(&mut *inner_mut).poll_read(c, &mut buf);
+                        match poll {
+                            Poll::Ready(Ok(())) => {
+                                if buf.remaining() == rem {
+                                    return Poll::Ready(Err(std::io::Error::new(
+                                        std::io::ErrorKind::UnexpectedEof,
+                                        "early eof while reading data descriptor",
+                                    )));
+                                }
+                            }
+                            Poll::Pending => {
+                                // Update the descriptor buffer. Beware that `State` implements Copy,
+                                // and we own the `descriptor_buf`, which means that we are modifying a
+                                // copy of it, not the original array, so we really need to manually
+                                // update the state descriptor buffer array.
+                                let filled = buf.filled().len();
+                                self.state = State::ReadDescriptor(descriptor_buf, filled);
+                                return Poll::Pending;
+                            }
+                            _ => return poll,
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                // Note, we cannot set `self.data_descriptor` here, even thought we already know that
+                // we've read all the necessary bytes, because `inner` still borrowed, and this prevents
+                // us from borrowing `self` mutably a second time.
+                // A workaround would be to delimit borrowing scopes, but it looked very messy and
+                // harder to follow.
+
+                State::PrepareNext(descriptor_buf)
+            } else {
+                state
+            };
+
+            let state = if let State::PrepareNext(descriptor_buf) = state {
+                let crc = u32::from_le_bytes(descriptor_buf[0..4].try_into().unwrap());
+                let compressed = u32::from_le_bytes(descriptor_buf[4..8].try_into().unwrap());
+                let uncompressed = u32::from_le_bytes(descriptor_buf[8..12].try_into().unwrap());
+
+                let mut buffer = Vec::new();
+                buffer.extend_from_slice(inner_mut.buffer());
+
+                if let PrependReader::Prepend(inner) = inner_mut.get_mut() {
+                    match inner {
+                        OwnedReader::Owned(inner) => inner.prepend(&buffer),
+                        OwnedReader::Borrow(inner) => inner.prepend(&buffer),
+                    };
+                }
+
+                // Here it's allowed to borrow self mutably again, because we don't need to keep
+                // `inner` borrowed anymore.
+                self.data_descriptor = Some((crc, compressed, uncompressed));
+
+                // Here we set back the state as the data, as long as our `poll_read` ensures
+                // to not try to read the descriptor again, it's safe to do.
+                State::ReadData
+            } else {
+                state
+            };
+
+            self.state = state;
         }
 
-        Ok(())
+        Poll::Ready(Ok(()))
     }
 
     /// A convenience method similar to `AsyncReadExt::read_to_end()` but with the final CRC32 check integrated.
@@ -216,8 +364,6 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     pub async fn read_to_end_crc(mut self) -> Result<Vec<u8>> {
         let mut buffer = Vec::with_capacity(self.entry.uncompressed_size.unwrap().try_into().unwrap());
         self.read_to_end(&mut buffer).await?;
-
-        self.reset_reader().await?;
 
         if self.compare_crc() {
             Ok(buffer)
@@ -232,8 +378,6 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     pub async fn read_to_string_crc(mut self) -> Result<String> {
         let mut buffer = String::with_capacity(self.entry.uncompressed_size.unwrap().try_into().unwrap());
         self.read_to_string(&mut buffer).await?;
-
-        self.reset_reader().await?;
 
         if self.compare_crc() {
             Ok(buffer)
@@ -255,8 +399,6 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         let mut reader = BufReader::with_capacity(buffer, &mut self);
         tokio::io::copy_buf(&mut reader, writer).await.unwrap();
 
-        self.reset_reader().await?;
-
         if self.compare_crc() {
             Ok(())
         } else {
@@ -267,20 +409,40 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
 
 impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
     fn poll_read(mut self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
-        let prev_len = b.filled().len();
-        let poll = Pin::new(&mut self.reader).poll_read(c, b);
+        return match self.state {
+            State::ReadData => {
+                let prev_len = b.filled().len();
+                let poll = Pin::new(&mut self.reader).poll_read(c, b);
 
-        match poll {
-            Poll::Ready(Err(_)) | Poll::Pending => return poll,
-            _ => {}
+                match poll {
+                    Poll::Ready(Err(_)) | Poll::Pending => return poll,
+                    _ => {}
+                };
+
+                if b.filled().len() - prev_len == 0 {
+                    self.consumed = true;
+
+                    // Only calls poll_data_descriptor if the descriptor has not been set yet.
+                    // Failing to do so, will cause the `poll_read` to fail even thought
+                    // it correctly decompressed the entry data and filled the `ReadBuf`.
+                    // Also, we ensure that subsequent calls to `poll_read` after we've read
+                    // the data descriptor does not cause an attempt to read the data descriptor,
+                    // which would fail.
+                    if self.data_descriptor.is_none() {
+                        self.state = State::ReadDescriptor([0u8; 12], 0);
+
+                        self.poll_data_descriptor(c)
+                    } else {
+                        poll
+                    }
+                } else {
+                    self.hasher.update(&b.filled()[prev_len..b.filled().len()]);
+                    poll
+                }
+            }
+            // Any state other than ReadData means that descriptor is being read.
+            _ => self.poll_data_descriptor(c),
         };
-
-        if b.filled().len() - prev_len == 0 {
-            self.consumed = true;
-        }
-
-        self.hasher.update(&b.filled()[prev_len..b.filled().len()]);
-        poll
     }
 }
 
