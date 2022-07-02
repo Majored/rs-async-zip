@@ -163,7 +163,7 @@ pub(crate) enum State {
     #[default]
     ReadData,
     ReadDescriptor([u8; 12], usize),
-    PrepareNext([u8; 12]),
+    PrepareNext([u8; 12], usize),
 }
 
 impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
@@ -283,16 +283,14 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
                     }
                 }
 
-                State::PrepareNext(descriptor_buf)
+                let filled = buf.filled().len();
+
+                State::PrepareNext(descriptor_buf, filled)
             } else {
                 state
             };
 
-            let state = if let State::PrepareNext(descriptor_buf) = state {
-                let crc = u32::from_le_bytes(descriptor_buf[0..4].try_into().unwrap());
-                let compressed = u32::from_le_bytes(descriptor_buf[4..8].try_into().unwrap());
-                let uncompressed = u32::from_le_bytes(descriptor_buf[8..12].try_into().unwrap());
-
+            let state = if let State::PrepareNext(descriptor_buf, filled) = state {
                 let mut buffer = Vec::new();
                 buffer.extend_from_slice(inner_mut.buffer());
 
@@ -303,7 +301,14 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
                     };
                 }
 
-                self.data_descriptor = Some((crc, compressed, uncompressed));
+                if filled == 12 {
+                    let crc = u32::from_le_bytes(descriptor_buf[0..4].try_into().unwrap());
+                    let compressed = u32::from_le_bytes(descriptor_buf[4..8].try_into().unwrap());
+                    let uncompressed = u32::from_le_bytes(descriptor_buf[8..12].try_into().unwrap());
+
+                    self.data_descriptor = Some((crc, compressed, uncompressed));
+                }
+
                 State::ReadData
             } else {
                 state
@@ -377,10 +382,16 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
                 };
 
                 if b.filled().len() - prev_len == 0 {
+                    let was_consumed = self.consumed;
+
                     self.consumed = true;
 
                     if self.data_descriptor.is_none() {
                         self.state = State::ReadDescriptor([0u8; 12], 0);
+
+                        self.poll_data_descriptor(c)
+                    } else if !was_consumed {
+                        self.state = State::PrepareNext([0u8; 12], 0);
 
                         self.poll_data_descriptor(c)
                     } else {
