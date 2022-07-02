@@ -158,9 +158,8 @@ pub struct ZipEntryReader<'a, R: AsyncRead + Unpin> {
 ///
 /// This enum is needed to support the [`ZipEntryReader::poll_data_descriptor`] method,
 /// `poll*` can be called multiple times and needs a State Machine to behave as intended.
-#[derive(Default, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub(crate) enum State {
-    #[default]
     ReadData,
     ReadDescriptor([u8; 12], usize),
     PrepareNext([u8; 12], usize),
@@ -175,7 +174,7 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
             reader,
             hasher: Hasher::new(),
             consumed: false,
-            state: Default::default(),
+            state: State::ReadData,
             data_descriptor: None,
         }
     }
@@ -192,7 +191,7 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
             reader,
             hasher: Hasher::new(),
             consumed: false,
-            state: Default::default(),
+            state: State::ReadData,
             data_descriptor: None,
         }
     }
@@ -231,14 +230,6 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     ///
     /// The caller must ensure that it only calls this function if the data descriptor is present
     /// (see [`Self::poll_read`] implementation).
-    ///
-    /// ## Additional notes
-    ///
-    /// ### Absent Data Descriptor
-    /// The data descriptor is not always present in the entry even when the descriptor is not found
-    /// in the *Local file header*, but this function is not tolerant for this specific case. If we
-    /// plan to skip the descriptor, we should also consider making [`Self::compare_crc`] return `Result`
-    /// instead of panicking.
     pub(crate) fn poll_data_descriptor(mut self: Pin<&mut Self>, c: &mut Context<'_>) -> Poll<tokio::io::Result<()>> {
         let state = self.state;
 
