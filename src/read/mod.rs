@@ -126,6 +126,8 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for OwnedReader<'a, R> {
 
 pub(crate) enum LocalReader<'a, R: AsyncRead + Unpin> {
     Standard(CompressionReader<PrependReader<'a, R>>),
+    // TODO: This is not used anymore, we can safely remove.
+    #[allow(dead_code)]
     Stream(CompressionReader<AsyncDelimiterReader<PrependReader<'a, R>>>),
 }
 
@@ -179,24 +181,6 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         }
     }
 
-    /// Construct an entry reader from its raw parts (a shared reference to the entry and an inner reader).
-    #[deprecated]
-    pub(crate) fn with_data_descriptor(
-        entry: &'a ZipEntry,
-        reader: CompressionReader<AsyncDelimiterReader<PrependReader<'a, R>>>,
-        _: bool,
-    ) -> Self {
-        let reader = LocalReader::Stream(reader);
-        ZipEntryReader {
-            entry,
-            reader,
-            hasher: Hasher::new(),
-            consumed: false,
-            state: State::ReadData,
-            data_descriptor: None,
-        }
-    }
-
     /// Returns a reference to the inner entry's data.
     pub fn entry(&self) -> &ZipEntry {
         self.entry
@@ -239,8 +223,10 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
                 return Poll::Ready(Ok(()));
             }
 
-            let inner_mut = inner.get_buf_mut();
+            let inner_mut = inner.get_mut();
 
+            // TODO: we can do an early check by having a secondary buffer to hold the 4 bytes of the
+            // TODO: descriptor, instead of storing inside the descriptor data buffer.
             let state = if let State::ReadDescriptor(mut descriptor_buf, filled) = state {
                 let mut buf = ReadBuf::new(&mut descriptor_buf);
                 buf.set_filled(filled);
@@ -251,6 +237,8 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
                         match poll {
                             Poll::Ready(Ok(())) => {
                                 if buf.remaining() == rem {
+                                    // TODO: Instead of failing, we can change the state to State::PrepareNext
+                                    // TODO: and prepend the filled bytes to the reader.
                                     return Poll::Ready(Err(std::io::Error::new(
                                         std::io::ErrorKind::UnexpectedEof,
                                         "early eof while reading data descriptor",
@@ -292,14 +280,19 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
                     if delimiter == crate::spec::signature::DATA_DESCRIPTOR {
                         Some((crc, compressed, uncompressed))
                     } else {
+                        // Now we are tolerant, but the previous state must be as well
+                        // TODO: dedup
                         buffer.extend_from_slice(&descriptor_buf[..filled]);
                         None
                     }
                 } else {
+                    // Now we are tolerant, but the previous state must be as well
+                    // TODO: dedup
                     buffer.extend_from_slice(&descriptor_buf[..filled]);
                     None
                 };
 
+                // We take the data read by BufReader and prepend it to the inner reader.
                 buffer.extend_from_slice(inner_mut.buffer());
 
                 if let PrependReader::Prepend(inner) = inner_mut.get_mut() {
@@ -432,6 +425,8 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
 ///
 /// [`tokio::bufread::generic::decoder`](https://github.com/Nemo157/async-compression/blob/ada65c660bcea83dc6a0c3d6149e5fbcd039f739/src/tokio/bufread/generic/decoder.rs#L81)
 pub(crate) enum CompressionReader<R: AsyncRead + Unpin> {
+    /// Note: Now we are taking a [`BufReader`] so [`CompressionReader::get_mut`] works for this scenario
+    /// instead of panicking, like my previous implementation.
     Stored(Take<BufReader<R>>),
     #[cfg(feature = "deflate")]
     Deflate(bufread::DeflateDecoder<BufReader<R>>),
@@ -446,23 +441,7 @@ pub(crate) enum CompressionReader<R: AsyncRead + Unpin> {
 }
 
 impl<R: AsyncRead + Unpin> CompressionReader<R> {
-    pub(crate) fn get_mut(&mut self) -> &mut R {
-        match self {
-            CompressionReader::Stored(inner) => inner.get_mut().get_mut(),
-            #[cfg(feature = "deflate")]
-            CompressionReader::Deflate(inner) => inner.get_mut().get_mut(),
-            #[cfg(feature = "bzip2")]
-            CompressionReader::Bz(inner) => inner.get_mut().get_mut(),
-            #[cfg(feature = "lzma")]
-            CompressionReader::Lzma(inner) => inner.get_mut().get_mut(),
-            #[cfg(feature = "zstd")]
-            CompressionReader::Zstd(inner) => inner.get_mut().get_mut(),
-            #[cfg(feature = "xz")]
-            CompressionReader::Xz(inner) => inner.get_mut().get_mut(),
-        }
-    }
-
-    pub(crate) fn get_buf_mut(&mut self) -> &mut BufReader<R> {
+    pub(crate) fn get_mut(&mut self) -> &mut BufReader<R> {
         match self {
             CompressionReader::Stored(inner) => inner.get_mut(), // TODO: handle
             #[cfg(feature = "deflate")]
@@ -498,25 +477,12 @@ impl<R: AsyncRead + Unpin> AsyncRead for CompressionReader<R> {
 }
 
 impl<'a, R: AsyncRead + Unpin> CompressionReader<R> {
-    pub(crate) fn from_reader(compression: &Compression, reader: R) -> Self {
+    pub(crate) fn from_reader(compression: &Compression, reader: R, take: Option<u64>) -> Self {
         match compression {
-            Compression::Stored => panic!(),
-            #[cfg(feature = "deflate")]
-            Compression::Deflate => CompressionReader::Deflate(bufread::DeflateDecoder::new(BufReader::new(reader))),
-            #[cfg(feature = "bzip2")]
-            Compression::Bz => CompressionReader::Bz(bufread::BzDecoder::new(BufReader::new(reader))),
-            #[cfg(feature = "lzma")]
-            Compression::Lzma => CompressionReader::Lzma(bufread::LzmaDecoder::new(BufReader::new(reader))),
-            #[cfg(feature = "zstd")]
-            Compression::Zstd => CompressionReader::Zstd(bufread::ZstdDecoder::new(BufReader::new(reader))),
-            #[cfg(feature = "xz")]
-            Compression::Xz => CompressionReader::Xz(bufread::XzDecoder::new(BufReader::new(reader))),
-        }
-    }
-
-    pub(crate) fn from_reader_take(compression: &Compression, reader: R, take: u64) -> Self {
-        match compression {
-            Compression::Stored => CompressionReader::Stored(BufReader::new(reader).take(take)),
+            // TODO: better way to deal with this. Stored MUST have a Take reader.
+            // TODO: We can have another enum for compression specification, that contains the amount of bytes to take.
+            // TODO: But I don't know if it's the best approach.
+            Compression::Stored => CompressionReader::Stored(BufReader::new(reader).take(take.unwrap())),
             #[cfg(feature = "deflate")]
             Compression::Deflate => CompressionReader::Deflate(bufread::DeflateDecoder::new(BufReader::new(reader))),
             #[cfg(feature = "bzip2")]

@@ -61,22 +61,11 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
         let data_offset = (header.file_name_length + header.extra_field_length) as i64;
         self.reader.seek(SeekFrom::Current(data_offset)).await?;
 
-        if entry.data_descriptor() {
-            let delimiter = crate::spec::signature::DATA_DESCRIPTOR.to_le_bytes();
-            let reader = OwnedReader::Borrow(&mut self.reader);
-            let reader = PrependReader::Normal(reader);
-            //let reader = AsyncDelimiterReader::new(reader, &delimiter);
-            let reader = CompressionReader::from_reader(entry.compression(), reader);
+        let reader = OwnedReader::Borrow(&mut self.reader);
+        let reader = PrependReader::Normal(reader);
+        let reader = CompressionReader::from_reader(entry.compression(), reader, entry.compressed_size.map(u32::into));
 
-            Ok(ZipEntryReader::from_raw(entry, reader, false))
-        } else {
-            let reader = OwnedReader::Borrow(&mut self.reader);
-            let reader = PrependReader::Normal(reader);
-            let reader =
-                CompressionReader::from_reader_take(entry.compression(), reader, entry.compressed_size.unwrap().into());
-
-            Ok(ZipEntryReader::from_raw(entry, reader, false))
-        }
+        Ok(ZipEntryReader::from_raw(entry, reader, entry.data_descriptor()))
     }
 }
 

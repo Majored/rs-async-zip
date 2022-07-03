@@ -12,7 +12,7 @@ use crate::read::{CompressionReader, OwnedReader, PrependReader, ZipEntry, ZipEn
 use crate::spec::compression::Compression;
 use crate::spec::header::LocalFileHeader;
 
-use async_io_utilities::{AsyncDelimiterReader, AsyncPrependReader};
+use async_io_utilities::AsyncPrependReader;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 /// A reader which acts over a non-seekable source.
@@ -49,24 +49,15 @@ impl<R: AsyncRead + Unpin> ZipFileReader<R> {
 
         let entry_borrow = self.entry.as_ref().unwrap();
 
-        if entry_borrow.data_descriptor() {
-            let delimiter = crate::spec::signature::DATA_DESCRIPTOR.to_le_bytes();
-            let reader = OwnedReader::Borrow(&mut self.reader);
-            let reader = PrependReader::Prepend(reader);
-            let reader = CompressionReader::from_reader(entry_borrow.compression(), reader);
+        let reader = OwnedReader::Borrow(&mut self.reader);
+        let reader = PrependReader::Prepend(reader);
+        let reader = CompressionReader::from_reader(
+            entry_borrow.compression(),
+            reader,
+            entry_borrow.compressed_size.map(u32::into),
+        );
 
-            Ok(Some(ZipEntryReader::from_raw(entry_borrow, reader, true)))
-        } else {
-            let reader = OwnedReader::Borrow(&mut self.reader);
-            let reader = PrependReader::Prepend(reader);
-            let reader = CompressionReader::from_reader_take(
-                entry_borrow.compression(),
-                reader,
-                entry_borrow.compressed_size.unwrap().into(),
-            );
-
-            Ok(Some(ZipEntryReader::from_raw(entry_borrow, reader, true)))
-        }
+        Ok(Some(ZipEntryReader::from_raw(entry_borrow, reader, entry_borrow.data_descriptor())))
     }
 }
 
