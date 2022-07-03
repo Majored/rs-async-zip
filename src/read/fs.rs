@@ -67,15 +67,16 @@ impl ZipFileReader {
             let delimiter = crate::spec::signature::DATA_DESCRIPTOR.to_le_bytes();
             let reader = OwnedReader::Owned(fs_file);
             let reader = PrependReader::Normal(reader);
-            let reader = AsyncDelimiterReader::new(reader, &delimiter);
-            let reader = CompressionReader::from_reader(entry.compression(), reader.take(u64::MAX));
+            //let reader = AsyncDelimiterReader::new(reader, &delimiter);
+            let reader = CompressionReader::from_reader(entry.compression(), reader);
 
-            Ok(ZipEntryReader::with_data_descriptor(entry, reader, true))
+            Ok(ZipEntryReader::from_raw(entry, reader, true))
         } else {
             let reader = OwnedReader::Owned(fs_file);
             let reader = PrependReader::Normal(reader);
-            let reader = reader.take(entry.compressed_size.unwrap().into());
-            let reader = CompressionReader::from_reader(entry.compression(), reader);
+            let reader = reader;
+            let reader =
+                CompressionReader::from_reader_take(entry.compression(), reader, entry.compressed_size.unwrap().into());
 
             Ok(ZipEntryReader::from_raw(entry, reader, false))
         }

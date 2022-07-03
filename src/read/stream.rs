@@ -53,15 +53,17 @@ impl<R: AsyncRead + Unpin> ZipFileReader<R> {
             let delimiter = crate::spec::signature::DATA_DESCRIPTOR.to_le_bytes();
             let reader = OwnedReader::Borrow(&mut self.reader);
             let reader = PrependReader::Prepend(reader);
-            let reader = AsyncDelimiterReader::new(reader, &delimiter);
-            let reader = CompressionReader::from_reader(entry_borrow.compression(), reader.take(u64::MAX));
+            let reader = CompressionReader::from_reader(entry_borrow.compression(), reader);
 
-            Ok(Some(ZipEntryReader::with_data_descriptor(entry_borrow, reader, true)))
+            Ok(Some(ZipEntryReader::from_raw(entry_borrow, reader, true)))
         } else {
             let reader = OwnedReader::Borrow(&mut self.reader);
             let reader = PrependReader::Prepend(reader);
-            let reader = reader.take(entry_borrow.compressed_size.unwrap().into());
-            let reader = CompressionReader::from_reader(entry_borrow.compression(), reader);
+            let reader = CompressionReader::from_reader_take(
+                entry_borrow.compression(),
+                reader,
+                entry_borrow.compressed_size.unwrap().into(),
+            );
 
             Ok(Some(ZipEntryReader::from_raw(entry_borrow, reader, true)))
         }
