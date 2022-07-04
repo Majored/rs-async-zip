@@ -19,7 +19,7 @@ use std::task::{Context, Poll};
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use async_compression::tokio::bufread;
-use async_io_utilities::{AsyncDelimiterReader, AsyncPrependReader};
+use async_io_utilities::AsyncPrependReader;
 use chrono::{DateTime, Utc};
 use crc32fast::Hasher;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, BufReader, ReadBuf, Take};
@@ -126,16 +126,12 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for OwnedReader<'a, R> {
 
 pub(crate) enum LocalReader<'a, R: AsyncRead + Unpin> {
     Standard(CompressionReader<PrependReader<'a, R>>),
-    // TODO: This is not used anymore, we can safely remove.
-    #[allow(dead_code)]
-    Stream(CompressionReader<AsyncDelimiterReader<PrependReader<'a, R>>>),
 }
 
 impl<'a, R: AsyncRead + Unpin> AsyncRead for LocalReader<'a, R> {
     fn poll_read(mut self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
         match *self {
             LocalReader::Standard(ref mut inner) => Pin::new(inner).poll_read(c, b),
-            LocalReader::Stream(ref mut inner) => Pin::new(inner).poll_read(c, b),
         }
     }
 }
@@ -218,101 +214,92 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     pub(crate) fn poll_data_descriptor(mut self: Pin<&mut Self>, c: &mut Context<'_>) -> Poll<tokio::io::Result<()>> {
         let state = self.state;
 
-        if let LocalReader::Standard(ref mut inner) = self.borrow_mut().reader {
-            if matches!(state, State::ReadData) {
-                return Poll::Ready(Ok(()));
-            }
+        let LocalReader::Standard(ref mut inner) = self.borrow_mut().reader;
 
-            let inner_mut = inner.get_mut();
+        if matches!(state, State::ReadData) {
+            return Poll::Ready(Ok(()));
+        }
 
-            // TODO: we can do an early check by having a secondary buffer to hold the 4 bytes of the
-            // TODO: descriptor, instead of storing inside the descriptor data buffer.
-            let state = if let State::ReadDescriptor(mut descriptor_buf, filled) = state {
-                let mut buf = ReadBuf::new(&mut descriptor_buf);
-                buf.set_filled(filled);
-                loop {
-                    let rem = buf.remaining();
-                    if rem != 0 {
-                        let poll = Pin::new(&mut *inner_mut).poll_read(c, &mut buf);
-                        match poll {
-                            Poll::Ready(Ok(())) => {
-                                if buf.remaining() == rem {
-                                    // TODO: Instead of failing, we can change the state to State::PrepareNext
-                                    // TODO: and prepend the filled bytes to the reader.
-                                    return Poll::Ready(Err(std::io::Error::new(
-                                        std::io::ErrorKind::UnexpectedEof,
-                                        "early eof while reading data descriptor",
-                                    )));
-                                }
+        let inner_mut = inner.get_mut();
+
+        let state = if let State::ReadDescriptor(mut descriptor_buf, filled) = state {
+            let mut buf = ReadBuf::new(&mut descriptor_buf);
+            buf.set_filled(filled);
+            loop {
+                let rem = buf.remaining();
+                if rem != 0 {
+                    let poll = Pin::new(&mut *inner_mut).poll_read(c, &mut buf);
+                    match poll {
+                        Poll::Ready(Ok(())) => {
+                            if buf.remaining() == rem {
+                                break;
                             }
-                            Poll::Pending => {
-                                // Update the descriptor buffer. Beware that `State` implements Copy,
-                                // and we own the `descriptor_buf`, which means that we are modifying a
-                                // copy of it, not the original array, so we really need to manually
-                                // update the state descriptor buffer array.
-                                let filled = buf.filled().len();
-                                self.state = State::ReadDescriptor(descriptor_buf, filled);
-                                return Poll::Pending;
-                            }
-                            _ => return poll,
                         }
-                    } else {
-                        break;
-                    }
-                }
-
-                let filled = buf.filled().len();
-
-                State::PrepareNext(descriptor_buf, filled)
-            } else {
-                state
-            };
-
-            let state = if let State::PrepareNext(descriptor_buf, filled) = state {
-                let mut buffer = Vec::new();
-
-                let descriptor = if filled == 16 {
-                    let delimiter = u32::from_le_bytes(descriptor_buf[0..4].try_into().unwrap());
-                    let crc = u32::from_le_bytes(descriptor_buf[4..8].try_into().unwrap());
-                    let compressed = u32::from_le_bytes(descriptor_buf[8..12].try_into().unwrap());
-                    let uncompressed = u32::from_le_bytes(descriptor_buf[12..16].try_into().unwrap());
-
-                    if delimiter == crate::spec::signature::DATA_DESCRIPTOR {
-                        Some((crc, compressed, uncompressed))
-                    } else {
-                        // Now we are tolerant, but the previous state must be as well
-                        // TODO: dedup
-                        buffer.extend_from_slice(&descriptor_buf[..filled]);
-                        None
+                        Poll::Pending => {
+                            // Update the descriptor buffer. Beware that `State` implements Copy,
+                            // and we own the `descriptor_buf`, which means that we are modifying a
+                            // copy of it, not the original array, so we really need to manually
+                            // update the state descriptor buffer array.
+                            let filled = buf.filled().len();
+                            self.state = State::ReadDescriptor(descriptor_buf, filled);
+                            return Poll::Pending;
+                        }
+                        _ => return poll,
                     }
                 } else {
-                    // Now we are tolerant, but the previous state must be as well
-                    // TODO: dedup
-                    buffer.extend_from_slice(&descriptor_buf[..filled]);
+                    break;
+                }
+            }
+
+            let filled = buf.filled().len();
+
+            State::PrepareNext(descriptor_buf, filled)
+        } else {
+            state
+        };
+
+        let state = if let State::PrepareNext(descriptor_buf, filled) = state {
+            let mut buffer = Vec::new();
+
+            let descriptor = if filled == 16 {
+                let delimiter = u32::from_le_bytes(descriptor_buf[0..4].try_into().unwrap());
+                let crc = u32::from_le_bytes(descriptor_buf[4..8].try_into().unwrap());
+                let compressed = u32::from_le_bytes(descriptor_buf[8..12].try_into().unwrap());
+                let uncompressed = u32::from_le_bytes(descriptor_buf[12..16].try_into().unwrap());
+
+                if delimiter == crate::spec::signature::DATA_DESCRIPTOR {
+                    Some((crc, compressed, uncompressed))
+                } else {
                     None
-                };
-
-                // We take the data read by BufReader and prepend it to the inner reader.
-                buffer.extend_from_slice(inner_mut.buffer());
-
-                if let PrependReader::Prepend(inner) = inner_mut.get_mut() {
-                    match inner {
-                        OwnedReader::Owned(inner) => inner.prepend(&buffer),
-                        OwnedReader::Borrow(inner) => inner.prepend(&buffer),
-                    };
                 }
-
-                if descriptor.is_some() {
-                    self.data_descriptor = descriptor;
-                }
-
-                State::ReadData
             } else {
-                state
+                None
             };
 
-            self.state = state;
-        }
+            if descriptor.is_none() {
+                buffer.extend_from_slice(&descriptor_buf[..filled]);
+            }
+
+            // We take the data read by BufReader and prepend it to the inner reader.
+            buffer.extend_from_slice(inner_mut.buffer());
+
+            if let PrependReader::Prepend(inner) = inner_mut.get_mut() {
+                match inner {
+                    OwnedReader::Owned(inner) => inner.prepend(&buffer),
+                    OwnedReader::Borrow(inner) => inner.prepend(&buffer),
+                };
+            }
+
+            if descriptor.is_some() {
+                self.data_descriptor = descriptor;
+            }
+
+            State::ReadData
+        } else {
+            state
+        };
+
+        self.state = state;
 
         Poll::Ready(Ok(()))
     }
