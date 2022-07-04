@@ -399,8 +399,6 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
 ///
 /// [`tokio::bufread::generic::decoder`](https://github.com/Nemo157/async-compression/blob/ada65c660bcea83dc6a0c3d6149e5fbcd039f739/src/tokio/bufread/generic/decoder.rs#L81)
 pub(crate) enum CompressionReader<R: AsyncRead + Unpin> {
-    /// Note: Now we are taking a [`BufReader`] so [`CompressionReader::get_mut`] works for this scenario
-    /// instead of panicking, like my previous implementation.
     Stored(Take<BufReader<R>>),
     #[cfg(feature = "deflate")]
     Deflate(bufread::DeflateDecoder<BufReader<R>>),
@@ -417,7 +415,7 @@ pub(crate) enum CompressionReader<R: AsyncRead + Unpin> {
 impl<R: AsyncRead + Unpin> CompressionReader<R> {
     pub(crate) fn get_mut(&mut self) -> &mut BufReader<R> {
         match self {
-            CompressionReader::Stored(inner) => inner.get_mut(), // TODO: handle
+            CompressionReader::Stored(inner) => inner.get_mut(),
             #[cfg(feature = "deflate")]
             CompressionReader::Deflate(inner) => inner.get_mut(),
             #[cfg(feature = "bzip2")]
@@ -451,12 +449,11 @@ impl<R: AsyncRead + Unpin> AsyncRead for CompressionReader<R> {
 }
 
 impl<'a, R: AsyncRead + Unpin> CompressionReader<R> {
-    pub(crate) fn from_reader(compression: &Compression, reader: R, take: Option<u64>) -> Self {
-        match compression {
-            // TODO: better way to deal with this. Stored MUST have a Take reader.
-            // TODO: We can have another enum for compression specification, that contains the amount of bytes to take.
-            // TODO: But I don't know if it's the best approach.
-            Compression::Stored => CompressionReader::Stored(BufReader::new(reader).take(take.unwrap())),
+    pub(crate) fn from_reader(compression: &Compression, reader: R, take: Option<u64>) -> Result<Self> {
+        Ok(match compression {
+            Compression::Stored => CompressionReader::Stored(
+                BufReader::new(reader).take(take.ok_or_else(|| ZipError::MissingCompressedSize)?),
+            ),
             #[cfg(feature = "deflate")]
             Compression::Deflate => CompressionReader::Deflate(bufread::DeflateDecoder::new(BufReader::new(reader))),
             #[cfg(feature = "bzip2")]
@@ -467,7 +464,7 @@ impl<'a, R: AsyncRead + Unpin> CompressionReader<R> {
             Compression::Zstd => CompressionReader::Zstd(bufread::ZstdDecoder::new(BufReader::new(reader))),
             #[cfg(feature = "xz")]
             Compression::Xz => CompressionReader::Xz(bufread::XzDecoder::new(BufReader::new(reader))),
-        }
+        })
     }
 }
 

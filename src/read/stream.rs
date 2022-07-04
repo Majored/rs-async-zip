@@ -2,14 +2,14 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 //! A module for reading ZIP files from a non-seekable source.
-//! 
+//!
 //! ## Note
 //! This method fully relies on the information provided in each individual local file header. As a result, this method
 //! doesn't support entries which desynchronise the information provided in the local file header VS the central
-//! directory file header. This is a practice that the 
+//! directory file header. This is a practice that the
 //! [specification suggests](https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#719) when you wish to
 //! conceal that information.
-//! 
+//!
 //! ## Example
 //! ```no_run
 //! # use async_zip::read::stream::ZipFileReader;
@@ -53,7 +53,7 @@ impl<R: AsyncRead + Unpin> ZipFileReader<R> {
     }
 
     /// Returns whether or not it's possible for this reader to yeild more entries.
-    /// 
+    ///
     /// # Note
     /// It's still possible for this function to return false whilst a call to [`ZipFileReader::entry_reader()`]
     /// returns no entry. This happens in the case where the last entry has been read but the central directory has not
@@ -63,7 +63,7 @@ impl<R: AsyncRead + Unpin> ZipFileReader<R> {
     }
 
     /// Opens the next entry for reading if the central directory hasn't yet been reached.
-    /// 
+    ///
     /// # Note
     /// It's essential that each entry reader returned by this function is fully consumed before a new one is opened.
     pub async fn entry_reader(&mut self) -> Result<Option<ZipEntryReader<'_, R>>> {
@@ -84,7 +84,7 @@ impl<R: AsyncRead + Unpin> ZipFileReader<R> {
             entry_borrow.compression(),
             reader,
             entry_borrow.compressed_size.map(u32::into),
-        );
+        )?;
 
         Ok(Some(ZipEntryReader::from_raw(entry_borrow, reader, entry_borrow.data_descriptor())))
     }

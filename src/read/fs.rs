@@ -64,7 +64,7 @@ impl ZipFileReader {
 
         let reader = OwnedReader::Owned(fs_file);
         let reader = PrependReader::Normal(reader);
-        let reader = CompressionReader::from_reader(entry.compression(), reader, entry.compressed_size.map(u32::into));
+        let reader = CompressionReader::from_reader(entry.compression(), reader, entry.compressed_size.map(u32::into))?;
 
         Ok(ZipEntryReader::from_raw(entry, reader, entry.data_descriptor()))
     }
