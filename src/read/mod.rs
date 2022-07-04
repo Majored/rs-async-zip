@@ -124,22 +124,10 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for OwnedReader<'a, R> {
     }
 }
 
-pub(crate) enum LocalReader<'a, R: AsyncRead + Unpin> {
-    Standard(CompressionReader<PrependReader<'a, R>>),
-}
-
-impl<'a, R: AsyncRead + Unpin> AsyncRead for LocalReader<'a, R> {
-    fn poll_read(mut self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
-        match *self {
-            LocalReader::Standard(ref mut inner) => Pin::new(inner).poll_read(c, b),
-        }
-    }
-}
-
 /// A ZIP file entry reader which may implement decompression.
 pub struct ZipEntryReader<'a, R: AsyncRead + Unpin> {
     pub(crate) entry: &'a ZipEntry,
-    pub(crate) reader: LocalReader<'a, R>,
+    pub(crate) reader: CompressionReader<PrependReader<'a, R>>,
     pub(crate) hasher: Hasher,
     pub(crate) consumed: bool,
     pub(crate) state: State,
@@ -166,7 +154,6 @@ pub(crate) enum State {
 impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     /// Construct an entry reader from its raw parts (a shared reference to the entry and an inner reader).
     pub(crate) fn from_raw(entry: &'a ZipEntry, reader: CompressionReader<PrependReader<'a, R>>, _: bool) -> Self {
-        let reader = LocalReader::Standard(reader);
         ZipEntryReader {
             entry,
             reader,
@@ -214,7 +201,7 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     pub(crate) fn poll_data_descriptor(mut self: Pin<&mut Self>, c: &mut Context<'_>) -> Poll<tokio::io::Result<()>> {
         let state = self.state;
 
-        let LocalReader::Standard(ref mut inner) = self.borrow_mut().reader;
+        let inner = &mut self.borrow_mut().reader;
 
         if matches!(state, State::ReadData) {
             return Poll::Ready(Ok(()));
