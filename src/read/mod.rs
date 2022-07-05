@@ -357,7 +357,7 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
 
                     self.consumed = true;
 
-                    if self.data_descriptor.is_none() {
+                    if self.data_descriptor.is_none() && self.entry().data_descriptor() {
                         self.state = State::ReadDescriptor([0u8; 16], 0);
 
                         self.poll_data_descriptor(c)

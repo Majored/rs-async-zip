@@ -221,6 +221,54 @@ async fn data_tokio_copy_stream() {
     assert!(zip_reader.finished());
 }
 
+#[cfg(feature = "deflate")]
+#[tokio::test]
+async fn data_tokio_copy_seek() {
+    use crate::read::seek::ZipFileReader;
+    use tokio::io::AsyncWriteExt;
+
+    let mut input_stream = Cursor::new(Vec::<u8>::new());
+
+    let mut zip_writer = ZipFileWriter::new(&mut input_stream);
+    let data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt...";
+
+    let open_opts = EntryOptions::new("foo.bar".to_string(), Compression::Deflate);
+    let mut entry_writer = zip_writer.write_entry_stream(open_opts).await.expect("failed to open write entry");
+    entry_writer.write_all(data.as_bytes()).await.expect("failed to write entry");
+    entry_writer.close().await.expect("failed to close entry");
+
+    let open_opts = EntryOptions::new("test.bar".to_string(), Compression::Deflate);
+    let mut entry_writer = zip_writer.write_entry_stream(open_opts).await.expect("failed to open write entry");
+    entry_writer.write_all(data.as_bytes()).await.expect("failed to write entry");
+    entry_writer.close().await.expect("failed to close entry");
+
+    zip_writer.close().await.expect("failed to close writer");
+
+    input_stream.set_position(0);
+
+    let mut zip_reader = ZipFileReader::new(&mut input_stream).await.unwrap();
+
+    assert_eq!(2, zip_reader.entries().len());
+
+    let mut entry_reader = zip_reader.entry_reader(0).await.expect("failed to open entry reader");
+
+    let mut output_stream = Cursor::new(Vec::<u8>::new());
+
+    assert_ne!(tokio::io::copy(&mut entry_reader, &mut output_stream).await.expect("failed to copy"), 0);
+    assert_eq!(tokio::io::copy(&mut entry_reader, &mut output_stream).await.expect("failed to copy"), 0);
+
+    assert!(entry_reader.compare_crc());
+    assert_eq!(data, String::from_utf8(output_stream.into_inner()).expect("failed to read entry to string"));
+
+    let mut entry_reader = zip_reader.entry_reader(1).await.expect("failed to open entry reader");
+
+    let mut output_stream = Cursor::new(Vec::<u8>::new());
+    tokio::io::copy(&mut entry_reader, &mut output_stream).await.expect("failed to copy");
+
+    assert!(entry_reader.compare_crc());
+    assert_eq!(data, String::from_utf8(output_stream.into_inner()).expect("failed to read entry to string"));
+}
+
 macro_rules! single_entry_gen {
     ($name:ident, $typ:expr) => {
         #[tokio::test]
