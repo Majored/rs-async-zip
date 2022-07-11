@@ -138,14 +138,22 @@ pub(crate) async fn read_cd_entry<R: AsyncRead + Unpin>(reader: &mut R) -> Resul
     let filename = async_io_utilities::read_string(reader, header.file_name_length.into()).await?;
     let extra = async_io_utilities::read_bytes(reader, header.extra_field_length.into()).await?;
     let comment = async_io_utilities::read_string(reader, header.file_comment_length.into()).await?;
+    let data_descriptor = header.flags.data_descriptor;
+
+    let (crc32, uncompressed_size, compressed_size) =
+        if data_descriptor && header.crc == 0 && header.uncompressed_size == 0 && header.compressed_size == 0 {
+            (None, None, None)
+        } else {
+            (Some(header.crc), Some(header.uncompressed_size), Some(header.compressed_size))
+        };
 
     let entry = ZipEntry {
         name: filename,
         comment: Some(comment),
-        data_descriptor: header.flags.data_descriptor,
-        crc32: Some(header.crc),
-        uncompressed_size: Some(header.uncompressed_size),
-        compressed_size: Some(header.compressed_size),
+        data_descriptor,
+        crc32,
+        uncompressed_size,
+        compressed_size,
         last_modified: crate::spec::date::zip_date_to_chrono(header.mod_date, header.mod_time),
         extra: Some(extra),
         compression: Compression::from_u16(header.compression)?,
