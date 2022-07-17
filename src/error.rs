@@ -23,4 +23,6 @@ pub enum ZipError {
     CRC32CheckError,
     #[error("Entry index was out of bounds.")]
     EntryIndexOutOfBounds,
+    #[error("Compressed size is required to be present in the Local File Header when using Stored compression.")]
+    MissingCompressedSize,
 }

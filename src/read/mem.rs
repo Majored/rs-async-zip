@@ -9,8 +9,7 @@ use crate::spec::header::LocalFileHeader;
 
 use std::io::{Cursor, SeekFrom};
 
-use async_io_utilities::AsyncDelimiterReader;
-use tokio::io::{AsyncReadExt, AsyncSeekExt};
+use tokio::io::AsyncSeekExt;
 
 /// The type returned as an entry reader within this concurrent module.
 pub type ConcurrentReader<'b, 'a> = ZipEntryReader<'b, Cursor<&'a [u8]>>;
@@ -42,21 +41,10 @@ impl<'a> ZipFileReader<'a> {
         let data_offset = (header.file_name_length + header.extra_field_length) as i64;
         cursor.seek(SeekFrom::Current(data_offset)).await?;
 
-        if entry.data_descriptor() {
-            let delimiter = crate::spec::signature::DATA_DESCRIPTOR.to_le_bytes();
-            let reader = OwnedReader::Owned(cursor);
-            let reader = PrependReader::Normal(reader);
-            let reader = AsyncDelimiterReader::new(reader, &delimiter);
-            let reader = CompressionReader::from_reader(entry.compression(), reader.take(u64::MAX));
+        let reader = OwnedReader::Owned(cursor);
+        let reader = PrependReader::Normal(reader);
+        let reader = CompressionReader::from_reader(entry.compression(), reader, entry.compressed_size.map(u32::into))?;
 
-            Ok(ZipEntryReader::with_data_descriptor(entry, reader, true))
-        } else {
-            let reader = OwnedReader::Owned(cursor);
-            let reader = PrependReader::Normal(reader);
-            let reader = reader.take(entry.compressed_size.unwrap().into());
-            let reader = CompressionReader::from_reader(entry.compression(), reader);
-
-            Ok(ZipEntryReader::from_raw(entry, reader, false))
-        }
+        Ok(ZipEntryReader::from_raw(entry, reader, entry.data_descriptor()))
     }
 }

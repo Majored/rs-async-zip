@@ -24,8 +24,7 @@ use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 
-use async_io_utilities::AsyncDelimiterReader;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, ReadBuf};
+use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt, ReadBuf};
 
 /// A reader which acts concurrently over an in-memory buffer.
 pub struct ZipFileReader<R: AsyncRead + AsyncSeek + Unpin> {
@@ -57,22 +56,11 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
         let data_offset = (header.file_name_length + header.extra_field_length) as i64;
         guarded_reader.seek(SeekFrom::Current(data_offset)).await?;
 
-        if entry.data_descriptor() {
-            let delimiter = crate::spec::signature::DATA_DESCRIPTOR.to_le_bytes();
-            let reader = OwnedReader::Owned(guarded_reader);
-            let reader = PrependReader::Normal(reader);
-            let reader = AsyncDelimiterReader::new(reader, &delimiter);
-            let reader = CompressionReader::from_reader(entry.compression(), reader.take(u64::MAX));
+        let reader = OwnedReader::Owned(guarded_reader);
+        let reader = PrependReader::Normal(reader);
+        let reader = CompressionReader::from_reader(entry.compression(), reader, entry.compressed_size.map(u32::into))?;
 
-            Ok(ZipEntryReader::with_data_descriptor(entry, reader, true))
-        } else {
-            let reader = OwnedReader::Owned(guarded_reader);
-            let reader = PrependReader::Normal(reader);
-            let reader = reader.take(entry.compressed_size.unwrap().into());
-            let reader = CompressionReader::from_reader(entry.compression(), reader);
-
-            Ok(ZipEntryReader::from_raw(entry, reader, false))
-        }
+        Ok(ZipEntryReader::from_raw(entry, reader, entry.data_descriptor()))
     }
 }
 
