@@ -330,7 +330,7 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     /// place.
     pub async fn copy_to_end_crc<W: AsyncWrite + Unpin>(mut self, writer: &mut W, buffer: usize) -> Result<()> {
         let mut reader = BufReader::with_capacity(buffer, &mut self);
-        tokio::io::copy_buf(&mut reader, writer).await.unwrap();
+        tokio::io::copy_buf(&mut reader, writer).await?;
 
         if self.compare_crc() {
             Ok(())
