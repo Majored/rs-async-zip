@@ -48,7 +48,11 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
     }
 
     async fn write_lfh(writer: &'b mut ZipFileWriter<W>, options: &EntryOptions) -> Result<LocalFileHeader> {
-        let (mod_time, mod_date) = crate::spec::date::chrono_to_zip_time(&Utc::now());
+        let (mod_time, mod_date) = if let Some(last_modified) = &options.last_modified {
+            crate::spec::date::chrono_to_zip_time(last_modified)
+        } else {
+            crate::spec::date::chrono_to_zip_time(&Utc::now())
+        };
 
         let lfh = LocalFileHeader {
             compressed_size: 0,

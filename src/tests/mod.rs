@@ -75,6 +75,37 @@ async fn single_entry_no_data() {
     assert_eq!(Compression::Stored, *zip_reader.entry("foo.bar").unwrap().1.compression());
 }
 
+#[tokio::test]
+async fn entry_with_specific_last_modified() {
+    use crate::read::seek::ZipFileReader;
+
+    // Get a normalized ZIP date
+    let (mod_time, mod_date) = crate::spec::date::chrono_to_zip_time(&chrono::DateTime::<chrono::Utc>::MIN_UTC);
+    let last_modified = crate::spec::date::zip_date_to_chrono(mod_date, mod_time);
+
+    let mut input_stream = Cursor::new(Vec::<u8>::new());
+
+    let mut zip_writer = ZipFileWriter::new(&mut input_stream);
+
+    let open_opts = EntryOptions::new("foo.bar".to_string(), Compression::Stored).last_modified(last_modified);
+    zip_writer.write_entry_whole(open_opts, &[]).await.expect("failed to write entry");
+
+    let open_opts = EntryOptions::new("foo.baz".to_string(), Compression::Stored);
+    zip_writer.write_entry_whole(open_opts, &[]).await.expect("failed to write entry");
+
+    zip_writer.close().await.expect("failed to close writer");
+
+    input_stream.set_position(0);
+
+    let zip_reader = ZipFileReader::new(&mut input_stream).await.expect("failed to open reader");
+
+    assert_eq!(2, zip_reader.entries().len());
+    assert!(zip_reader.entry("foo.bar").is_some());
+    assert_eq!(&last_modified, zip_reader.entry("foo.bar").unwrap().1.last_modified());
+    assert!(zip_reader.entry("foo.baz").is_some());
+    assert_ne!(&last_modified, zip_reader.entry("foo.baz").unwrap().1.last_modified());
+}
+
 #[cfg(feature = "deflate")]
 #[tokio::test]
 async fn data_descriptor_single() {
