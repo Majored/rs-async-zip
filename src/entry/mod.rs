@@ -1,13 +1,16 @@
+// Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
+// MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
+
 pub mod ext;
 pub mod builder;
 
 use chrono::{DateTime, Utc};
 use crate::spec::compression::Compression;
 use crate::spec::attribute::AttributeCompatibility;
-use crate::spec::entry::builder::EntryBuilder;
+use crate::entry::builder::EntryBuilder;
 
 #[cfg(doc)]
-use crate::spec::entry::ext::EntryExt;
+use crate::entry::ext::EntryExt;
 
 /// Stores information about a ZIP entry.
 /// 

@@ -1,5 +1,9 @@
+// Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
+// MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
+
 use crate::error::{Result, ZipError};
 
+/// An attribute host compatibility supported by this crate.
 #[non_exhaustive]
 #[derive(Copy, Clone)]
 pub enum AttributeCompatibility {

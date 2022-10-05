@@ -1,7 +1,10 @@
+// Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
+// MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
+
 use chrono::{DateTime, Utc};
 use crate::spec::compression::Compression;
 use crate::spec::attribute::AttributeCompatibility;
-use crate::spec::entry::Entry;
+use crate::entry::Entry;
 
 pub struct EntryBuilder {
     pub(crate) filename: String,

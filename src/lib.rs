@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
+// Copyright (c) 2021-2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 //! An asynchronous ZIP archive reading/writing crate with a heavy focus on streaming support.
@@ -15,6 +15,7 @@
 pub mod error;
 pub mod read;
 pub(crate) mod spec;
+pub(crate) mod entry;
 #[cfg(test)]
 pub(crate) mod tests;
 pub(crate) mod utils;
@@ -23,5 +24,5 @@ pub mod write;
 pub use crate::spec::compression::Compression;
 pub use crate::spec::attribute::AttributeCompatibility;
 
-pub use crate::spec::entry::{Entry, builder::EntryBuilder};
-pub use crate::spec::entry::ext::{EntryExt, EntryBuilderExt};
+pub use crate::entry::{Entry, builder::EntryBuilder};
+pub use crate::entry::ext::{EntryExt, EntryBuilderExt};

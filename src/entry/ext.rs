@@ -1,5 +1,8 @@
+// Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
+// MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
+
 use crate::spec::attribute::AttributeCompatibility;
-use crate::spec::entry::{Entry, EntryBuilder};
+use crate::entry::{Entry, EntryBuilder};
 
 pub trait EntryExt: Sized {
     /// Returns the entry's integer-based UNIX permissions.
