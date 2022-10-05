@@ -46,7 +46,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
         let lf_header = LocalFileHeader {
             compressed_size: compressed_data.len() as u32,
             uncompressed_size: self.data.len() as u32,
-            compression: self.opts.compression.to_u16(),
+            compression: self.opts.compression.into(),
             crc: compute_crc(self.data),
             extra_field_length: self.opts.extra.len() as u16,
             file_name_length: self.opts.filename.as_bytes().len() as u16,

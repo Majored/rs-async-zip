@@ -1,4 +1,4 @@
-use crate::error::ZipError;
+use crate::error::{Result, ZipError};
 
 #[non_exhaustive]
 pub enum AttributeCompatibility {
@@ -8,7 +8,7 @@ pub enum AttributeCompatibility {
 impl TryFrom<u16> for AttributeCompatibility {
     type Error = ZipError;
 
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
+    fn try_from(value: u16) -> Result<Self> {
         match value {
             3 => Ok(AttributeCompatibility::Unix),
             _ => Err(ZipError::UnsupportedAttributeCompatibility(value))
@@ -21,5 +21,11 @@ impl From<&AttributeCompatibility> for u16 {
         match compatibility {
             AttributeCompatibility::Unix => 3
         }
+    }
+}
+
+impl From<AttributeCompatibility> for u16 {
+    fn from(compatibility: AttributeCompatibility) -> Self {
+        (&compatibility).into()
     }
 }

@@ -156,7 +156,7 @@ pub(crate) async fn read_cd_entry<R: AsyncRead + Unpin>(reader: &mut R) -> Resul
         compressed_size,
         last_modified: crate::spec::date::zip_date_to_chrono(header.mod_date, header.mod_time),
         extra: Some(extra),
-        compression: Compression::from_u16(header.compression)?,
+        compression: Compression::try_from(header.compression)?,
         offset: Some(header.lh_offset),
     };
 

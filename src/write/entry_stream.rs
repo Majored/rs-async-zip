@@ -57,7 +57,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         let lfh = LocalFileHeader {
             compressed_size: 0,
             uncompressed_size: 0,
-            compression: options.compression.to_u16(),
+            compression: options.compression.into(),
             crc: 0,
             extra_field_length: options.extra.len() as u16,
             file_name_length: options.filename.as_bytes().len() as u16,
