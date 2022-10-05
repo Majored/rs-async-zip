@@ -7,12 +7,12 @@ pub mod builder;
 use chrono::{DateTime, Utc};
 use crate::spec::compression::Compression;
 use crate::spec::attribute::AttributeCompatibility;
-use crate::entry::builder::EntryBuilder;
+use crate::entry::builder::ZipEntryBuilder;
 
 #[cfg(doc)]
 use crate::entry::ext::EntryExt;
 
-/// Stores information about a ZIP entry.
+/// An immutable store of data about a ZIP entry.
 /// 
 /// # Builder pattern
 /// Each [`Entry`] is immutable for interoperability between the reading and writing modules of this crate. Therefore,
@@ -24,7 +24,7 @@ use crate::entry::ext::EntryExt;
 /// TBC. [`EntryExt`]
 /// 
 #[derive(Clone)]
-pub struct Entry {
+pub struct ZipEntry {
     pub(crate) filename: String,
     pub(crate) compression: Compression,
     pub(crate) attribute_compatibility: AttributeCompatibility,
@@ -35,8 +35,8 @@ pub struct Entry {
     pub(crate) comment: String,
 }
 
-impl From<EntryBuilder> for Entry {
-    fn from(builder: EntryBuilder) -> Self {
+impl From<ZipEntryBuilder> for ZipEntry {
+    fn from(builder: ZipEntryBuilder) -> Self {
         let attribute_compatibility = builder.attribute_compatibility.unwrap_or(AttributeCompatibility::Unix);
         let last_modification_date = builder.last_modification_date.unwrap_or(Utc::now());
         let internal_file_attribute = builder.internal_file_attribute.unwrap_or(0);
@@ -57,7 +57,7 @@ impl From<EntryBuilder> for Entry {
     }
 }
 
-impl Entry {
+impl ZipEntry {
     /// Returns the entry's filename.
     /// 
     /// # Note

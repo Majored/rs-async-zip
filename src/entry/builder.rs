@@ -4,9 +4,10 @@
 use chrono::{DateTime, Utc};
 use crate::spec::compression::Compression;
 use crate::spec::attribute::AttributeCompatibility;
-use crate::entry::Entry;
+use crate::entry::ZipEntry;
 
-pub struct EntryBuilder {
+/// A ZIP entry builder.
+pub struct ZipEntryBuilder {
     pub(crate) filename: String,
     pub(crate) compression: Compression,
     pub(crate) attribute_compatibility: Option<AttributeCompatibility>,
@@ -17,8 +18,8 @@ pub struct EntryBuilder {
     pub(crate) comment: Option<String>,
 }
 
-impl From<Entry> for EntryBuilder {
-    fn from(entry: Entry) -> Self {
+impl From<ZipEntry> for ZipEntryBuilder {
+    fn from(entry: ZipEntry) -> Self {
         Self {
             filename: entry.filename,
             compression: entry.compression,
@@ -32,7 +33,7 @@ impl From<Entry> for EntryBuilder {
     }
 }
 
-impl EntryBuilder {
+impl ZipEntryBuilder {
     /// Constructs a new builder which defines the properties of a writable ZIP entry.
     /// 
     /// A filename and compression method are needed to construct the builder as minimal parameters.
@@ -101,7 +102,7 @@ impl EntryBuilder {
     /// # let builder = EntryBuilder::new(String::from("foo.bar"), Compression::Deflate);
     /// let entry: Entry = builder.into();
     /// ```
-    pub fn build(self) -> Entry {
+    pub fn build(self) -> ZipEntry {
         self.into()
     }
 }

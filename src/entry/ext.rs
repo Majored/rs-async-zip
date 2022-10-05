@@ -2,9 +2,9 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::spec::attribute::AttributeCompatibility;
-use crate::entry::{Entry, EntryBuilder};
+use crate::entry::{ZipEntry, ZipEntryBuilder};
 
-pub trait EntryExt: Sized {
+pub trait ZipEntryExt: Sized {
     /// Returns the entry's integer-based UNIX permissions.
     /// 
     /// # Note
@@ -12,7 +12,7 @@ pub trait EntryExt: Sized {
     fn unix_permissions(&self) -> Option<u16>;
 }
 
-impl EntryExt for Entry {
+impl ZipEntryExt for ZipEntry {
     fn unix_permissions(&self) -> Option<u16> {
         if !matches!(self.attribute_compatibility, AttributeCompatibility::Unix) {
             return None;
@@ -22,7 +22,7 @@ impl EntryExt for Entry {
     }
 }
 
-pub trait EntryBuilderExt {
+pub trait ZipEntryBuilderExt {
     /// Sets the entry's Unix permissions mode.
     /// 
     /// # Note
@@ -31,7 +31,7 @@ pub trait EntryBuilderExt {
     fn unix_permissions(self, mode: u16) -> Self;
 }
 
-impl EntryBuilderExt for EntryBuilder {
+impl ZipEntryBuilderExt for ZipEntryBuilder {
     fn unix_permissions(mut self, mode: u16) -> Self {
         self.attribute_compatibility = Some(AttributeCompatibility::Unix);
         
