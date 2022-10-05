@@ -9,11 +9,11 @@ pub trait EntryExt: Sized {
     /// 
     /// # Note
     /// This will return None if the attribute host compatibility is not listed as Unix.
-    fn unix_permission(&self) -> Option<u16>;
+    fn unix_permissions(&self) -> Option<u16>;
 }
 
 impl EntryExt for Entry {
-    fn unix_permission(&self) -> Option<u16> {
+    fn unix_permissions(&self) -> Option<u16> {
         if !matches!(self.attribute_compatibility, AttributeCompatibility::Unix) {
             return None;
         }
@@ -28,11 +28,11 @@ pub trait EntryBuilderExt {
     /// # Note
     /// This will force the entry's attribute host compatibility to Unix as well as override the previous upper
     /// sixteen bits of the entry's external file attribute (which includes any previous permissions mode).
-    fn unix_permission(self, mode: u16) -> Self;
+    fn unix_permissions(self, mode: u16) -> Self;
 }
 
 impl EntryBuilderExt for EntryBuilder {
-    fn unix_permission(mut self, mode: u16) -> Self {
+    fn unix_permissions(mut self, mode: u16) -> Self {
         self.attribute_compatibility = Some(AttributeCompatibility::Unix);
         
         let attribute_mode_only = (mode as u32) << 16;
