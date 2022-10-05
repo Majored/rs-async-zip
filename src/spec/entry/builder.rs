@@ -93,6 +93,9 @@ impl EntryBuilder {
     /// 
     /// # Equivalent code
     /// ```
+    /// # use async_zip::{Entry, EntryBuilder, Compression};
+    /// #
+    /// # let builder = EntryBuilder::new(String::from("foo.bar"), Compression::Deflate);
     /// let entry: Entry = builder.into();
     /// ```
     pub fn build(self) -> Entry {
