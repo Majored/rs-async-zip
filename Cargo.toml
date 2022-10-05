@@ -25,10 +25,10 @@ xz = ["async-compression/xz"]
 [dependencies]
 async-compression = { version = "0.3.14", default-features = false, features = ["tokio"] }
 async_io_utilities = { git = "https://github.com/Majored/rs-async-io-utilities" }
-tokio = { version = "1.19.2", features = ["io-util", "fs"] }
-chrono = "0.4.19"
+tokio = { version = "1.21.2", features = ["io-util", "fs"] }
+chrono = "0.4.22"
 crc32fast = "1.3.2"
-thiserror = "1.0.31"
+thiserror = "1.0.37"
 
 [dev-dependencies]
-tokio = { version = "1.19.2", features = ["full"] }
+tokio = { version = "1.21.2", features = ["full"] }
