@@ -10,7 +10,7 @@ use crate::spec::attribute::AttributeCompatibility;
 use crate::entry::builder::ZipEntryBuilder;
 
 #[cfg(doc)]
-use crate::entry::ext::EntryExt;
+use crate::entry::ext::ZipEntryExt;
 
 /// An immutable store of data about a ZIP entry.
 /// 

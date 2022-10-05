@@ -97,10 +97,10 @@ impl ZipEntryBuilder {
     /// 
     /// # Equivalent code
     /// ```
-    /// # use async_zip::{Entry, EntryBuilder, Compression};
+    /// # use async_zip::{ZipEntry, ZipEntryBuilder, Compression};
     /// #
-    /// # let builder = EntryBuilder::new(String::from("foo.bar"), Compression::Deflate);
-    /// let entry: Entry = builder.into();
+    /// # let builder = ZipEntryBuilder::new(String::from("foo.bar"), Compression::Deflate);
+    /// let entry: ZipEntry = builder.into();
     /// ```
     pub fn build(self) -> ZipEntry {
         self.into()
