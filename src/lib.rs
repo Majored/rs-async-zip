@@ -22,3 +22,6 @@ pub mod write;
 
 pub use crate::spec::compression::Compression;
 pub use crate::spec::attribute::AttributeCompatibility;
+
+pub use crate::spec::entry::{Entry, EntryBuilder};
+pub use crate::spec::entry::ext::{EntryExt, EntryBuilderExt};
