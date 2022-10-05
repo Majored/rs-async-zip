@@ -6,7 +6,7 @@ use crate::spec::compression::Compression;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::entry::ZipEntry;
 
-/// A ZIP entry builder.
+/// A builder for [`ZipEntry`].
 pub struct ZipEntryBuilder {
     pub(crate) filename: String,
     pub(crate) compression: Compression,

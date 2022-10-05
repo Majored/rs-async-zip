@@ -4,6 +4,7 @@
 use crate::spec::attribute::AttributeCompatibility;
 use crate::entry::{ZipEntry, ZipEntryBuilder};
 
+/// A trait that extends [`ZipEntry`]'s functionality.
 pub trait ZipEntryExt: Sized {
     /// Returns the entry's integer-based UNIX permissions.
     /// 
@@ -22,6 +23,7 @@ impl ZipEntryExt for ZipEntry {
     }
 }
 
+/// A trait that extends [`ZipEntryBuilder`]'s functionality.
 pub trait ZipEntryBuilderExt {
     /// Sets the entry's Unix permissions mode.
     /// 
