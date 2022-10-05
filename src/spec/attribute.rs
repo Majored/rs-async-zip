@@ -17,8 +17,8 @@ impl TryFrom<u16> for AttributeCompatibility {
 }
 
 impl From<&AttributeCompatibility> for u16 {
-    fn from(AttributeCompatibility: &AttributeCompatibility) -> Self {
-        match AttributeCompatibility {
+    fn from(compatibility: &AttributeCompatibility) -> Self {
+        match compatibility {
             AttributeCompatibility::Unix => 3
         }
     }
