@@ -6,11 +6,16 @@ pub trait EntryExt: Sized {
 }
 
 impl EntryExt for Entry {
+    /// Returns the entry's integer-based UNIX permissions.
+    /// 
+    /// # Note
+    /// This will return None if the attribute host compatibility is not listed as Unix.
     fn unix_permission(&self) -> Option<u16> {
-        match self.attribute_compatibility {
-            AttributeCompatibility::Unix => Some(((self.external_file_attribute) >> 16) as u16),
-            _ => None,
+        if !matches!(self.attribute_compatibility, AttributeCompatibility::Unix) {
+            return None;
         }
+
+        Some(((self.external_file_attribute) >> 16) as u16)
     }
 }
 
@@ -19,6 +24,11 @@ pub trait EntryBuilderExt {
 }
 
 impl EntryBuilderExt for EntryBuilder {
+    /// Sets the entry's Unix permissions mode.
+    /// 
+    /// # Note
+    /// This will force the entry's attribute host compatibility to Unix as well as override the previous upper
+    /// sixteen bits of the entry's external file attribute (which includes any previous permissions mode).
     fn unix_permission(mut self, mode: u16) -> Self {
         self.attribute_compatibility = Some(AttributeCompatibility::Unix);
         

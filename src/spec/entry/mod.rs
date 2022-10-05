@@ -1,18 +1,35 @@
 pub mod ext;
+pub mod builder;
 
 use chrono::{DateTime, Utc};
 use crate::spec::compression::Compression;
 use crate::spec::attribute::AttributeCompatibility;
+use crate::spec::entry::builder::EntryBuilder;
 
+#[cfg(doc)]
+use crate::spec::entry::ext::EntryExt;
+
+/// Stores information about a ZIP entry.
+/// 
+/// # Builder pattern
+/// Each [`Entry`] is immutable for interoperability between the reading and writing modules of this crate. Therefore,
+/// to create or mutate an existing entry, the [`EntryBuilder`] builder must be used.
+/// 
+/// Non-allocating conversions between these two structures can be achieved via the [`From`] implementations.
+/// 
+/// # Extension trait
+/// TBC. [`EntryExt`]
+/// 
+#[derive(Clone)]
 pub struct Entry {
-    filename: String,
-    compression: Compression,
-    attribute_compatibility: AttributeCompatibility,
-    last_modification_date: DateTime<Utc>,
-    internal_file_attribute: u16,
-    external_file_attribute: u32,
-    extra_field: Vec<u8>,
-    comment: String,
+    pub(crate) filename: String,
+    pub(crate) compression: Compression,
+    pub(crate) attribute_compatibility: AttributeCompatibility,
+    pub(crate) last_modification_date: DateTime<Utc>,
+    pub(crate) internal_file_attribute: u16,
+    pub(crate) external_file_attribute: u32,
+    pub(crate) extra_field: Vec<u8>,
+    pub(crate) comment: String,
 }
 
 impl From<EntryBuilder> for Entry {
@@ -37,80 +54,49 @@ impl From<EntryBuilder> for Entry {
     }
 }
 
-pub struct EntryBuilder {
-    filename: String,
-    compression: Compression,
-    attribute_compatibility: Option<AttributeCompatibility>,
-    last_modification_date: Option<DateTime<Utc>>,
-    internal_file_attribute: Option<u16>,
-    external_file_attribute: Option<u32>,
-    extra_field: Option<Vec<u8>>,
-    comment: Option<String>,
-}
-
-impl EntryBuilder {
-    /// Constructs a new builder which defines the properties of a writable ZIP entry.
+impl Entry {
+    /// Returns the entry's filename.
     /// 
-    /// A filename and compression method are needed to construct the builder as minimal parameters.
-    pub fn new(filename: String, compression: Compression) -> Self {
-        let attribute_compatibility = None;
-        let last_modification_date = None;
-        let internal_file_attribute = None;
-        let external_file_attribute = None;
-        let extra_field = None;
-        let comment = None;
-
-        Self {
-            filename,
-            compression,
-            attribute_compatibility,
-            last_modification_date,
-            internal_file_attribute,
-            external_file_attribute,
-            extra_field,
-            comment,
-        }
+    /// # Note
+    /// This will return the raw filename stored during ZIP creation. If calling this method on entries retrieved from
+    /// untrusted ZIP files, the filename should be sanitised before being used as a path to prevent [directory
+    /// travesal attacks](https://en.wikipedia.org/wiki/Directory_traversal_attack).
+    pub fn filename(&self) -> &str {
+        &self.filename
     }
 
-    /// 
-    pub fn attribute_compatibility(mut self, compatibility: AttributeCompatibility) -> Self {
-        self.attribute_compatibility = Some(compatibility);
-        self
+    /// Returns the entry's compression method.
+    pub fn compression(&self) -> Compression {
+        self.compression
     }
 
-    ///
-    pub fn last_modification_date(mut self, date: DateTime<Utc>) -> Self {
-        self.last_modification_date = Some(date);
-        self
+    /// Returns the entry's attribute's host compatibility.
+    pub fn attribute_compatibility(&self) -> AttributeCompatibility {
+        self.attribute_compatibility
     }
 
-    /// 
-    pub fn internal_file_attribute(mut self, attribute: u16) -> Self {
-        self.internal_file_attribute = Some(attribute);
-        self
+    /// Returns the entry's last modification time & date.
+    pub fn last_modification_date(&self) -> &DateTime<Utc> {
+        &self.last_modification_date
     }
 
-    /// 
-    pub fn external_file_attribute(mut self, attribute: u32) -> Self {
-        self.external_file_attribute = Some(attribute);
-        self
+    /// Returns the entry's internal file attribute.
+    pub fn internal_file_attribute(&self) -> u16 {
+        self.internal_file_attribute
     }
 
-    /// 
-    pub fn extra_field(mut self, field: Vec<u8>) -> Self {
-        self.extra_field = Some(field);
-        self
+    /// Returns the entry's external file attribute
+    pub fn external_file_attribute(&self) -> u32 {
+        self.external_file_attribute
     }
 
-    /// 
-    pub fn comment(mut self, comment: String) -> Self {
-        self.comment = Some(comment);
-        self
+    /// Returns the entry's extra field data.
+    pub fn extra_field(&self) -> &[u8] {
+        &self.extra_field
     }
 
-    /// 
-    pub fn build(self) -> Entry {
-        self.into()
+    /// Returns the entry's file comment.
+    pub fn comment(&self) -> &str {
+        &self.comment
     }
 }
-

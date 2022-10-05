@@ -1,6 +1,7 @@
 use crate::error::{Result, ZipError};
 
 #[non_exhaustive]
+#[derive(Copy, Clone)]
 pub enum AttributeCompatibility {
     Unix
 }
