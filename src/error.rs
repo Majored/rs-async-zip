@@ -15,6 +15,8 @@ pub enum ZipError {
     UnexpectedHeaderError(u32, u32),
     #[error("{0} is not a supported compression type.")]
     UnsupportedCompressionError(u16),
+    #[error("{0} is not a supported host attribute compatibility.")]
+    UnsupportedAttributeCompatibility(u16),
     #[error("An upstream reader returned an error: '{0:?}'.")]
     UpstreamReadError(#[from] std::io::Error),
     #[error("Feature not currently supported: '{0}'.")]

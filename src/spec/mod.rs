@@ -7,3 +7,4 @@ pub(crate) mod header;
 pub(crate) mod parse;
 pub(crate) mod signature;
 pub(crate) mod version;
+pub(crate) mod attribute;

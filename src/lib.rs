@@ -21,3 +21,4 @@ pub(crate) mod utils;
 pub mod write;
 
 pub use crate::spec::compression::Compression;
+pub use crate::spec::attribute::AttributeCompatibility;
