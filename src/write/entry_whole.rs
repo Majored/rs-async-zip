@@ -37,7 +37,11 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             }
         };
 
-        let (mod_time, mod_date) = crate::spec::date::chrono_to_zip_time(&Utc::now());
+        let (mod_time, mod_date) = if let Some(last_modified) = &self.opts.last_modified {
+            crate::spec::date::chrono_to_zip_time(last_modified)
+        } else {
+            crate::spec::date::chrono_to_zip_time(&Utc::now())
+        };
 
         let lf_header = LocalFileHeader {
             compressed_size: compressed_data.len() as u32,

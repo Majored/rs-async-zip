@@ -54,6 +54,7 @@ pub(crate) mod compressed_writer;
 pub(crate) mod entry_stream;
 pub(crate) mod entry_whole;
 
+use chrono::{DateTime, Utc};
 pub use entry_stream::EntryStreamWriter;
 
 use crate::error::Result;
@@ -68,6 +69,7 @@ use tokio::io::{AsyncWrite, AsyncWriteExt};
 pub struct EntryOptions {
     pub(crate) filename: String,
     pub(crate) compression: Compression,
+    pub(crate) last_modified: Option<DateTime<Utc>>,
     extra: Vec<u8>,
     comment: String,
     unix_permissions: u32,
@@ -76,7 +78,20 @@ pub struct EntryOptions {
 impl EntryOptions {
     /// Construct a new set of options from its required constituents.
     pub fn new(filename: String, compression: Compression) -> Self {
-        EntryOptions { filename, compression, extra: Vec::new(), comment: String::new(), unix_permissions: 0 }
+        EntryOptions {
+            filename,
+            compression,
+            last_modified: None,
+            extra: Vec::new(),
+            comment: String::new(),
+            unix_permissions: 0,
+        }
+    }
+
+    /// Consume the options and override the last modified timestamp.
+    pub fn last_modified(mut self, last_modified: DateTime<Utc>) -> Self {
+        self.last_modified = Some(last_modified);
+        self
     }
 
     /// Consume the options and override the extra field data.
