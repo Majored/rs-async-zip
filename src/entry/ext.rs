@@ -35,16 +35,8 @@ pub trait ZipEntryBuilderExt {
 
 impl ZipEntryBuilderExt for ZipEntryBuilder {
     fn unix_permissions(mut self, mode: u16) -> Self {
-        self.attribute_compatibility = Some(AttributeCompatibility::Unix);
-        
-        let attribute_mode_only = (mode as u32) << 16;
-        if let Some(attribute) = self.external_file_attribute.as_mut() {
-            // Zero out the upper sixteen bits and replace them with the provided mode.
-            *attribute = (*attribute & 0xFFFF) | attribute_mode_only;
-        } else {
-            self.external_file_attribute = Some(attribute_mode_only);
-        }
-
+        self.0.attribute_compatibility = AttributeCompatibility::Unix;
+        self.0.external_file_attribute = (self.0.external_file_attribute & 0xFFFF) | (mode as u32) << 16;
         self
     }
 }

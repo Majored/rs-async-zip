@@ -14,19 +14,19 @@ use crate::entry::ext::ZipEntryExt;
 
 /// An immutable store of data about a ZIP entry.
 /// 
-/// # Builder pattern
-/// Each [`Entry`] is immutable for interoperability between the reading and writing modules of this crate. Therefore,
-/// to create or mutate an existing entry, the [`EntryBuilder`] builder must be used.
+/// This type is intended to solely provide access to the raw underlying data. Any additional or more complex
+/// operations are provided within an extension trait, [`ZipEntryExt`].
 /// 
-/// Non-allocating conversions between these two structures can be achieved via the [`From`] implementations.
-/// 
-/// # Extension trait
-/// TBC. [`EntryExt`]
-/// 
+/// This type cannot be directly constructed so instead, the [`ZipEntryBuilder`] must be used. Internally this builder
+/// stores a [`ZipEntry`] so conversions between these two types via the [`From`] implementations will be
+/// non-allocating.
 #[derive(Clone)]
 pub struct ZipEntry {
     pub(crate) filename: String,
     pub(crate) compression: Compression,
+    pub(crate) crc32: u32,
+    pub(crate) uncompressed_size: u32,
+    pub(crate) compressed_size: u32,
     pub(crate) attribute_compatibility: AttributeCompatibility,
     pub(crate) last_modification_date: DateTime<Utc>,
     pub(crate) internal_file_attribute: u16,
@@ -37,30 +37,30 @@ pub struct ZipEntry {
 
 impl From<ZipEntryBuilder> for ZipEntry {
     fn from(builder: ZipEntryBuilder) -> Self {
-        let attribute_compatibility = builder.attribute_compatibility.unwrap_or(AttributeCompatibility::Unix);
-        let last_modification_date = builder.last_modification_date.unwrap_or(Utc::now());
-        let internal_file_attribute = builder.internal_file_attribute.unwrap_or(0);
-        let external_file_attribute = builder.external_file_attribute.unwrap_or(0);
-        let extra_field = builder.extra_field.unwrap_or(Vec::new());
-        let comment = builder.comment.unwrap_or(String::new());
-
-        Self {
-            filename: builder.filename,
-            compression: builder.compression,
-            attribute_compatibility,
-            last_modification_date,
-            internal_file_attribute,
-            external_file_attribute,
-            extra_field,
-            comment,
-        }
+        builder.0
     }
 }
 
 impl ZipEntry {
+    pub(crate) fn new(filename: String, compression: Compression) -> Self {
+        ZipEntry {
+            filename,
+            compression,
+            crc32: 0,
+            uncompressed_size: 0,
+            compressed_size: 0,
+            attribute_compatibility: AttributeCompatibility::Unix,
+            last_modification_date: Utc::now(),
+            internal_file_attribute: 0,
+            external_file_attribute: 0,
+            extra_field: Vec::new(),
+            comment: String::new(),
+        }
+    }
+
     /// Returns the entry's filename.
     /// 
-    /// # Note
+    /// ## Note
     /// This will return the raw filename stored during ZIP creation. If calling this method on entries retrieved from
     /// untrusted ZIP files, the filename should be sanitised before being used as a path to prevent [directory
     /// travesal attacks](https://en.wikipedia.org/wiki/Directory_traversal_attack).
@@ -71,6 +71,21 @@ impl ZipEntry {
     /// Returns the entry's compression method.
     pub fn compression(&self) -> Compression {
         self.compression
+    }
+
+    /// Returns the entry's CRC32 value.
+    pub fn crc32(&self) -> u32 {
+        self.crc32
+    }
+
+    /// Returns the entry's uncompressed size.
+    pub fn uncompressed_size(&self) -> u32 {
+        self.uncompressed_size
+    }
+
+    /// Returns the entry's compressed size.
+    pub fn compressed_size(&self) -> u32 {
+        self.compressed_size
     }
 
     /// Returns the entry's attribute's host compatibility.

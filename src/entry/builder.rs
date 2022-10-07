@@ -6,96 +6,68 @@ use crate::spec::compression::Compression;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::entry::ZipEntry;
 
+#[cfg(doc)]
+use crate::entry::ext::ZipEntryBuilderExt;
+
 /// A builder for [`ZipEntry`].
-pub struct ZipEntryBuilder {
-    pub(crate) filename: String,
-    pub(crate) compression: Compression,
-    pub(crate) attribute_compatibility: Option<AttributeCompatibility>,
-    pub(crate) last_modification_date: Option<DateTime<Utc>>,
-    pub(crate) internal_file_attribute: Option<u16>,
-    pub(crate) external_file_attribute: Option<u32>,
-    pub(crate) extra_field: Option<Vec<u8>>,
-    pub(crate) comment: Option<String>,
-}
+/// 
+/// As with the built type, this builder is intended to solely provide access to the raw underlying data. Any
+/// additional or more complex operations are provided within an extension trait, [`ZipEntryBuilderExt`].
+pub struct ZipEntryBuilder(pub(crate) ZipEntry);
 
 impl From<ZipEntry> for ZipEntryBuilder {
     fn from(entry: ZipEntry) -> Self {
-        Self {
-            filename: entry.filename,
-            compression: entry.compression,
-            attribute_compatibility: Some(entry.attribute_compatibility),
-            last_modification_date: Some(entry.last_modification_date),
-            internal_file_attribute: Some(entry.internal_file_attribute),
-            external_file_attribute: Some(entry.external_file_attribute),
-            extra_field: Some(entry.extra_field),
-            comment: Some(entry.comment),
-        }
+        Self(entry)
     }
 }
 
 impl ZipEntryBuilder {
-    /// Constructs a new builder which defines the properties of a writable ZIP entry.
+    /// Constructs a new builder which defines the raw underlying data of a ZIP entry.
     /// 
     /// A filename and compression method are needed to construct the builder as minimal parameters.
     pub fn new(filename: String, compression: Compression) -> Self {
-        let attribute_compatibility = None;
-        let last_modification_date = None;
-        let internal_file_attribute = None;
-        let external_file_attribute = None;
-        let extra_field = None;
-        let comment = None;
-
-        Self {
-            filename,
-            compression,
-            attribute_compatibility,
-            last_modification_date,
-            internal_file_attribute,
-            external_file_attribute,
-            extra_field,
-            comment,
-        }
+        Self(ZipEntry::new(filename, compression))
     }
 
     /// Sets the entry's attribute host compatibility.
     pub fn attribute_compatibility(mut self, compatibility: AttributeCompatibility) -> Self {
-        self.attribute_compatibility = Some(compatibility);
+        self.0.attribute_compatibility = compatibility;
         self
     }
 
     /// Sets the entry's last modification date.
     pub fn last_modification_date(mut self, date: DateTime<Utc>) -> Self {
-        self.last_modification_date = Some(date);
+        self.0.last_modification_date = date;
         self
     }
 
     /// Sets the entry's internal file attribute.
     pub fn internal_file_attribute(mut self, attribute: u16) -> Self {
-        self.internal_file_attribute = Some(attribute);
+        self.0.internal_file_attribute = attribute;
         self
     }
 
     /// Sets the entry's external file attribute.
     pub fn external_file_attribute(mut self, attribute: u32) -> Self {
-        self.external_file_attribute = Some(attribute);
+        self.0.external_file_attribute = attribute;
         self
     }
 
     /// Sets the entry's extra field data.
     pub fn extra_field(mut self, field: Vec<u8>) -> Self {
-        self.extra_field = Some(field);
+        self.0.extra_field = field;
         self
     }
 
     /// Sets the entry's file comment.
     pub fn comment(mut self, comment: String) -> Self {
-        self.comment = Some(comment);
+        self.0.comment = comment;
         self
     }
 
-    /// Consumes this builder and returns a final [`Entry`].
+    /// Consumes this builder and returns a final [`ZipEntry`].
     /// 
-    /// # Equivalent code
+    /// This is equivalent to:
     /// ```
     /// # use async_zip::{ZipEntry, ZipEntryBuilder, Compression};
     /// #
