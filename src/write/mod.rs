@@ -8,7 +8,7 @@
 //! ```no_run
 //! # #[cfg(feature = "deflate")]
 //! # {
-//! # use async_zip::{Compression, write::{EntryOptions, ZipFileWriter}};
+//! # use async_zip::{Compression, ZipEntryBuilder, write::ZipFileWriter};
 //! # use tokio::{fs::File, io::AsyncWriteExt};
 //! # use async_zip::error::ZipError;
 //! #
@@ -17,7 +17,7 @@
 //! let mut writer = ZipFileWriter::new(&mut file);
 //!
 //! let data = b"This is an example file.";
-//! let opts = EntryOptions::new(String::from("foo.txt"), Compression::Deflate);
+//! let opts = ZipEntryBuilder::new(String::from("foo.txt"), Compression::Deflate);
 //!
 //! writer.write_entry_whole(opts, data).await?;
 //! writer.close().await?;
@@ -29,7 +29,7 @@
 //! ```no_run
 //! # #[cfg(feature = "deflate")]
 //! # {
-//! # use async_zip::{Compression, write::{EntryOptions, ZipFileWriter}};
+//! # use async_zip::{Compression, ZipEntryBuilder, write::ZipFileWriter};
 //! # use tokio::{fs::File, io::AsyncWriteExt};
 //! # use async_zip::error::ZipError;
 //! #
@@ -38,7 +38,7 @@
 //! let mut writer = ZipFileWriter::new(&mut file);
 //!
 //! let data = b"This is an example file.";
-//! let opts = EntryOptions::new(String::from("bar.txt"), Compression::Deflate);
+//! let opts = ZipEntryBuilder::new(String::from("bar.txt"), Compression::Deflate);
 //!
 //! let mut entry_writer = writer.write_entry_stream(opts).await?;
 //! entry_writer.write_all(data).await.unwrap();
@@ -54,68 +54,19 @@ pub(crate) mod compressed_writer;
 pub(crate) mod entry_stream;
 pub(crate) mod entry_whole;
 
-use chrono::{DateTime, Utc};
 pub use entry_stream::EntryStreamWriter;
 
 use crate::error::Result;
-use crate::spec::compression::Compression;
 use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
+use crate::entry::ZipEntry;
 use async_io_utilities::AsyncOffsetWriter;
 use entry_whole::EntryWholeWriter;
 
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
-/// A set of options for opening new ZIP entries.
-pub struct EntryOptions {
-    pub(crate) filename: String,
-    pub(crate) compression: Compression,
-    pub(crate) last_modified: Option<DateTime<Utc>>,
-    extra: Vec<u8>,
-    comment: String,
-    unix_permissions: u32,
-}
-
-impl EntryOptions {
-    /// Construct a new set of options from its required constituents.
-    pub fn new(filename: String, compression: Compression) -> Self {
-        EntryOptions {
-            filename,
-            compression,
-            last_modified: None,
-            extra: Vec::new(),
-            comment: String::new(),
-            unix_permissions: 0,
-        }
-    }
-
-    /// Consume the options and override the last modified timestamp.
-    pub fn last_modified(mut self, last_modified: DateTime<Utc>) -> Self {
-        self.last_modified = Some(last_modified);
-        self
-    }
-
-    /// Consume the options and override the extra field data.
-    pub fn extra(mut self, extra: Vec<u8>) -> Self {
-        self.extra = extra;
-        self
-    }
-
-    /// Consume the options and override the file comment.
-    pub fn comment(mut self, comment: String) -> Self {
-        self.comment = comment;
-        self
-    }
-
-    /// Consume unix permissions option for zip files (ex. 0o755)
-    pub fn unix_permissions(mut self, unix_permissions: u32) -> Self {
-        self.unix_permissions = unix_permissions;
-        self
-    }
-}
-
 pub(crate) struct CentralDirectoryEntry {
     pub header: CentralDirectoryHeader,
-    pub opts: EntryOptions,
+    pub entry: ZipEntry,
 }
 
 /// A ZIP file writer which acts over AsyncWrite implementers.
@@ -135,13 +86,13 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
     }
 
     /// Write a new ZIP entry of known size and data.
-    pub async fn write_entry_whole(&mut self, options: EntryOptions, data: &[u8]) -> Result<()> {
-        EntryWholeWriter::from_raw(self, options, data).write().await
+    pub async fn write_entry_whole<E: Into<ZipEntry>>(&mut self, entry: E, data: &[u8]) -> Result<()> {
+        EntryWholeWriter::from_raw(self, entry.into(), data).write().await
     }
 
     /// Write an entry of unknown size and data via streaming (ie. using a data descriptor).
-    pub async fn write_entry_stream(&mut self, options: EntryOptions) -> Result<EntryStreamWriter<'_, W>> {
-        EntryStreamWriter::from_raw(self, options).await
+    pub async fn write_entry_stream<E: Into<ZipEntry>>(&mut self, entry: E) -> Result<EntryStreamWriter<'_, W>> {
+        EntryStreamWriter::from_raw(self, entry.into()).await
     }
 
     /// Set the ZIP file comment.
@@ -163,9 +114,9 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
         for entry in &self.cd_entries {
             self.writer.write_all(&crate::spec::signature::CENTRAL_DIRECTORY_FILE_HEADER.to_le_bytes()).await?;
             self.writer.write_all(&entry.header.as_slice()).await?;
-            self.writer.write_all(entry.opts.filename.as_bytes()).await?;
-            self.writer.write_all(&entry.opts.extra).await?;
-            self.writer.write_all(entry.opts.comment.as_bytes()).await?;
+            self.writer.write_all(entry.entry.filename().as_bytes()).await?;
+            self.writer.write_all(&entry.entry.extra_field()).await?;
+            self.writer.write_all(entry.entry.comment().as_bytes()).await?;
         }
 
         let header = EndOfCentralDirectoryHeader {

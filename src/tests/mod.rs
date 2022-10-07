@@ -2,7 +2,8 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::spec::compression::Compression;
-use crate::write::{EntryOptions, ZipFileWriter};
+use crate::write::ZipFileWriter;
+use crate::entry::builder::ZipEntryBuilder;
 
 use std::io::Cursor;
 use std::vec::Vec;
@@ -58,7 +59,7 @@ async fn single_entry_no_data() {
     let mut input_stream = Cursor::new(Vec::<u8>::new());
 
     let mut zip_writer = ZipFileWriter::new(&mut input_stream);
-    let open_opts = EntryOptions::new("foo.bar".to_string(), Compression::Stored);
+    let open_opts = ZipEntryBuilder::new(String::from("foo.bar"), Compression::Stored);
 
     zip_writer.write_entry_whole(open_opts, &[]).await.expect("failed to write entry");
     zip_writer.close().await.expect("failed to close writer");
@@ -87,10 +88,10 @@ async fn entry_with_specific_last_modified() {
 
     let mut zip_writer = ZipFileWriter::new(&mut input_stream);
 
-    let open_opts = EntryOptions::new("foo.bar".to_string(), Compression::Stored).last_modified(last_modified);
+    let open_opts = ZipEntryBuilder::new(String::from("foo.bar"), Compression::Stored).last_modification_date(last_modified);
     zip_writer.write_entry_whole(open_opts, &[]).await.expect("failed to write entry");
 
-    let open_opts = EntryOptions::new("foo.baz".to_string(), Compression::Stored);
+    let open_opts = ZipEntryBuilder::new(String::from("foo.baz"), Compression::Stored);
     zip_writer.write_entry_whole(open_opts, &[]).await.expect("failed to write entry");
 
     zip_writer.close().await.expect("failed to close writer");
@@ -115,7 +116,7 @@ async fn data_descriptor_single() {
     let mut input_stream = Cursor::new(Vec::<u8>::new());
 
     let mut zip_writer = ZipFileWriter::new(&mut input_stream);
-    let open_opts = EntryOptions::new("foo.bar".to_string(), Compression::Deflate);
+    let open_opts = ZipEntryBuilder::new("foo.bar".to_string(), Compression::Deflate);
 
     let data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt...";
     let mut entry_writer = zip_writer.write_entry_stream(open_opts).await.expect("failed to open write entry");
@@ -154,12 +155,12 @@ async fn data_descriptor_double_stream() {
     let mut zip_writer = ZipFileWriter::new(&mut input_stream);
     let data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt...";
 
-    let open_opts = EntryOptions::new("foo.bar".to_string(), Compression::Deflate);
+    let open_opts = ZipEntryBuilder::new("foo.bar".to_string(), Compression::Deflate);
     let mut entry_writer = zip_writer.write_entry_stream(open_opts).await.expect("failed to open write entry");
     entry_writer.write_all(data.as_bytes()).await.expect("failed to write entry");
     entry_writer.close().await.expect("failed to close entry");
 
-    let open_opts = EntryOptions::new("test.bar".to_string(), Compression::Deflate);
+    let open_opts = ZipEntryBuilder::new("test.bar".to_string(), Compression::Deflate);
     let mut entry_writer = zip_writer.write_entry_stream(open_opts).await.expect("failed to open write entry");
     entry_writer.write_all(data.as_bytes()).await.expect("failed to write entry");
     entry_writer.close().await.expect("failed to close entry");
@@ -204,12 +205,12 @@ async fn data_tokio_copy_stream() {
     let mut zip_writer = ZipFileWriter::new(&mut input_stream);
     let data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt...";
 
-    let open_opts = EntryOptions::new("foo.bar".to_string(), Compression::Deflate);
+    let open_opts = ZipEntryBuilder::new("foo.bar".to_string(), Compression::Deflate);
     let mut entry_writer = zip_writer.write_entry_stream(open_opts).await.expect("failed to open write entry");
     entry_writer.write_all(data.as_bytes()).await.expect("failed to write entry");
     entry_writer.close().await.expect("failed to close entry");
 
-    let open_opts = EntryOptions::new("test.bar".to_string(), Compression::Deflate);
+    let open_opts = ZipEntryBuilder::new("test.bar".to_string(), Compression::Deflate);
     let mut entry_writer = zip_writer.write_entry_stream(open_opts).await.expect("failed to open write entry");
     entry_writer.write_all(data.as_bytes()).await.expect("failed to write entry");
     entry_writer.close().await.expect("failed to close entry");
@@ -263,12 +264,12 @@ async fn data_tokio_copy_seek() {
     let mut zip_writer = ZipFileWriter::new(&mut input_stream);
     let data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt...";
 
-    let open_opts = EntryOptions::new("foo.bar".to_string(), Compression::Deflate);
+    let open_opts = ZipEntryBuilder::new("foo.bar".to_string(), Compression::Deflate);
     let mut entry_writer = zip_writer.write_entry_stream(open_opts).await.expect("failed to open write entry");
     entry_writer.write_all(data.as_bytes()).await.expect("failed to write entry");
     entry_writer.close().await.expect("failed to close entry");
 
-    let open_opts = EntryOptions::new("test.bar".to_string(), Compression::Deflate);
+    let open_opts = ZipEntryBuilder::new("test.bar".to_string(), Compression::Deflate);
     let mut entry_writer = zip_writer.write_entry_stream(open_opts).await.expect("failed to open write entry");
     entry_writer.write_all(data.as_bytes()).await.expect("failed to write entry");
     entry_writer.close().await.expect("failed to close entry");
@@ -309,7 +310,7 @@ macro_rules! single_entry_gen {
             let mut input_stream = Cursor::new(Vec::<u8>::new());
 
             let mut zip_writer = ZipFileWriter::new(&mut input_stream);
-            let open_opts = EntryOptions::new("foo.bar".to_string(), $typ);
+            let open_opts = ZipEntryBuilder::new("foo.bar".to_string(), $typ);
             let data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt...";
 
             zip_writer.write_entry_whole(open_opts, data.as_bytes()).await.expect("failed to write entry");

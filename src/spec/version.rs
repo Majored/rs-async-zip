@@ -3,13 +3,13 @@
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use crate::spec::compression::Compression;
-use crate::write::EntryOptions;
+use crate::entry::ZipEntry;
 
 pub(crate) const SPEC_VERSION_MADE_BY: u16 = 63;
 
 // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#443
-pub fn as_needed_to_extract(options: &EntryOptions) -> u16 {
-    let mut version = match options.compression {
+pub fn as_needed_to_extract(entry: &ZipEntry) -> u16 {
+    let mut version = match entry.compression() {
         #[cfg(feature = "deflate")]
         Compression::Deflate => 20,
         #[cfg(feature = "bzip2")]
@@ -19,7 +19,7 @@ pub fn as_needed_to_extract(options: &EntryOptions) -> u16 {
         _ => 10,
     };
 
-    if options.filename.ends_with('/') {
+    if entry.filename().ends_with('/') {
         version = std::cmp::max(version, 20);
     }
 

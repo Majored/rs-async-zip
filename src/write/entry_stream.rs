@@ -5,14 +5,14 @@ use crate::error::Result;
 use crate::spec::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
 use crate::write::compressed_writer::CompressedAsyncWriter;
 use crate::write::CentralDirectoryEntry;
-use crate::write::{EntryOptions, ZipFileWriter};
+use crate::write::ZipFileWriter;
+use crate::entry::ZipEntry;
 
 use std::io::Error;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use async_io_utilities::AsyncOffsetWriter;
-use chrono::Utc;
 use crc32fast::Hasher;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
@@ -25,7 +25,7 @@ use tokio::io::{AsyncWrite, AsyncWriteExt};
 pub struct EntryStreamWriter<'b, W: AsyncWrite + Unpin> {
     writer: AsyncOffsetWriter<CompressedAsyncWriter<'b, W>>,
     cd_entries: &'b mut Vec<CentralDirectoryEntry>,
-    options: EntryOptions,
+    entry: ZipEntry,
     hasher: Hasher,
     lfh: LocalFileHeader,
     lfh_offset: usize,
@@ -35,46 +35,42 @@ pub struct EntryStreamWriter<'b, W: AsyncWrite + Unpin> {
 impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
     pub(crate) async fn from_raw(
         writer: &'b mut ZipFileWriter<W>,
-        options: EntryOptions,
+        entry: ZipEntry,
     ) -> Result<EntryStreamWriter<'b, W>> {
         let lfh_offset = writer.writer.offset();
-        let lfh = EntryStreamWriter::write_lfh(writer, &options).await?;
+        let lfh = EntryStreamWriter::write_lfh(writer, &entry).await?;
         let data_offset = writer.writer.offset();
 
         let cd_entries = &mut writer.cd_entries;
-        let writer = AsyncOffsetWriter::new(CompressedAsyncWriter::from_raw(&mut writer.writer, options.compression));
+        let writer = AsyncOffsetWriter::new(CompressedAsyncWriter::from_raw(&mut writer.writer, entry.compression()));
 
-        Ok(EntryStreamWriter { writer, cd_entries, options, lfh, lfh_offset, data_offset, hasher: Hasher::new() })
+        Ok(EntryStreamWriter { writer, cd_entries, entry, lfh, lfh_offset, data_offset, hasher: Hasher::new() })
     }
 
-    async fn write_lfh(writer: &'b mut ZipFileWriter<W>, options: &EntryOptions) -> Result<LocalFileHeader> {
-        let (mod_time, mod_date) = if let Some(last_modified) = &options.last_modified {
-            crate::spec::date::chrono_to_zip_time(last_modified)
-        } else {
-            crate::spec::date::chrono_to_zip_time(&Utc::now())
-        };
+    async fn write_lfh(writer: &'b mut ZipFileWriter<W>, entry: &ZipEntry) -> Result<LocalFileHeader> {
+        let (mod_time, mod_date) = crate::spec::date::chrono_to_zip_time(entry.last_modification_date());
 
         let lfh = LocalFileHeader {
             compressed_size: 0,
             uncompressed_size: 0,
-            compression: options.compression.into(),
+            compression: entry.compression().into(),
             crc: 0,
-            extra_field_length: options.extra.len() as u16,
-            file_name_length: options.filename.as_bytes().len() as u16,
+            extra_field_length: entry.extra_field().len() as u16,
+            file_name_length: entry.filename().as_bytes().len() as u16,
             mod_time,
             mod_date,
-            version: crate::spec::version::as_needed_to_extract(options),
+            version: crate::spec::version::as_needed_to_extract(entry),
             flags: GeneralPurposeFlag {
                 data_descriptor: true,
                 encrypted: false,
-                filename_unicode: !options.filename.is_ascii(),
+                filename_unicode: !entry.filename().is_ascii(),
             },
         };
 
         writer.writer.write_all(&crate::spec::signature::LOCAL_FILE_HEADER.to_le_bytes()).await?;
         writer.writer.write_all(&lfh.as_slice()).await?;
-        writer.writer.write_all(options.filename.as_bytes()).await?;
-        writer.writer.write_all(&options.extra).await?;
+        writer.writer.write_all(entry.filename().as_bytes()).await?;
+        writer.writer.write_all(entry.extra_field()).await?;
 
         Ok(lfh)
     }
@@ -110,17 +106,17 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             compression: self.lfh.compression,
             extra_field_length: self.lfh.extra_field_length,
             file_name_length: self.lfh.file_name_length,
-            file_comment_length: self.options.comment.len() as u16,
+            file_comment_length: self.entry.comment().len() as u16,
             mod_time: self.lfh.mod_time,
             mod_date: self.lfh.mod_date,
             flags: self.lfh.flags,
             disk_start: 0,
-            inter_attr: 0,
-            exter_attr: self.options.unix_permissions << 16,
+            inter_attr: self.entry.internal_file_attribute(),
+            exter_attr: self.entry.external_file_attribute(),
             lh_offset: self.lfh_offset as u32,
         };
 
-        self.cd_entries.push(CentralDirectoryEntry { header: cdh, opts: self.options });
+        self.cd_entries.push(CentralDirectoryEntry { header: cdh, entry: self.entry });
         Ok(())
     }
 }
