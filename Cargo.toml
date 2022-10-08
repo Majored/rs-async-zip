@@ -1,6 +1,6 @@
 [package]
 name = "async_zip"
-version = "0.0.8"
+version = "0.0.9"
 edition = "2021"
 authors = ["Harry [hello@majored.pw]"]
 repository = "https://github.com/Majored/rs-async-zip"
@@ -23,7 +23,7 @@ zstd = ["async-compression/zstd"]
 xz = ["async-compression/xz"]
 
 [dependencies]
-async-compression = { version = "0.3.14", default-features = false, features = ["tokio"] }
+async-compression = { version = "0.3.15", default-features = false, features = ["tokio"] }
 async_io_utilities = { git = "https://github.com/Majored/rs-async-io-utilities" }
 tokio = { version = "1.21.2", features = ["io-util", "fs"] }
 chrono = "0.4.22"

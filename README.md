@@ -17,7 +17,7 @@ An asynchronous ZIP archive reading/writing crate powered by [`tokio`](https://c
 
 ```toml
 [dependencies]
-async_zip = "0.0.8"
+async_zip = "0.0.9"
 ```
 
 A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-zip/tree/main/examples) can be found under the `/examples` directory.
@@ -39,8 +39,8 @@ println!("{}", txt);
 
 ### Writing
 ```rust
-use async_zip::write::{EntryOptions, ZipFileWriter};
-use async_zip::Compression;
+use async_zip::write::ZipFileWriter;
+use async_zip::{Compression, ZipEntryBuilder};
 use tokio::fs::File;
 ...
 
@@ -48,9 +48,9 @@ let mut file = File::create("foo.zip").await.unwrap();
 let mut writer = ZipFileWriter::new(&mut file);
 
 let data = b"This is an example file.";
-let opts = EntryOptions::new(String::from("bar.txt"), Compression::Deflate);
+let builder = ZipEntryBuilder::new(String::from("bar.txt"), Compression::Deflate);
 
-writer.write_entry_whole(opts, data).await.unwrap();
+writer.write_entry_whole(builder, data).await.unwrap();
 writer.close().await.unwrap();
 ```
 
