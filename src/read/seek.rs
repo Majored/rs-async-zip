@@ -26,8 +26,9 @@
 //! ```
 
 use crate::error::{Result, ZipError};
-use crate::read::{CompressionReader, OwnedReader, PrependReader, ZipEntry, ZipEntryReader};
+use crate::read::{CompressionReader, OwnedReader, PrependReader, ZipEntry, ZipEntryReader, ZipEntryMeta};
 use crate::spec::compression::Compression;
+use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader, LocalFileHeader};
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt};
@@ -38,7 +39,7 @@ use std::io::SeekFrom;
 /// A reader which acts over a seekable source.
 pub struct ZipFileReader<R: AsyncRead + AsyncSeek + Unpin> {
     pub(crate) reader: R,
-    pub(crate) entries: Vec<ZipEntry>,
+    pub(crate) entries: Vec<(ZipEntry, ZipEntryMeta)>,
     pub(crate) comment: Option<String>,
 }
 
@@ -55,7 +56,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
     pub async fn entry_reader(&mut self, index: usize) -> Result<ZipEntryReader<'_, R>> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
-        self.reader.seek(SeekFrom::Start(entry.offset.unwrap() as u64 + 4)).await?;
+        self.reader.seek(SeekFrom::Start(entry.1.file_offset.unwrap() as u64 + 4)).await?;
 
         let header = LocalFileHeader::from_reader(&mut self.reader).await?;
         let data_offset = (header.file_name_length + header.extra_field_length) as i64;
@@ -63,15 +64,15 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
 
         let reader = OwnedReader::Borrow(&mut self.reader);
         let reader = PrependReader::Normal(reader);
-        let reader = CompressionReader::from_reader(entry.compression(), reader, entry.compressed_size.map(u32::into))?;
+        let reader = CompressionReader::from_reader(&entry.0.compression(), reader, Some(entry.0.compressed_size()).map(u32::into))?;
 
-        Ok(ZipEntryReader::from_raw(entry, reader, entry.data_descriptor()))
+        Ok(ZipEntryReader::from_raw(&entry.0, &entry.1, reader, entry.1.general_purpose_flag.data_descriptor))
     }
 }
 
 pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(
     reader: &mut R,
-) -> Result<(Vec<ZipEntry>, Option<String>)> {
+) -> Result<(Vec<(ZipEntry, ZipEntryMeta)>, Option<String>)> {
     const MAX_ENDING_LENGTH: u64 = u16::MAX as u64 + 22;
 
     let length = reader.seek(SeekFrom::End(0)).await?;
@@ -131,34 +132,34 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(
     Ok((entries, comment))
 }
 
-pub(crate) async fn read_cd_entry<R: AsyncRead + Unpin>(reader: &mut R) -> Result<ZipEntry> {
+pub(crate) async fn read_cd_entry<R: AsyncRead + Unpin>(reader: &mut R) -> Result<(ZipEntry, ZipEntryMeta)> {
     crate::utils::assert_signature(reader, crate::spec::signature::CENTRAL_DIRECTORY_FILE_HEADER).await?;
 
     let header = CentralDirectoryHeader::from_reader(reader).await?;
     let filename = async_io_utilities::read_string(reader, header.file_name_length.into()).await?;
-    let extra = async_io_utilities::read_bytes(reader, header.extra_field_length.into()).await?;
+    let compression = Compression::try_from(header.compression)?;
+    let extra_field = async_io_utilities::read_bytes(reader, header.extra_field_length.into()).await?;
     let comment = async_io_utilities::read_string(reader, header.file_comment_length.into()).await?;
-    let data_descriptor = header.flags.data_descriptor;
-
-    let (crc32, uncompressed_size, compressed_size) =
-        if data_descriptor && header.crc == 0 && header.uncompressed_size == 0 && header.compressed_size == 0 {
-            (None, None, None)
-        } else {
-            (Some(header.crc), Some(header.uncompressed_size), Some(header.compressed_size))
-        };
+    let last_modification_date = crate::spec::date::zip_date_to_chrono(header.mod_date, header.mod_time);
 
     let entry = ZipEntry {
-        name: filename,
-        comment: Some(comment),
-        data_descriptor,
-        crc32,
-        uncompressed_size,
-        compressed_size,
-        last_modified: crate::spec::date::zip_date_to_chrono(header.mod_date, header.mod_time),
-        extra: Some(extra),
-        compression: Compression::try_from(header.compression)?,
-        offset: Some(header.lh_offset),
+        filename,
+        compression,
+        attribute_compatibility: AttributeCompatibility::Unix, /// FIXME: Default to Unix for the moment
+        crc32: header.crc,
+        uncompressed_size: header.uncompressed_size,
+        compressed_size: header.compressed_size,
+        last_modification_date,
+        internal_file_attribute: header.inter_attr,
+        external_file_attribute: header.exter_attr,
+        extra_field,
+        comment
     };
 
-    Ok(entry)
+    let meta = ZipEntryMeta {
+        general_purpose_flag: header.flags,
+        file_offset: Some(header.lh_offset),
+    };
+
+    Ok((entry, meta))
 }

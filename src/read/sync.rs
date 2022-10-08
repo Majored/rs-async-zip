@@ -17,6 +17,7 @@
 use crate::error::{Result, ZipError};
 use crate::read::{CompressionReader, OwnedReader, PrependReader, ZipEntry, ZipEntryReader};
 use crate::spec::header::LocalFileHeader;
+use crate::read::ZipEntryMeta;
 
 use std::io::SeekFrom;
 use std::ops::DerefMut;
@@ -29,7 +30,7 @@ use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt, ReadBuf};
 /// A reader which acts concurrently over an in-memory buffer.
 pub struct ZipFileReader<R: AsyncRead + AsyncSeek + Unpin> {
     pub(crate) reader: Arc<Mutex<R>>,
-    pub(crate) entries: Vec<ZipEntry>,
+    pub(crate) entries: Vec<(ZipEntry, ZipEntryMeta)>,
     pub(crate) comment: Option<String>,
 }
 
@@ -50,7 +51,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
         let mut guarded_reader = GuardedReader { reader: self.reader.clone() };
-        guarded_reader.seek(SeekFrom::Start(entry.offset.unwrap() as u64 + 4)).await?;
+        guarded_reader.seek(SeekFrom::Start(entry.1.file_offset.unwrap() as u64 + 4)).await?;
 
         let header = LocalFileHeader::from_reader(&mut guarded_reader).await?;
         let data_offset = (header.file_name_length + header.extra_field_length) as i64;
@@ -58,9 +59,9 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
 
         let reader = OwnedReader::Owned(guarded_reader);
         let reader = PrependReader::Normal(reader);
-        let reader = CompressionReader::from_reader(entry.compression(), reader, entry.compressed_size.map(u32::into))?;
+        let reader = CompressionReader::from_reader(&entry.0.compression(), reader, Some(entry.0.compressed_size()).map(u32::into))?;
 
-        Ok(ZipEntryReader::from_raw(entry, reader, entry.data_descriptor()))
+        Ok(ZipEntryReader::from_raw(&entry.0, &entry.1, reader, entry.1.general_purpose_flag.data_descriptor))
     }
 }
 

@@ -27,6 +27,7 @@ use super::CompressionReader;
 use crate::error::{Result, ZipError};
 use crate::read::{OwnedReader, PrependReader, ZipEntry, ZipEntryReader};
 use crate::spec::header::LocalFileHeader;
+use crate::read::ZipEntryMeta;
 
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
@@ -36,7 +37,7 @@ use tokio::io::AsyncSeekExt;
 /// A reader which acts concurrently over a filesystem file.
 pub struct ZipFileReader {
     pub(crate) filename: PathBuf,
-    pub(crate) entries: Vec<ZipEntry>,
+    pub(crate) entries: Vec<(ZipEntry, ZipEntryMeta)>,
     pub(crate) comment: Option<String>,
 }
 
@@ -56,7 +57,7 @@ impl ZipFileReader {
         let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
 
         let mut fs_file = File::open(&self.filename).await?;
-        fs_file.seek(SeekFrom::Start(entry.offset.unwrap() as u64 + 4)).await?;
+        fs_file.seek(SeekFrom::Start(entry.1.file_offset.unwrap() as u64 + 4)).await?;
 
         let header = LocalFileHeader::from_reader(&mut fs_file).await?;
         let data_offset = (header.file_name_length + header.extra_field_length) as i64;
@@ -64,8 +65,8 @@ impl ZipFileReader {
 
         let reader = OwnedReader::Owned(fs_file);
         let reader = PrependReader::Normal(reader);
-        let reader = CompressionReader::from_reader(entry.compression(), reader, entry.compressed_size.map(u32::into))?;
+        let reader = CompressionReader::from_reader(&entry.0.compression(), reader, Some(entry.0.compressed_size()).map(u32::into))?;
 
-        Ok(ZipEntryReader::from_raw(entry, reader, entry.data_descriptor()))
+        Ok(ZipEntryReader::from_raw(&entry.0, &entry.1, reader, entry.1.general_purpose_flag.data_descriptor))
     }
 }

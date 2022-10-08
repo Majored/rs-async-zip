@@ -71,9 +71,9 @@ async fn single_entry_no_data() {
     assert_eq!(1, zip_reader.entries().len());
     assert!(zip_reader.entry("foo.bar").is_some());
     assert_eq!(0, zip_reader.entry("foo.bar").unwrap().0);
-    assert_eq!(0, zip_reader.entry("foo.bar").unwrap().1.compressed_size().expect("no compressed size"));
-    assert_eq!(0, zip_reader.entry("foo.bar").unwrap().1.uncompressed_size().expect("no uncompressed size"));
-    assert_eq!(Compression::Stored, *zip_reader.entry("foo.bar").unwrap().1.compression());
+    assert_eq!(0, zip_reader.entry("foo.bar").unwrap().1.compressed_size());
+    assert_eq!(0, zip_reader.entry("foo.bar").unwrap().1.uncompressed_size());
+    assert_eq!(Compression::Stored, zip_reader.entry("foo.bar").unwrap().1.compression());
 }
 
 #[tokio::test]
@@ -102,9 +102,9 @@ async fn entry_with_specific_last_modified() {
 
     assert_eq!(2, zip_reader.entries().len());
     assert!(zip_reader.entry("foo.bar").is_some());
-    assert_eq!(&last_modified, zip_reader.entry("foo.bar").unwrap().1.last_modified());
+    assert_eq!(&last_modified, zip_reader.entry("foo.bar").unwrap().1.last_modification_date());
     assert!(zip_reader.entry("foo.baz").is_some());
-    assert_ne!(&last_modified, zip_reader.entry("foo.baz").unwrap().1.last_modified());
+    assert_ne!(&last_modified, zip_reader.entry("foo.baz").unwrap().1.last_modification_date());
 }
 
 #[cfg(feature = "deflate")]
@@ -128,15 +128,13 @@ async fn data_descriptor_single() {
     input_stream.set_position(0);
 
     let mut zip_reader = ZipFileReader::new(&mut input_stream).await.expect("failed to open reader");
-
+ 
     assert_eq!(1, zip_reader.entries().len());
 
     let entry = zip_reader.entry("foo.bar").expect("no 'foo.bar' entry");
     assert_eq!(0, entry.0);
-    assert!(entry.1.compressed_size().is_some());
-    assert!(entry.1.data_descriptor);
-    assert_eq!(data.len() as u32, entry.1.uncompressed_size().expect("no uncompressed size"));
-    assert_eq!(Compression::Deflate, *entry.1.compression());
+    assert_eq!(data.len() as u32, entry.1.uncompressed_size());
+    assert_eq!(Compression::Deflate, entry.1.compression());
 
     let entry_reader = zip_reader.entry_reader(0).await.expect("failed to open entry reader");
     let buffer = entry_reader.read_to_string_crc().await.expect("failed to read entry to string");
@@ -324,9 +322,8 @@ macro_rules! single_entry_gen {
 
             let entry = zip_reader.entry("foo.bar").expect("no 'foo.bar' entry");
             assert_eq!(0, entry.0);
-            assert!(entry.1.compressed_size().is_some());
-            assert_eq!(data.len() as u32, entry.1.uncompressed_size().expect("no uncompressed size"));
-            assert_eq!($typ, *entry.1.compression());
+            assert_eq!(data.len() as u32, entry.1.uncompressed_size());
+            assert_eq!($typ, entry.1.compression());
 
             let entry_reader = zip_reader.entry_reader(0).await.expect("failed to open entry reader");
             let buffer = entry_reader.read_to_string_crc().await.expect("failed to read entry to string");

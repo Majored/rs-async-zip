@@ -11,6 +11,8 @@ pub mod sync;
 
 use crate::error::{Result, ZipError};
 use crate::spec::compression::Compression;
+use crate::spec::header::GeneralPurposeFlag;
+use crate::entry::ZipEntry;
 use std::borrow::BorrowMut;
 
 use std::convert::TryInto;
@@ -20,80 +22,12 @@ use std::task::{Context, Poll};
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use async_compression::tokio::bufread;
 use async_io_utilities::AsyncPrependReader;
-use chrono::{DateTime, Utc};
 use crc32fast::Hasher;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, BufReader, ReadBuf, Take};
 
-/// An entry within a larger ZIP file reader.
-#[derive(Debug)]
-pub struct ZipEntry {
-    pub(crate) name: String,
-    pub(crate) comment: Option<String>,
-    pub(crate) data_descriptor: bool,
-    pub(crate) crc32: Option<u32>,
-    pub(crate) uncompressed_size: Option<u32>,
-    pub(crate) compressed_size: Option<u32>,
-    pub(crate) last_modified: DateTime<Utc>,
-    pub(crate) extra: Option<Vec<u8>>,
-    pub(crate) compression: Compression,
-
-    // Additional fields from EOCDH.
-    pub(crate) offset: Option<u32>,
-}
-
-impl ZipEntry {
-    /// Returns a shared reference to the entry's name.
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    /// Returns an optional shared reference to the entry's comment.
-    pub fn comment(&self) -> Option<&str> {
-        match &self.comment {
-            Some(comment) => Some(comment),
-            None => None,
-        }
-    }
-
-    /// Returns whether or not a data descriptor exists for the entry (ie. whether or not it was stream written).
-    pub fn data_descriptor(&self) -> bool {
-        self.data_descriptor
-    }
-
-    /// Returns whether or not the entry represents a directory.
-    pub fn dir(&self) -> bool {
-        self.name.ends_with('/')
-    }
-
-    /// Returns an optional CRC32 value for the entry.
-    pub fn crc32(&self) -> Option<u32> {
-        self.crc32
-    }
-
-    /// Returns an optional compressed file size for the entry.
-    pub fn compressed_size(&self) -> Option<u32> {
-        self.compressed_size
-    }
-
-    /// Returns an optional uncompressed file size for the entry.
-    pub fn uncompressed_size(&self) -> Option<u32> {
-        self.uncompressed_size
-    }
-
-    /// Returns a shared reference to the entry's last modification date.
-    pub fn last_modified(&self) -> &DateTime<Utc> {
-        &self.last_modified
-    }
-
-    /// Returns an optional shared reference to the extra bytes for the entry.
-    pub fn extra(&self) -> Option<&Vec<u8>> {
-        self.extra.as_ref()
-    }
-
-    /// Returns a shared reference to the compression type of the entry.
-    pub fn compression(&self) -> &Compression {
-        &self.compression
-    }
+pub(crate) struct ZipEntryMeta {
+    pub(crate) general_purpose_flag: GeneralPurposeFlag,
+    pub(crate) file_offset: Option<u32>,
 }
 
 pub(crate) enum PrependReader<'a, R: AsyncRead + Unpin> {
@@ -127,6 +61,7 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for OwnedReader<'a, R> {
 /// A ZIP file entry reader which may implement decompression.
 pub struct ZipEntryReader<'a, R: AsyncRead + Unpin> {
     pub(crate) entry: &'a ZipEntry,
+    pub(crate) meta: &'a ZipEntryMeta,
     pub(crate) reader: CompressionReader<PrependReader<'a, R>>,
     pub(crate) hasher: Hasher,
     pub(crate) consumed: bool,
@@ -153,9 +88,10 @@ pub(crate) enum State {
 
 impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     /// Construct an entry reader from its raw parts (a shared reference to the entry and an inner reader).
-    pub(crate) fn from_raw(entry: &'a ZipEntry, reader: CompressionReader<PrependReader<'a, R>>, _: bool) -> Self {
+    pub(crate) fn from_raw(entry: &'a ZipEntry, meta: &'a ZipEntryMeta, reader: CompressionReader<PrependReader<'a, R>>, _: bool) -> Self {
         ZipEntryReader {
             entry,
+            meta,
             reader,
             hasher: Hasher::new(),
             consumed: false,
@@ -179,10 +115,10 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
         let hasher = std::mem::take(&mut self.hasher);
         let final_crc = hasher.finalize();
 
-        if self.entry().data_descriptor() {
+        if self.meta.general_purpose_flag.data_descriptor {
             self.data_descriptor.expect("Data descriptor was not read").0 == final_crc
         } else {
-            self.entry().crc32().expect("Missing CRC32 in Local file header") == final_crc
+            self.entry.crc32() == final_crc
         }
     }
 
@@ -295,7 +231,7 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     ///
     /// Reads all bytes until EOF and returns an owned vector of them.
     pub async fn read_to_end_crc(mut self) -> Result<Vec<u8>> {
-        let mut buffer = Vec::with_capacity(self.entry.uncompressed_size.unwrap().try_into().unwrap());
+        let mut buffer = Vec::with_capacity(self.entry.uncompressed_size().try_into().unwrap());
         self.read_to_end(&mut buffer).await?;
 
         if self.compare_crc() {
@@ -309,7 +245,7 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     ///
     /// Reads all bytes until EOF and returns an owned string of them.
     pub async fn read_to_string_crc(mut self) -> Result<String> {
-        let mut buffer = String::with_capacity(self.entry.uncompressed_size.unwrap().try_into().unwrap());
+        let mut buffer = String::with_capacity(self.entry.uncompressed_size().try_into().unwrap());
         self.read_to_string(&mut buffer).await?;
 
         if self.compare_crc() {
@@ -357,7 +293,7 @@ impl<'a, R: AsyncRead + Unpin> AsyncRead for ZipEntryReader<'a, R> {
 
                     self.consumed = true;
 
-                    if self.data_descriptor.is_none() && self.entry().data_descriptor() {
+                    if self.data_descriptor.is_none() && self.meta.general_purpose_flag.data_descriptor {
                         self.state = State::ReadDescriptor([0u8; 16], 0);
 
                         self.poll_data_descriptor(c)
@@ -471,14 +407,14 @@ impl<'a, R: AsyncRead + Unpin> CompressionReader<R> {
 macro_rules! reader_entry_impl {
     () => {
         /// Returns a shared reference to a list of the ZIP file's entries.
-        pub fn entries(&self) -> &Vec<ZipEntry> {
-            &self.entries
+        pub fn entries(&self) -> Vec<&ZipEntry> {
+            self.entries.iter().map(|entry| &entry.0).collect()
         }
 
         /// Searches for an entry with a specific filename.
         pub fn entry(&self, name: &str) -> Option<(usize, &ZipEntry)> {
             for (index, entry) in self.entries().iter().enumerate() {
-                if entry.name() == name {
+                if entry.filename() == name {
                     return Some((index, entry));
                 }
             }

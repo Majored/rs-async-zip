@@ -34,6 +34,8 @@ use crate::error::{Result, ZipError};
 use crate::read::{CompressionReader, OwnedReader, PrependReader, ZipEntry, ZipEntryReader};
 use crate::spec::compression::Compression;
 use crate::spec::header::LocalFileHeader;
+use crate::spec::attribute::AttributeCompatibility;
+use crate::read::ZipEntryMeta;
 
 use async_io_utilities::AsyncPrependReader;
 use tokio::io::{AsyncRead, AsyncReadExt};
@@ -41,7 +43,7 @@ use tokio::io::{AsyncRead, AsyncReadExt};
 /// A reader which acts over a non-seekable source.
 pub struct ZipFileReader<R: AsyncRead + Unpin> {
     pub(crate) reader: AsyncPrependReader<R>,
-    pub(crate) entry: Option<ZipEntry>,
+    pub(crate) entry: Option<(ZipEntry, ZipEntryMeta)>,
     pub(crate) finished: bool,
 }
 
@@ -81,16 +83,16 @@ impl<R: AsyncRead + Unpin> ZipFileReader<R> {
         let reader = OwnedReader::Borrow(&mut self.reader);
         let reader = PrependReader::Prepend(reader);
         let reader = CompressionReader::from_reader(
-            entry_borrow.compression(),
+            &entry_borrow.0.compression(),
             reader,
-            entry_borrow.compressed_size.map(u32::into),
+            Some(entry_borrow.0.compressed_size()).map(u32::into),
         )?;
 
-        Ok(Some(ZipEntryReader::from_raw(entry_borrow, reader, entry_borrow.data_descriptor())))
+        Ok(Some(ZipEntryReader::from_raw(&entry_borrow.0, &entry_borrow.1, reader, entry_borrow.1.general_purpose_flag.data_descriptor)))
     }
 }
 
-pub(crate) async fn read_lfh<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Option<ZipEntry>> {
+pub(crate) async fn read_lfh<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Option<(ZipEntry, ZipEntryMeta)>> {
     match reader.read_u32_le().await? {
         crate::spec::signature::LOCAL_FILE_HEADER => {}
         crate::spec::signature::CENTRAL_DIRECTORY_FILE_HEADER => return Ok(None),
@@ -99,20 +101,28 @@ pub(crate) async fn read_lfh<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Opt
 
     let header = LocalFileHeader::from_reader(reader).await?;
     let filename = async_io_utilities::read_string(reader, header.file_name_length.into()).await?;
-    let extra = async_io_utilities::read_bytes(reader, header.extra_field_length.into()).await?;
+    let compression = Compression::try_from(header.compression)?;
+    let last_modification_date = crate::spec::date::zip_date_to_chrono(header.mod_date, header.mod_time);
+    let extra_field = async_io_utilities::read_bytes(reader, header.extra_field_length.into()).await?;
 
     let entry = ZipEntry {
-        name: filename,
-        comment: None,
-        data_descriptor: header.flags.data_descriptor,
-        crc32: Some(header.crc),
-        uncompressed_size: Some(header.uncompressed_size),
-        compressed_size: Some(header.compressed_size),
-        last_modified: crate::spec::date::zip_date_to_chrono(header.mod_date, header.mod_time),
-        extra: Some(extra),
-        compression: Compression::try_from(header.compression)?,
-        offset: None,
+        filename,
+        compression,
+        attribute_compatibility: AttributeCompatibility::Unix,
+        crc32: header.crc,
+        uncompressed_size: header.uncompressed_size,
+        compressed_size: header.compressed_size,
+        last_modification_date,
+        internal_file_attribute: 0,
+        external_file_attribute: 0,
+        extra_field,
+        comment: String::new(),
     };
 
-    Ok(Some(entry))
+    let meta = ZipEntryMeta {
+        general_purpose_flag: header.flags,
+        file_offset: None,
+    };
+
+    Ok(Some((entry, meta)))
 }
