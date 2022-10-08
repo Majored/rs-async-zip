@@ -1,8 +1,8 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use async_zip::write::{ZipFileWriter, EntryOptions};
-use async_zip::Compression;
+use async_zip::write::ZipFileWriter;
+use async_zip::{Compression, ZipEntryBuilder};
 
 use std::path::{Path, PathBuf};
 
@@ -85,8 +85,8 @@ async fn write_entry(filename: &str, input_path: &Path, writer: &mut ZipFileWrit
     let mut buffer = Vec::with_capacity(input_file_size);
     input_file.read_to_end(&mut buffer).await?;
 
-    let entry_options = EntryOptions::new(filename.into(), Compression::Deflate);
-    writer.write_entry_whole(entry_options, &buffer).await?;
+    let builder = ZipEntryBuilder::new(filename.into(), Compression::Deflate);
+    writer.write_entry_whole(builder, &buffer).await?;
 
     Ok(())
 }

@@ -2,8 +2,8 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE
 
-use async_zip::Compression;
-use async_zip::write::{ZipFileWriter, EntryOptions};
+use async_zip::{Compression, ZipEntryBuilder};
+use async_zip::write::ZipFileWriter;
 
 use std::path::Path;
 
@@ -58,8 +58,8 @@ async fn create_archive(mut body: Multipart) -> Result<String, anyhow::Error> {
             None => Uuid::new_v4().to_string(),
         };
 
-        let opts = EntryOptions::new(filename, Compression::Deflate);
-        let mut entry_writer = writer.write_entry_stream(opts).await.unwrap();
+        let builder = ZipEntryBuilder::new(filename, Compression::Deflate);
+        let mut entry_writer = writer.write_entry_stream(builder).await.unwrap();
 
         while let Some(chunk) = field.next().await {
             entry_writer.write_all_buf(&mut chunk?).await?;
