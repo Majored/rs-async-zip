@@ -108,6 +108,7 @@ pub(crate) async fn read_lfh<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Opt
     let entry = ZipEntry {
         filename,
         compression,
+        compression_level: async_compression::Level::Default,
         attribute_compatibility: AttributeCompatibility::Unix,
         crc32: header.crc,
         uncompressed_size: header.uncompressed_size,

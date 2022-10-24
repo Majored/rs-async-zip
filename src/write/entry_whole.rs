@@ -32,7 +32,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             Compression::Stored => self.data,
             #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
             _ => {
-                _compressed_data = Some(compress(self.entry.compression(), self.data).await);
+                _compressed_data = Some(compress(self.entry.compression(), self.data, self.entry.compression_level).await);
                 _compressed_data.as_ref().unwrap()
             }
         };
@@ -88,41 +88,41 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
 }
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
-async fn compress(compression: Compression, data: &[u8]) -> Vec<u8> {
+async fn compress(compression: Compression, data: &[u8], level: async_compression::Level) -> Vec<u8> {
     // TODO: Reduce reallocations of Vec by making a lower-bound estimate of the length reduction and
     // pre-initialising the Vec to that length. Then truncate() to the actual number of bytes written.
     match compression {
         #[cfg(feature = "deflate")]
         Compression::Deflate => {
-            let mut writer = write::DeflateEncoder::new(Cursor::new(Vec::new()));
+            let mut writer = write::DeflateEncoder::with_quality(Cursor::new(Vec::new()), level);
             writer.write_all(data).await.unwrap();
             writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()
         }
         #[cfg(feature = "bzip2")]
         Compression::Bz => {
-            let mut writer = write::BzEncoder::new(Cursor::new(Vec::new()));
+            let mut writer = write::BzEncoder::with_quality(Cursor::new(Vec::new()), level);
             writer.write_all(data).await.unwrap();
             writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()
         }
         #[cfg(feature = "lzma")]
         Compression::Lzma => {
-            let mut writer = write::LzmaEncoder::new(Cursor::new(Vec::new()));
+            let mut writer = write::LzmaEncoder::with_quality(Cursor::new(Vec::new()), level);
             writer.write_all(data).await.unwrap();
             writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()
         }
         #[cfg(feature = "xz")]
         Compression::Xz => {
-            let mut writer = write::XzEncoder::new(Cursor::new(Vec::new()));
+            let mut writer = write::XzEncoder::with_quality(Cursor::new(Vec::new()), level);
             writer.write_all(data).await.unwrap();
             writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()
         }
         #[cfg(feature = "zstd")]
         Compression::Zstd => {
-            let mut writer = write::ZstdEncoder::new(Cursor::new(Vec::new()));
+            let mut writer = write::ZstdEncoder::with_quality(Cursor::new(Vec::new()), level);
             writer.write_all(data).await.unwrap();
             writer.shutdown().await.unwrap();
             writer.into_inner().into_inner()

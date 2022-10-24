@@ -1,6 +1,9 @@
 // Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+mod level;
+pub use level::CompressionLevel;
+
 pub mod ext;
 pub mod builder;
 
@@ -24,6 +27,7 @@ use crate::entry::ext::ZipEntryExt;
 pub struct ZipEntry {
     pub(crate) filename: String,
     pub(crate) compression: Compression,
+    pub(crate) compression_level: async_compression::Level,
     pub(crate) crc32: u32,
     pub(crate) uncompressed_size: u32,
     pub(crate) compressed_size: u32,
@@ -46,6 +50,7 @@ impl ZipEntry {
         ZipEntry {
             filename,
             compression,
+            compression_level: async_compression::Level::Default,
             crc32: 0,
             uncompressed_size: 0,
             compressed_size: 0,

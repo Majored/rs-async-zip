@@ -9,6 +9,8 @@ use crate::entry::ZipEntry;
 #[cfg(doc)]
 use crate::entry::ext::ZipEntryBuilderExt;
 
+use super::CompressionLevel;
+
 /// A builder for [`ZipEntry`].
 /// 
 /// As with the built type, this builder is intended to solely provide access to the raw underlying data. Any
@@ -27,6 +29,15 @@ impl ZipEntryBuilder {
     /// A filename and compression method are needed to construct the builder as minimal parameters.
     pub fn new(filename: String, compression: Compression) -> Self {
         Self(ZipEntry::new(filename, compression))
+    }
+
+    /// Set the compression level.
+    ///
+    /// What the precise value means is implementation defined so it
+    /// depends on what compression algorithm is used.
+    pub fn set_compression_level(mut self, level: CompressionLevel) -> Self {
+	self.0.compression_level = level.into_level();
+	self
     }
 
     /// Sets the entry's attribute host compatibility.

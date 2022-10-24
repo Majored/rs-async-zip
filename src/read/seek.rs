@@ -145,6 +145,7 @@ pub(crate) async fn read_cd_entry<R: AsyncRead + Unpin>(reader: &mut R) -> Resul
     let entry = ZipEntry {
         filename,
         compression,
+        compression_level: async_compression::Level::Default,
         attribute_compatibility: AttributeCompatibility::Unix, /// FIXME: Default to Unix for the moment
         crc32: header.crc,
         uncompressed_size: header.uncompressed_size,
