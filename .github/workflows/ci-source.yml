@@ -1,0 +1,22 @@
+name: Source Control (Linux)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run rustfmt
+      run: cargo fmt
+    - name: Run clippy
+      run: cargo clippy
