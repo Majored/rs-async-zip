@@ -44,9 +44,11 @@ async fn unzip_file(archive: File, out_dir: &Path) {
         // https://github.com/python/cpython/blob/820ef62833bd2d84a141adedd9a05998595d6b6d/Lib/zipfile.py#L528
         let entry_is_dir = entry.entry().filename().ends_with('/');
 
-        // The directory may have been created if iteration is out of order.
-        if entry_is_dir && !path.exists() {
-            create_dir_all(&path).await.expect("Failed to create extracted directory");
+        if entry_is_dir {
+            // The directory may have been created if iteration is out of order.
+            if !path.exists() {
+                create_dir_all(&path).await.expect("Failed to create extracted directory");
+            }
         } else {
             // Creates parent directories. They may not exist if iteration is out of order
             // or the archive does not contain directory entries.
