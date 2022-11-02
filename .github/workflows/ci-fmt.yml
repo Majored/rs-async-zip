@@ -1,4 +1,4 @@
-name: Source Control (Linux)
+name: rustfmt (Linux)
 
 on:
   push:
@@ -16,9 +16,5 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Build
-      run: cargo build --verbose --all-features
     - name: Run rustfmt
       run: cargo fmt --check
-    - name: Run clippy
-      run: cargo clippy --all-features -- -D clippy::all
