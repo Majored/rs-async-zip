@@ -56,9 +56,9 @@ pub(crate) mod entry_whole;
 
 pub use entry_stream::EntryStreamWriter;
 
+use crate::entry::ZipEntry;
 use crate::error::Result;
 use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
-use crate::entry::ZipEntry;
 use async_io_utilities::AsyncOffsetWriter;
 use entry_whole::EntryWholeWriter;
 

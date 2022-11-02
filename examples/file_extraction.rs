@@ -1,16 +1,19 @@
 //! Demonstrates how to safely extract everything from a ZIP file.
-//! 
+//!
 //! Extracting zip files from untrusted sources without proper sanitization
 //! could be exploited by directory traversal attacks.
 //! <https://en.wikipedia.org/wiki/Directory_traversal_attack#Archives>
-//! 
+//!
 //! This example tries to minimize that risk by following the implementation from
 //! Python's Standard Library.
 //! <https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile.extract>
 //! <https://github.com/python/cpython/blob/ac0a19b62ae137c2c9f53fbba8ba3f769acf34dc/Lib/zipfile.py#L1662>
-//! 
+//!
 
-use std::{path::{Path, PathBuf}, env::current_dir};
+use std::{
+    env::current_dir,
+    path::{Path, PathBuf},
+};
 
 use async_zip::read::seek::ZipFileReader;
 use tokio::fs::{create_dir_all, File, OpenOptions};
@@ -24,7 +27,7 @@ async fn main() {
 
 /// Returns a relative path without reserved names, redundant separators, ".", or "..".
 fn sanitize_file_path(path: &str) -> PathBuf {
-        // Replaces backwards slashes
+    // Replaces backwards slashes
     path.replace('\\', "/")
         // Sanitizes each component
         .split('/')

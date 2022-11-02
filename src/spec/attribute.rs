@@ -7,7 +7,7 @@ use crate::error::{Result, ZipError};
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AttributeCompatibility {
-    Unix
+    Unix,
 }
 
 impl TryFrom<u16> for AttributeCompatibility {
@@ -18,7 +18,7 @@ impl TryFrom<u16> for AttributeCompatibility {
     fn try_from(value: u16) -> Result<Self> {
         match value {
             3 => Ok(AttributeCompatibility::Unix),
-            _ => Err(ZipError::UnsupportedAttributeCompatibility(value))
+            _ => Err(ZipError::UnsupportedAttributeCompatibility(value)),
         }
     }
 }
@@ -28,7 +28,7 @@ impl From<&AttributeCompatibility> for u16 {
     // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4422
     fn from(compatibility: &AttributeCompatibility) -> Self {
         match compatibility {
-            AttributeCompatibility::Unix => 3
+            AttributeCompatibility::Unix => 3,
         }
     }
 }

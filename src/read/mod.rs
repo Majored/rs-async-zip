@@ -9,10 +9,10 @@ pub mod seek;
 pub mod stream;
 pub mod sync;
 
+use crate::entry::ZipEntry;
 use crate::error::{Result, ZipError};
 use crate::spec::compression::Compression;
 use crate::spec::header::GeneralPurposeFlag;
-use crate::entry::ZipEntry;
 use std::borrow::BorrowMut;
 
 use std::convert::TryInto;
@@ -88,7 +88,12 @@ pub(crate) enum State {
 
 impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
     /// Construct an entry reader from its raw parts (a shared reference to the entry and an inner reader).
-    pub(crate) fn from_raw(entry: &'a ZipEntry, meta: &'a ZipEntryMeta, reader: CompressionReader<PrependReader<'a, R>>, _: bool) -> Self {
+    pub(crate) fn from_raw(
+        entry: &'a ZipEntry,
+        meta: &'a ZipEntryMeta,
+        reader: CompressionReader<PrependReader<'a, R>>,
+        _: bool,
+    ) -> Self {
         ZipEntryReader {
             entry,
             meta,

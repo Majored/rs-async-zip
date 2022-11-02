@@ -31,11 +31,11 @@
 //! ```
 
 use crate::error::{Result, ZipError};
+use crate::read::ZipEntryMeta;
 use crate::read::{CompressionReader, OwnedReader, PrependReader, ZipEntry, ZipEntryReader};
+use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
 use crate::spec::header::LocalFileHeader;
-use crate::spec::attribute::AttributeCompatibility;
-use crate::read::ZipEntryMeta;
 
 use async_io_utilities::AsyncPrependReader;
 use tokio::io::{AsyncRead, AsyncReadExt};
@@ -88,7 +88,12 @@ impl<R: AsyncRead + Unpin> ZipFileReader<R> {
             Some(entry_borrow.0.compressed_size()).map(u32::into),
         )?;
 
-        Ok(Some(ZipEntryReader::from_raw(&entry_borrow.0, &entry_borrow.1, reader, entry_borrow.1.general_purpose_flag.data_descriptor)))
+        Ok(Some(ZipEntryReader::from_raw(
+            &entry_borrow.0,
+            &entry_borrow.1,
+            reader,
+            entry_borrow.1.general_purpose_flag.data_descriptor,
+        )))
     }
 }
 
@@ -120,10 +125,7 @@ pub(crate) async fn read_lfh<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Opt
         comment: String::new(),
     };
 
-    let meta = ZipEntryMeta {
-        general_purpose_flag: header.flags,
-        file_offset: None,
-    };
+    let meta = ZipEntryMeta { general_purpose_flag: header.flags, file_offset: None };
 
     Ok(Some((entry, meta)))
 }
