@@ -15,7 +15,7 @@ categories = ["asynchronous", "compression"]
 [features]
 full = ["date", "fs", "crc", "deflate", "bzip2", "lzma", "zstd", "xz"]
 
-date = []
+date = ["chrono"]
 fs = []
 crc = []
 
