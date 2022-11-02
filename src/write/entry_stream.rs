@@ -1,12 +1,12 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use crate::entry::ZipEntry;
 use crate::error::Result;
 use crate::spec::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
 use crate::write::compressed_writer::CompressedAsyncWriter;
 use crate::write::CentralDirectoryEntry;
 use crate::write::ZipFileWriter;
-use crate::entry::ZipEntry;
 
 use std::io::Error;
 use std::pin::Pin;

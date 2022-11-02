@@ -25,9 +25,9 @@
 
 use super::CompressionReader;
 use crate::error::{Result, ZipError};
+use crate::read::ZipEntryMeta;
 use crate::read::{OwnedReader, PrependReader, ZipEntry, ZipEntryReader};
 use crate::spec::header::LocalFileHeader;
-use crate::read::ZipEntryMeta;
 
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
@@ -65,7 +65,11 @@ impl ZipFileReader {
 
         let reader = OwnedReader::Owned(fs_file);
         let reader = PrependReader::Normal(reader);
-        let reader = CompressionReader::from_reader(&entry.0.compression(), reader, Some(entry.0.compressed_size()).map(u32::into))?;
+        let reader = CompressionReader::from_reader(
+            &entry.0.compression(),
+            reader,
+            Some(entry.0.compressed_size()).map(u32::into),
+        )?;
 
         Ok(ZipEntryReader::from_raw(&entry.0, &entry.1, reader, entry.1.general_purpose_flag.data_descriptor))
     }

@@ -1,11 +1,11 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use crate::entry::ZipEntry;
 use crate::error::Result;
 use crate::spec::compression::Compression;
 use crate::spec::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
 use crate::write::{CentralDirectoryEntry, ZipFileWriter};
-use crate::entry::ZipEntry;
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use std::io::Cursor;
@@ -32,7 +32,8 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             Compression::Stored => self.data,
             #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
             _ => {
-                _compressed_data = Some(compress(self.entry.compression(), self.data, self.entry.compression_level).await);
+                _compressed_data =
+                    Some(compress(self.entry.compression(), self.data, self.entry.compression_level).await);
                 _compressed_data.as_ref().unwrap()
             }
         };

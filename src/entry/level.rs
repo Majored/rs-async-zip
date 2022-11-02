@@ -24,11 +24,11 @@ pub enum CompressionLevel {
 
 impl CompressionLevel {
     pub(crate) fn into_level(self) -> Level {
-	match self {
-	    CompressionLevel::Fastest => Level::Fastest,
-	    CompressionLevel::Best => Level::Best,
-	    CompressionLevel::Default => Level::Default,
-	    CompressionLevel::Precise(n) => Level::Precise(n),
-	}
+        match self {
+            CompressionLevel::Fastest => Level::Fastest,
+            CompressionLevel::Best => Level::Best,
+            CompressionLevel::Default => Level::Default,
+            CompressionLevel::Precise(n) => Level::Precise(n),
+        }
     }
 }
