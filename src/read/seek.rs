@@ -26,9 +26,9 @@
 //! ```
 
 use crate::error::{Result, ZipError};
-use crate::read::{CompressionReader, OwnedReader, PrependReader, ZipEntry, ZipEntryReader, ZipEntryMeta};
-use crate::spec::compression::Compression;
+use crate::read::{CompressionReader, OwnedReader, PrependReader, ZipEntry, ZipEntryMeta, ZipEntryReader};
 use crate::spec::attribute::AttributeCompatibility;
+use crate::spec::compression::Compression;
 use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader, LocalFileHeader};
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt};
@@ -64,7 +64,11 @@ impl<R: AsyncRead + AsyncSeek + Unpin> ZipFileReader<R> {
 
         let reader = OwnedReader::Borrow(&mut self.reader);
         let reader = PrependReader::Normal(reader);
-        let reader = CompressionReader::from_reader(&entry.0.compression(), reader, Some(entry.0.compressed_size()).map(u32::into))?;
+        let reader = CompressionReader::from_reader(
+            &entry.0.compression(),
+            reader,
+            Some(entry.0.compressed_size()).map(u32::into),
+        )?;
 
         Ok(ZipEntryReader::from_raw(&entry.0, &entry.1, reader, entry.1.general_purpose_flag.data_descriptor))
     }
@@ -146,7 +150,8 @@ pub(crate) async fn read_cd_entry<R: AsyncRead + Unpin>(reader: &mut R) -> Resul
         filename,
         compression,
         compression_level: async_compression::Level::Default,
-        attribute_compatibility: AttributeCompatibility::Unix, /// FIXME: Default to Unix for the moment
+        attribute_compatibility: AttributeCompatibility::Unix,
+        /// FIXME: Default to Unix for the moment
         crc32: header.crc,
         uncompressed_size: header.uncompressed_size,
         compressed_size: header.compressed_size,
@@ -154,13 +159,10 @@ pub(crate) async fn read_cd_entry<R: AsyncRead + Unpin>(reader: &mut R) -> Resul
         internal_file_attribute: header.inter_attr,
         external_file_attribute: header.exter_attr,
         extra_field,
-        comment
+        comment,
     };
 
-    let meta = ZipEntryMeta {
-        general_purpose_flag: header.flags,
-        file_offset: Some(header.lh_offset),
-    };
+    let meta = ZipEntryMeta { general_purpose_flag: header.flags, file_offset: Some(header.lh_offset) };
 
     Ok((entry, meta))
 }

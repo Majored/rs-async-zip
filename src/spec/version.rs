@@ -1,9 +1,9 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use crate::entry::ZipEntry;
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use crate::spec::compression::Compression;
-use crate::entry::ZipEntry;
 
 pub(crate) const SPEC_VERSION_MADE_BY: u16 = 63;
 

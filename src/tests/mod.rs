@@ -1,9 +1,9 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use crate::entry::builder::ZipEntryBuilder;
 use crate::spec::compression::Compression;
 use crate::write::ZipFileWriter;
-use crate::entry::builder::ZipEntryBuilder;
 
 use std::io::Cursor;
 use std::vec::Vec;
@@ -88,7 +88,8 @@ async fn entry_with_specific_last_modified() {
 
     let mut zip_writer = ZipFileWriter::new(&mut input_stream);
 
-    let open_opts = ZipEntryBuilder::new(String::from("foo.bar"), Compression::Stored).last_modification_date(last_modified);
+    let open_opts =
+        ZipEntryBuilder::new(String::from("foo.bar"), Compression::Stored).last_modification_date(last_modified);
     zip_writer.write_entry_whole(open_opts, &[]).await.expect("failed to write entry");
 
     let open_opts = ZipEntryBuilder::new(String::from("foo.baz"), Compression::Stored);
@@ -128,7 +129,7 @@ async fn data_descriptor_single() {
     input_stream.set_position(0);
 
     let mut zip_reader = ZipFileReader::new(&mut input_stream).await.expect("failed to open reader");
- 
+
     assert_eq!(1, zip_reader.entries().len());
 
     let entry = zip_reader.entry("foo.bar").expect("no 'foo.bar' entry");

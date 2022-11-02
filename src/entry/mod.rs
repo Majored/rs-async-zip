@@ -4,22 +4,22 @@
 mod level;
 pub use level::CompressionLevel;
 
-pub mod ext;
 pub mod builder;
+pub mod ext;
 
-use chrono::{DateTime, Utc};
-use crate::spec::compression::Compression;
-use crate::spec::attribute::AttributeCompatibility;
 use crate::entry::builder::ZipEntryBuilder;
+use crate::spec::attribute::AttributeCompatibility;
+use crate::spec::compression::Compression;
+use chrono::{DateTime, Utc};
 
 #[cfg(doc)]
 use crate::entry::ext::ZipEntryExt;
 
 /// An immutable store of data about a ZIP entry.
-/// 
+///
 /// This type is intended to solely provide access to the raw underlying data. Any additional or more complex
 /// operations are provided within an extension trait, [`ZipEntryExt`].
-/// 
+///
 /// This type cannot be directly constructed so instead, the [`ZipEntryBuilder`] must be used. Internally this builder
 /// stores a [`ZipEntry`] so conversions between these two types via the [`From`] implementations will be
 /// non-allocating.
@@ -64,7 +64,7 @@ impl ZipEntry {
     }
 
     /// Returns the entry's filename.
-    /// 
+    ///
     /// ## Note
     /// This will return the raw filename stored during ZIP creation. If calling this method on entries retrieved from
     /// untrusted ZIP files, the filename should be sanitised before being used as a path to prevent [directory
