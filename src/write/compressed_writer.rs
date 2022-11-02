@@ -29,23 +29,19 @@ pub enum CompressedAsyncWriter<'b, W: AsyncWrite + Unpin> {
 impl<'b, W: AsyncWrite + Unpin> CompressedAsyncWriter<'b, W> {
     pub fn from_raw(writer: &'b mut AsyncOffsetWriter<W>, compression: Compression) -> Self {
         match compression {
-            Compression::Stored => CompressedAsyncWriter::Stored(ShutdownIgnoredWriter { 0: writer }),
+            Compression::Stored => CompressedAsyncWriter::Stored(ShutdownIgnoredWriter(writer)),
             #[cfg(feature = "deflate")]
             Compression::Deflate => {
-                CompressedAsyncWriter::Deflate(write::DeflateEncoder::new(ShutdownIgnoredWriter { 0: writer }))
+                CompressedAsyncWriter::Deflate(write::DeflateEncoder::new(ShutdownIgnoredWriter(writer)))
             }
             #[cfg(feature = "bzip2")]
-            Compression::Bz => CompressedAsyncWriter::Bz(write::BzEncoder::new(ShutdownIgnoredWriter { 0: writer })),
+            Compression::Bz => CompressedAsyncWriter::Bz(write::BzEncoder::new(ShutdownIgnoredWriter(writer))),
             #[cfg(feature = "lzma")]
-            Compression::Lzma => {
-                CompressedAsyncWriter::Lzma(write::LzmaEncoder::new(ShutdownIgnoredWriter { 0: writer }))
-            }
+            Compression::Lzma => CompressedAsyncWriter::Lzma(write::LzmaEncoder::new(ShutdownIgnoredWriter(writer))),
             #[cfg(feature = "zstd")]
-            Compression::Zstd => {
-                CompressedAsyncWriter::Zstd(write::ZstdEncoder::new(ShutdownIgnoredWriter { 0: writer }))
-            }
+            Compression::Zstd => CompressedAsyncWriter::Zstd(write::ZstdEncoder::new(ShutdownIgnoredWriter(writer))),
             #[cfg(feature = "xz")]
-            Compression::Xz => CompressedAsyncWriter::Xz(write::XzEncoder::new(ShutdownIgnoredWriter { 0: writer })),
+            Compression::Xz => CompressedAsyncWriter::Xz(write::XzEncoder::new(ShutdownIgnoredWriter(writer))),
         }
     }
 

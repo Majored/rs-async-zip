@@ -389,12 +389,12 @@ impl<R: AsyncRead + Unpin> AsyncRead for CompressionReader<R> {
     }
 }
 
-impl<'a, R: AsyncRead + Unpin> CompressionReader<R> {
+impl<R: AsyncRead + Unpin> CompressionReader<R> {
     pub(crate) fn from_reader(compression: &Compression, reader: R, take: Option<u64>) -> Result<Self> {
         Ok(match compression {
-            Compression::Stored => CompressionReader::Stored(
-                BufReader::new(reader).take(take.ok_or_else(|| ZipError::MissingCompressedSize)?),
-            ),
+            Compression::Stored => {
+                CompressionReader::Stored(BufReader::new(reader).take(take.ok_or(ZipError::MissingCompressedSize)?))
+            }
             #[cfg(feature = "deflate")]
             Compression::Deflate => CompressionReader::Deflate(bufread::DeflateDecoder::new(BufReader::new(reader))),
             #[cfg(feature = "bzip2")]

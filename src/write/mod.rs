@@ -115,7 +115,7 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
             self.writer.write_all(&crate::spec::signature::CENTRAL_DIRECTORY_FILE_HEADER.to_le_bytes()).await?;
             self.writer.write_all(&entry.header.as_slice()).await?;
             self.writer.write_all(entry.entry.filename().as_bytes()).await?;
-            self.writer.write_all(&entry.entry.extra_field()).await?;
+            self.writer.write_all(entry.entry.extra_field()).await?;
             self.writer.write_all(entry.entry.comment().as_bytes()).await?;
         }
 

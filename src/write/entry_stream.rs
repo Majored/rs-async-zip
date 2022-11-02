@@ -121,7 +121,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
     }
 }
 
-impl<'a, 'b, W: AsyncWrite + Unpin> AsyncWrite for EntryStreamWriter<'b, W> {
+impl<'a, W: AsyncWrite + Unpin> AsyncWrite for EntryStreamWriter<'a, W> {
     fn poll_write(mut self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<std::result::Result<usize, Error>> {
         let poll = Pin::new(&mut self.writer).poll_write(cx, buf);
 
