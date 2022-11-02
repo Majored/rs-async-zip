@@ -25,4 +25,4 @@ pub use crate::spec::attribute::AttributeCompatibility;
 pub use crate::spec::compression::Compression;
 
 pub use crate::entry::ext::{ZipEntryBuilderExt, ZipEntryExt};
-pub use crate::entry::{builder::ZipEntryBuilder, ZipEntry};
+pub use crate::entry::{builder::ZipEntryBuilder, CompressionLevel, ZipEntry};
