@@ -24,5 +24,5 @@ pub mod write;
 pub use crate::spec::compression::Compression;
 pub use crate::spec::attribute::AttributeCompatibility;
 
-pub use crate::entry::{ZipEntry, builder::ZipEntryBuilder};
+pub use crate::entry::{ZipEntry, builder::ZipEntryBuilder, CompressionLevel};
 pub use crate::entry::ext::{ZipEntryExt, ZipEntryBuilderExt};
