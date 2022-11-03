@@ -3,13 +3,11 @@
 
 use crate::entry::ZipEntry;
 use crate::spec::attribute::AttributeCompatibility;
-use crate::spec::compression::Compression;
+use crate::spec::compression::{Compression, DeflateOption};
 use chrono::{DateTime, Utc};
 
 #[cfg(doc)]
 use crate::entry::ext::ZipEntryBuilderExt;
-
-use super::CompressionLevel;
 
 /// A builder for [`ZipEntry`].
 ///
@@ -31,12 +29,11 @@ impl ZipEntryBuilder {
         Self(ZipEntry::new(filename, compression))
     }
 
-    /// Set the compression level.
+    /// Set the deflate compression option.
     ///
-    /// What the precise value means is implementation defined so it
-    /// depends on what compression algorithm is used.
-    pub fn set_compression_level(mut self, level: CompressionLevel) -> Self {
-        self.0.compression_level = level.into_level();
+    /// If the compression type isn't deflate, this option has no effect.
+    pub fn set_deflate_option(mut self, option: DeflateOption) -> Self {
+        self.0.compression_level = option.into_level();
         self
     }
 

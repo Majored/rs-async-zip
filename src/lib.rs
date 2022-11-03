@@ -22,7 +22,7 @@ pub(crate) mod utils;
 pub mod write;
 
 pub use crate::spec::attribute::AttributeCompatibility;
-pub use crate::spec::compression::Compression;
+pub use crate::spec::compression::{Compression, DeflateOption};
 
 pub use crate::entry::ext::{ZipEntryBuilderExt, ZipEntryExt};
-pub use crate::entry::{builder::ZipEntryBuilder, CompressionLevel, ZipEntry};
+pub use crate::entry::{builder::ZipEntryBuilder, ZipEntry};
