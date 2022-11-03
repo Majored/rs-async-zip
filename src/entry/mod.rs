@@ -7,6 +7,7 @@ pub mod ext;
 use crate::entry::builder::ZipEntryBuilder;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
+use crate::spec::header::GeneralPurposeFlag;
 use chrono::{DateTime, Utc};
 
 #[cfg(doc)]
@@ -119,4 +120,11 @@ impl ZipEntry {
     pub fn comment(&self) -> &str {
         &self.comment
     }
+}
+
+#[derive(Clone)]
+#[allow(dead_code)]
+pub(crate) struct ZipEntryMeta {
+    pub(crate) general_purpose_flag: GeneralPurposeFlag,
+    pub(crate) file_offset: u64,
 }
