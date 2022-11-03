@@ -12,14 +12,16 @@
 //!
 //! [Read more.](https://github.com/Majored/rs-async-zip)
 
-pub(crate) mod entry;
 pub mod error;
 pub mod read;
+pub mod write;
+
+pub(crate) mod entry;
 pub(crate) mod spec;
+pub(crate) mod utils;
+
 #[cfg(test)]
 pub(crate) mod tests;
-pub(crate) mod utils;
-pub mod write;
 
 pub use crate::spec::attribute::AttributeCompatibility;
 pub use crate::spec::compression::{Compression, DeflateOption};
