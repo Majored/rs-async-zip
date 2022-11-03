@@ -4,6 +4,7 @@
 use crate::error::{Result, ZipError};
 
 /// A compression method supported by this crate.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Compression {
     Stored,

@@ -9,6 +9,7 @@ use thiserror::Error;
 pub type Result<V> = std::result::Result<V, ZipError>;
 
 /// An enum of possible errors and their descriptions.
+#[non_exhaustive]
 #[derive(Debug, Error)]
 pub enum ZipError {
     #[error("Encountered an unexpected header (actual: {0:#x}, expected: {1:#x}).")]

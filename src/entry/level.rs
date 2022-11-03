@@ -7,6 +7,7 @@ use async_compression::Level;
 // implementation details and allow easier updates.
 
 /// Level of compression data should be compressed with.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy)]
 pub enum CompressionLevel {
     /// Fastest quality of compression, usually produces bigger size.
