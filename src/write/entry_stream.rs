@@ -5,9 +5,9 @@ use crate::entry::ZipEntry;
 use crate::error::Result;
 use crate::spec::header::{CentralDirectoryRecord, GeneralPurposeFlag, LocalFileHeader};
 use crate::write::compressed_writer::CompressedAsyncWriter;
+use crate::write::io::offset::AsyncOffsetWriter;
 use crate::write::CentralDirectoryEntry;
 use crate::write::ZipFileWriter;
-use crate::write::io::offset::AsyncOffsetWriter;
 
 use std::io::Error;
 use std::pin::Pin;

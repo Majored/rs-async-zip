@@ -3,5 +3,5 @@
 
 pub(crate) mod combined;
 pub(crate) mod read;
-pub(crate) mod write;
 pub(crate) mod spec;
+pub(crate) mod write;

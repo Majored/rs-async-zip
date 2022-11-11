@@ -5,21 +5,27 @@
 // MIT License (https://github.com/Majored/rs-async-io-utilities/blob/main/LICENSE)
 
 use std::io::{Error, IoSlice};
-use std::task::{Context, Poll};
 use std::pin::Pin;
+use std::task::{Context, Poll};
 
 use pin_project::pin_project;
 use tokio::io::AsyncWrite;
 
 /// A wrapper around an [`AsyncWrite`] implementation which tracks the current byte offset.
 #[pin_project(project = OffsetWriterProj)]
-pub struct AsyncOffsetWriter<W> where W: AsyncWrite + Unpin {
+pub struct AsyncOffsetWriter<W>
+where
+    W: AsyncWrite + Unpin,
+{
     #[pin]
     inner: W,
     offset: usize,
 }
 
-impl<W> AsyncOffsetWriter<W> where W: AsyncWrite + Unpin {
+impl<W> AsyncOffsetWriter<W>
+where
+    W: AsyncWrite + Unpin,
+{
     /// Constructs a new wrapper from an inner [`AsyncWrite`] writer.
     pub fn new(inner: W) -> Self {
         Self { inner, offset: 0 }
@@ -36,7 +42,10 @@ impl<W> AsyncOffsetWriter<W> where W: AsyncWrite + Unpin {
     }
 }
 
-impl<W> AsyncWrite for AsyncOffsetWriter<W> where W: AsyncWrite + Unpin {
+impl<W> AsyncWrite for AsyncOffsetWriter<W>
+where
+    W: AsyncWrite + Unpin,
+{
     fn poll_write(self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<Result<usize, Error>> {
         let this = self.project();
         let poll = this.inner.poll_write(cx, buf);
@@ -57,9 +66,9 @@ impl<W> AsyncWrite for AsyncOffsetWriter<W> where W: AsyncWrite + Unpin {
     }
 
     fn poll_write_vectored(
-        self: Pin<&mut Self>, 
-        cx: &mut Context<'_>, 
-        bufs: &[IoSlice<'_>]
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        bufs: &[IoSlice<'_>],
     ) -> Poll<Result<usize, Error>> {
         self.project().inner.poll_write_vectored(cx, bufs)
     }

@@ -60,8 +60,8 @@ pub use entry_stream::EntryStreamWriter;
 use crate::entry::ZipEntry;
 use crate::error::Result;
 use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader};
-use io::offset::AsyncOffsetWriter;
 use entry_whole::EntryWholeWriter;
+use io::offset::AsyncOffsetWriter;
 
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
