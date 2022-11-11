@@ -2,7 +2,6 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 pub mod builder;
-pub mod ext;
 
 use crate::entry::builder::ZipEntryBuilder;
 use crate::spec::attribute::AttributeCompatibility;
@@ -10,13 +9,7 @@ use crate::spec::compression::Compression;
 use crate::spec::header::GeneralPurposeFlag;
 use chrono::{DateTime, Utc};
 
-#[cfg(doc)]
-use crate::entry::ext::ZipEntryExt;
-
 /// An immutable store of data about a ZIP entry.
-///
-/// This type is intended to solely provide access to the raw underlying data. Any additional or more complex
-/// operations are provided within an extension trait, [`ZipEntryExt`].
 ///
 /// This type cannot be directly constructed so instead, the [`ZipEntryBuilder`] must be used. Internally this builder
 /// stores a [`ZipEntry`] so conversions between these two types via the [`From`] implementations will be
@@ -119,6 +112,23 @@ impl ZipEntry {
     /// Returns the entry's file comment.
     pub fn comment(&self) -> &str {
         &self.comment
+    }
+
+    /// Returns the entry's integer-based UNIX permissions.
+    ///
+    /// # Note
+    /// This will return None if the attribute host compatibility is not listed as Unix.
+    pub fn unix_permissions(&self) -> Option<u16> {
+        if !matches!(self.attribute_compatibility, AttributeCompatibility::Unix) {
+            return None;
+        }
+
+        Some(((self.external_file_attribute) >> 16) as u16)
+    }
+
+    /// Returns whether or not the entry represents a directory.
+    pub fn dir(&self) -> bool {
+        self.filename.ends_with('/')
     }
 }
 
