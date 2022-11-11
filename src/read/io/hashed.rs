@@ -4,28 +4,34 @@
 use crate::read::io::poll_result_ok;
 
 use std::pin::Pin;
-use std::task::{Context, Poll, ready};
+use std::task::{ready, Context, Poll};
 
-use tokio::io::{AsyncRead, ReadBuf};
 use crc32fast::Hasher;
 use pin_project::pin_project;
+use tokio::io::{AsyncRead, ReadBuf};
 
 /// A wrapping reader which computes the CRC32 hash of data read via [`AsyncRead`].
 #[pin_project]
-pub(crate) struct HashedReader<R> where R: AsyncRead + Unpin {
+pub(crate) struct HashedReader<R>
+where
+    R: AsyncRead + Unpin,
+{
     #[pin]
     pub(crate) reader: R,
     pub(crate) hasher: Hasher,
 }
 
-impl<R> HashedReader<R> where R: AsyncRead + Unpin {
+impl<R> HashedReader<R>
+where
+    R: AsyncRead + Unpin,
+{
     /// Constructs a new wrapping reader from a generic [`AsyncRead`] implementer.
     pub(crate) fn new(reader: R) -> Self {
         Self { reader, hasher: Hasher::default() }
     }
 
     /// Swaps the internal hasher and returns the computed CRC32 hash.
-    /// 
+    ///
     /// The internal hasher is taken and replaced with a newly-constructed one. As a result, this method should only be
     /// called once EOF has been reached and it's known that no more data will be read, else the computed hash(s) won't
     /// accurately represent the data read in.
@@ -34,7 +40,10 @@ impl<R> HashedReader<R> where R: AsyncRead + Unpin {
     }
 }
 
-impl<R> AsyncRead for HashedReader <R> where R: AsyncRead + Unpin {
+impl<R> AsyncRead for HashedReader<R>
+where
+    R: AsyncRead + Unpin,
+{
     fn poll_read(self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
         let project = self.project();
         let prev_len = b.filled().len();

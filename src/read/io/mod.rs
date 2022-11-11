@@ -2,10 +2,10 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 pub(crate) mod compressed;
-pub(crate) mod hashed;
-pub(crate) mod owned;
 pub(crate) mod entry;
+pub(crate) mod hashed;
 pub(crate) mod locator;
+pub(crate) mod owned;
 
 use tokio::io::{AsyncRead, AsyncReadExt};
 
@@ -13,7 +13,7 @@ use tokio::io::{AsyncRead, AsyncReadExt};
 pub(crate) async fn read_string<R: AsyncRead + Unpin>(reader: R, length: usize) -> std::io::Result<String> {
     let mut buffer = String::with_capacity(length);
     reader.take(length as u64).read_to_string(&mut buffer).await?;
-    
+
     Ok(buffer)
 }
 
@@ -26,7 +26,7 @@ pub(crate) async fn read_bytes<R: AsyncRead + Unpin>(reader: R, length: usize) -
 }
 
 /// A macro that returns the inner value of an Ok or early-returns in the case of an Err.
-/// 
+///
 /// This is almost identical to the ? operator but handles the situation when a Result is used in combination with
 /// Poll (eg. tokio's IO traits such as AsyncRead).
 macro_rules! poll_result_ok {

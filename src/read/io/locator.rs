@@ -2,7 +2,7 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 //! <https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4316>
-//! 
+//!
 //! As with other ZIP libraries, we face the predicament that the end of central directory record may contain a
 //! variable-length file comment. As a result, we cannot just make the assumption that the start of this record is
 //! 18 bytes (the length of the EOCDR) offset from the end of the data - we must locate it ourselves.
@@ -21,7 +21,7 @@
 use tokio::io::BufReader;
 
 use crate::error::{Result, ZipError};
-use crate::spec::consts::{EOCDR_SIGNATURE, EOCDR_LENGTH, SIGNATURE_LENGTH};
+use crate::spec::consts::{EOCDR_LENGTH, EOCDR_SIGNATURE, SIGNATURE_LENGTH};
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
 
@@ -35,14 +35,17 @@ const EOCDR_UPPER_BOUND: u64 = EOCDR_LENGTH as u64;
 const EOCDR_LOWER_BOUND: u64 = EOCDR_UPPER_BOUND + SIGNATURE_LENGTH as u64 + u16::MAX as u64;
 
 /// Locate the `end of central directory record` offset, if one exists.
-/// 
+///
 /// This method involves buffered reading in reverse and reverse linear searching along those buffers for the EOCDR
 /// signature. As a result of this buffered approach, we reduce seeks when compared to `zip-rs`'s method by a factor
 /// of the buffer size. We also then don't have to do individual u32 reads against the upstream reader.
-/// 
+///
 /// Whilst I haven't done any in-depth benchmarks, when reading a ZIP file with the maximum length comment, this method
 /// saw a reduction in location time by a factor of 500 when compared with the `zip-rs` method.
-pub(crate) async fn eocdr<R>(mut reader: R) -> Result<u64> where  R: AsyncRead + AsyncSeek + Unpin {
+pub(crate) async fn eocdr<R>(mut reader: R) -> Result<u64>
+where
+    R: AsyncRead + AsyncSeek + Unpin,
+{
     let length = reader.seek(SeekFrom::End(0)).await?;
     let signature = &EOCDR_SIGNATURE.to_le_bytes();
     let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
@@ -71,14 +74,14 @@ pub(crate) async fn eocdr<R>(mut reader: R) -> Result<u64> where  R: AsyncRead +
 }
 
 /// A naive reverse linear search along the buffer for the specified signature bytes.
-/// 
+///
 /// This is already surprisingly performant. For instance, using memchr::memchr() to match for the first byte of the
 /// signature, and then manual byte comparisons for the remaining signature bytes was actually slower by a factor of
 /// 2.25. This method was explored as tokio's `read_until()` implementation uses memchr::memchr().
 fn reverse_search_buffer(buffer: &[u8], signature: &[u8]) -> Option<usize> {
     'outer: for index in (0..buffer.len()).rev() {
         for (signature_index, signature_byte) in signature.iter().rev().enumerate() {
-            if let Some(next_index) =  index.checked_sub(signature_index) {
+            if let Some(next_index) = index.checked_sub(signature_index) {
                 if buffer[next_index] != *signature_byte {
                     continue 'outer;
                 }

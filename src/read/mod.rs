@@ -3,25 +3,28 @@
 
 //! A module which supports reading ZIP files.
 
-pub mod seek;
 pub mod mem;
+pub mod seek;
 
 #[cfg(feature = "fs")]
 pub mod fs;
 
 pub(crate) mod io;
 
-use crate::error::{ZipError, Result};
 use crate::entry::{ZipEntry, ZipEntryMeta};
+use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
-use crate::spec::compression::Compression;
-use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader};
 use crate::spec::attribute::AttributeCompatibility;
+use crate::spec::compression::Compression;
 use crate::spec::consts::{LFH_LENGTH, SIGNATURE_LENGTH};
+use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader};
 
 use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt, SeekFrom};
 
-pub(crate) async fn file<R>(mut reader: R) -> Result<ZipFile> where  R: AsyncRead + AsyncSeek + Unpin {
+pub(crate) async fn file<R>(mut reader: R) -> Result<ZipFile>
+where
+    R: AsyncRead + AsyncSeek + Unpin,
+{
     let eocdr_offset = crate::read::io::locator::eocdr(&mut reader).await?;
 
     reader.seek(SeekFrom::Start(eocdr_offset)).await?;
@@ -35,13 +38,13 @@ pub(crate) async fn file<R>(mut reader: R) -> Result<ZipFile> where  R: AsyncRea
 
     reader.seek(SeekFrom::Start(eocdr.cent_dir_offset.into())).await?;
     let (entries, metas) = crate::read::cd(&mut reader, eocdr.num_of_entries.into()).await?;
-    
+
     Ok(ZipFile { entries, metas, comment, zip64: false })
 }
 
 pub(crate) async fn cd<R>(mut reader: R, num_of_entries: u64) -> Result<(Vec<ZipEntry>, Vec<ZipEntryMeta>)>
-where 
-    R: AsyncRead + Unpin
+where
+    R: AsyncRead + Unpin,
 {
     let num_of_entries: usize = num_of_entries.try_into().map_err(|_| ZipError::TargetZip64Unsupported)?;
     let mut entries = Vec::with_capacity(num_of_entries);
@@ -58,8 +61,8 @@ where
 }
 
 pub(crate) async fn cd_record<R>(mut reader: R) -> Result<(ZipEntry, ZipEntryMeta)>
-where 
-    R: AsyncRead + Unpin
+where
+    R: AsyncRead + Unpin,
 {
     let header = CentralDirectoryRecord::from_reader(&mut reader).await?;
     let filename = crate::read::io::read_string(&mut reader, header.file_name_length.into()).await?;
@@ -73,7 +76,8 @@ where
         filename,
         compression,
         compression_level: async_compression::Level::Default,
-        attribute_compatibility: AttributeCompatibility::Unix, /// FIXME: Default to Unix for the moment
+        attribute_compatibility: AttributeCompatibility::Unix,
+        /// FIXME: Default to Unix for the moment
         crc32: header.crc,
         uncompressed_size: header.uncompressed_size,
         compressed_size: header.compressed_size,
@@ -82,13 +86,10 @@ where
         internal_file_attribute: header.inter_attr,
         external_file_attribute: header.exter_attr,
         extra_field,
-        comment
+        comment,
     };
 
-    let meta = ZipEntryMeta {
-        general_purpose_flag: header.flags,
-        file_offset: header.lh_offset as u64,
-    };
+    let meta = ZipEntryMeta { general_purpose_flag: header.flags, file_offset: header.lh_offset as u64 };
 
     Ok((entry, meta))
 }
@@ -96,6 +97,6 @@ where
 pub(crate) fn compute_data_offset(entry: &ZipEntry, meta: &ZipEntryMeta) -> u64 {
     let header_length = SIGNATURE_LENGTH + LFH_LENGTH;
     let trailing_length = entry.comment().as_bytes().len() + entry.extra_field().len();
-    
+
     meta.file_offset + (header_length as u64) + (trailing_length as u64)
 }
