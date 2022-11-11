@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
+// Copyright (c) 2021-2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 //! A module which supports writing ZIP files.
@@ -53,13 +53,14 @@
 pub(crate) mod compressed_writer;
 pub(crate) mod entry_stream;
 pub(crate) mod entry_whole;
+pub(crate) mod io;
 
 pub use entry_stream::EntryStreamWriter;
 
 use crate::entry::ZipEntry;
 use crate::error::Result;
 use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader};
-use async_io_utilities::AsyncOffsetWriter;
+use io::offset::AsyncOffsetWriter;
 use entry_whole::EntryWholeWriter;
 
 use tokio::io::{AsyncWrite, AsyncWriteExt};

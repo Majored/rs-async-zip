@@ -7,12 +7,12 @@ use crate::spec::header::{CentralDirectoryRecord, GeneralPurposeFlag, LocalFileH
 use crate::write::compressed_writer::CompressedAsyncWriter;
 use crate::write::CentralDirectoryEntry;
 use crate::write::ZipFileWriter;
+use crate::write::io::offset::AsyncOffsetWriter;
 
 use std::io::Error;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use async_io_utilities::AsyncOffsetWriter;
 use crc32fast::Hasher;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 

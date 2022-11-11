@@ -2,6 +2,7 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::spec::compression::Compression;
+use crate::write::io::offset::AsyncOffsetWriter;
 
 use std::io::Error;
 use std::pin::Pin;
@@ -9,7 +10,6 @@ use std::task::{Context, Poll};
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use async_compression::tokio::write;
-use async_io_utilities::AsyncOffsetWriter;
 use tokio::io::AsyncWrite;
 
 pub enum CompressedAsyncWriter<'b, W: AsyncWrite + Unpin> {
