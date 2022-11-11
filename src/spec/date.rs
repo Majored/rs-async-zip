@@ -36,16 +36,3 @@ pub fn chrono_to_zip_time(dt: &DateTime<Utc>) -> (u16, u16) {
 
     (hour | min | second, year | month | day)
 }
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-    #[test]
-    fn date_conversion_test() {
-        let original_dt = Utc.timestamp(1666544102, 0);
-        let (time, date) = chrono_to_zip_time(&original_dt);
-        let result_dt = zip_date_to_chrono(date, time);
-        assert_eq!(result_dt, original_dt);
-    }
-}
