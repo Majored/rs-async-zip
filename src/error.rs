@@ -28,4 +28,6 @@ pub enum ZipError {
     EntryIndexOutOfBounds,
     #[error("Compressed size is required to be present in the Local File Header when using Stored compression.")]
     MissingCompressedSize,
+    #[error("Unable to locate the end of central directory record.")]
+    UnableToLocateEOCDR,
 }

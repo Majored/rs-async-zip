@@ -76,7 +76,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             lh_offset: self.writer.writer.offset() as u32,
         };
 
-        self.writer.writer.write_all(&crate::spec::signature::LOCAL_FILE_HEADER.to_le_bytes()).await?;
+        self.writer.writer.write_all(&crate::spec::consts::LFH_SIGNATURE.to_le_bytes()).await?;
         self.writer.writer.write_all(&lf_header.as_slice()).await?;
         self.writer.writer.write_all(self.entry.filename().as_bytes()).await?;
         self.writer.writer.write_all(self.entry.extra_field()).await?;

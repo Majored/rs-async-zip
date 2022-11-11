@@ -86,7 +86,7 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(
 
     let mut matched_offset: Option<u64> = None;
     let mut comment = None;
-    let delimiter = crate::spec::signature::END_OF_CENTRAL_DIRECTORY.to_le_bytes();
+    let delimiter = crate::spec::consts::EOCDR_SIGNATURE.to_le_bytes();
     let mut reader = AsyncDelimiterReader::new(reader, &delimiter);
 
     // We need to find the last EOCDH as there's a possibility that an inner ZIP file exists with the Stored
@@ -107,7 +107,7 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(
         } else if matched_offset.is_some() {
             break 'outer;
         } else {
-            return Err(ZipError::UnexpectedHeaderError(0, crate::spec::signature::END_OF_CENTRAL_DIRECTORY));
+            return Err(ZipError::UnexpectedHeaderError(0, crate::spec::consts::EOCDR_SIGNATURE));
         }
 
         reader.reset();
@@ -137,7 +137,7 @@ pub(crate) async fn read_cd<R: AsyncRead + AsyncSeek + Unpin>(
 }
 
 pub(crate) async fn read_cd_entry<R: AsyncRead + Unpin>(reader: &mut R) -> Result<(ZipEntry, ZipEntryMeta)> {
-    crate::utils::assert_signature(reader, crate::spec::signature::CENTRAL_DIRECTORY_FILE_HEADER).await?;
+    crate::utils::assert_signature(reader, crate::spec::consts::CDH_SIGNATURE).await?;
 
     let header = CentralDirectoryHeader::from_reader(reader).await?;
     let filename = async_io_utilities::read_string(reader, header.file_name_length.into()).await?;

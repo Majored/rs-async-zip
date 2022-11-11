@@ -67,7 +67,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             },
         };
 
-        writer.writer.write_all(&crate::spec::signature::LOCAL_FILE_HEADER.to_le_bytes()).await?;
+        writer.writer.write_all(&crate::spec::consts::LFH_SIGNATURE.to_le_bytes()).await?;
         writer.writer.write_all(&lfh.as_slice()).await?;
         writer.writer.write_all(entry.filename().as_bytes()).await?;
         writer.writer.write_all(entry.extra_field()).await?;
@@ -92,7 +92,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         let inner_writer = self.writer.into_inner().into_inner();
         let compressed_size = (inner_writer.offset() - self.data_offset) as u32;
 
-        inner_writer.write_all(&crate::spec::signature::DATA_DESCRIPTOR.to_le_bytes()).await?;
+        inner_writer.write_all(&crate::spec::consts::DATA_DESCRIPTOR_SIGNATURE.to_le_bytes()).await?;
         inner_writer.write_all(&crc.to_le_bytes()).await?;
         inner_writer.write_all(&compressed_size.to_le_bytes()).await?;
         inner_writer.write_all(&uncompressed_size.to_le_bytes()).await?;

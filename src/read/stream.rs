@@ -99,9 +99,9 @@ impl<R: AsyncRead + Unpin> ZipFileReader<R> {
 
 pub(crate) async fn read_lfh<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Option<(ZipEntry, ZipEntryMeta)>> {
     match reader.read_u32_le().await? {
-        crate::spec::signature::LOCAL_FILE_HEADER => {}
-        crate::spec::signature::CENTRAL_DIRECTORY_FILE_HEADER => return Ok(None),
-        actual => return Err(ZipError::UnexpectedHeaderError(actual, crate::spec::signature::LOCAL_FILE_HEADER)),
+        crate::spec::consts::LFH_SIGNATURE => {}
+        crate::spec::consts::CDH_SIGNATURE => return Ok(None),
+        actual => return Err(ZipError::UnexpectedHeaderError(actual, crate::spec::consts::LFH_SIGNATURE)),
     };
 
     let header = LocalFileHeader::from_reader(reader).await?;

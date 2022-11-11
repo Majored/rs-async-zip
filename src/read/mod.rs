@@ -9,6 +9,8 @@ pub mod seek;
 pub mod stream;
 pub mod sync;
 
+pub(crate) mod io;
+
 use crate::entry::ZipEntry;
 use crate::error::{Result, ZipError};
 use crate::spec::compression::Compression;
@@ -195,7 +197,7 @@ impl<'a, R: AsyncRead + Unpin> ZipEntryReader<'a, R> {
                 let compressed = u32::from_le_bytes(descriptor_buf[8..12].try_into().unwrap());
                 let uncompressed = u32::from_le_bytes(descriptor_buf[12..16].try_into().unwrap());
 
-                if delimiter == crate::spec::signature::DATA_DESCRIPTOR {
+                if delimiter == crate::spec::consts::DATA_DESCRIPTOR_SIGNATURE {
                     Some((crc, compressed, uncompressed))
                 } else {
                     None
