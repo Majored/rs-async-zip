@@ -21,6 +21,9 @@ pub(crate) mod file;
 pub(crate) mod spec;
 pub(crate) mod utils;
 
+#[cfg(test)]
+pub(crate) mod tests;
+
 pub use crate::spec::attribute::AttributeCompatibility;
 pub use crate::spec::compression::{Compression, DeflateOption};
 

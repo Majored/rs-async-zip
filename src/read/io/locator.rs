@@ -78,7 +78,7 @@ where
 /// This is already surprisingly performant. For instance, using memchr::memchr() to match for the first byte of the
 /// signature, and then manual byte comparisons for the remaining signature bytes was actually slower by a factor of
 /// 2.25. This method was explored as tokio's `read_until()` implementation uses memchr::memchr().
-fn reverse_search_buffer(buffer: &[u8], signature: &[u8]) -> Option<usize> {
+pub(crate) fn reverse_search_buffer(buffer: &[u8], signature: &[u8]) -> Option<usize> {
     'outer: for index in (0..buffer.len()).rev() {
         for (signature_index, signature_byte) in signature.iter().rev().enumerate() {
             if let Some(next_index) = index.checked_sub(signature_index) {
