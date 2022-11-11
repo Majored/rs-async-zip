@@ -59,12 +59,7 @@ where
     /// Reads all bytes until EOF has been reached, appending them to buf, and verifies the CRC32 values.
     ///
     /// This is a helper function synonymous to [`AsyncReadExt::read_to_end()`].
-    ///
-    /// Equivalent to:
-    /// ```no_run
-    /// async fn read_to_end_checked(&mut self, buf: &mut Vec<u8>, entry: &ZipEntry) -> Result<usize>
-    /// ```
-    async fn read_to_end_checked(&mut self, buf: &mut Vec<u8>, entry: &ZipEntry) -> Result<usize> {
+    pub async fn read_to_end_checked(&mut self, buf: &mut Vec<u8>, entry: &ZipEntry) -> Result<usize> {
         let read = self.read_to_end(buf).await?;
 
         if self.compute_hash() == entry.crc32() {
@@ -77,12 +72,7 @@ where
     /// Reads all bytes until EOF has been reached, placing them into buf, and verifies the CRC32 values.
     ///
     /// This is a helper function synonymous to [`AsyncReadExt::read_to_string()`].
-    ///
-    /// Equivalent to:
-    /// ```no_run
-    /// async fn read_to_string_checked(&mut self, buf: &mut String, entry: &ZipEntry) -> Result<usize>
-    /// ```
-    async fn read_to_string_checked(&mut self, buf: &mut String, entry: &ZipEntry) -> Result<usize> {
+    pub async fn read_to_string_checked(&mut self, buf: &mut String, entry: &ZipEntry) -> Result<usize> {
         let read = self.read_to_string(buf).await?;
 
         if self.compute_hash() == entry.crc32() {
