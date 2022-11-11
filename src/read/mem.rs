@@ -101,7 +101,7 @@ impl ZipFileReader {
     pub async fn entry(&self, index: usize) -> Result<ZipEntryReader<Cursor<&[u8]>>> {
         let entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
         let meta = self.inner.file.metas.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let seek_to = crate::read::compute_data_offset(&entry, &meta);
+        let seek_to = crate::read::compute_data_offset(entry, meta);
         let mut cursor = Cursor::new(&self.inner.data[..]);
 
         cursor.seek(SeekFrom::Start(seek_to)).await?;

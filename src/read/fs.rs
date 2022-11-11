@@ -105,7 +105,7 @@ impl ZipFileReader {
     pub async fn entry(&self, index: usize) -> Result<ZipEntryReader<File>> {
         let entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
         let meta = self.inner.file.metas.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let seek_to = crate::read::compute_data_offset(&entry, &meta);
+        let seek_to = crate::read::compute_data_offset(entry, meta);
         let mut fs_file = File::open(&self.inner.path).await?;
 
         fs_file.seek(SeekFrom::Start(seek_to)).await?;

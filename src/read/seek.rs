@@ -54,7 +54,7 @@ where
     pub async fn entry(&mut self, index: usize) -> Result<ZipEntryReader<'_, R>> {
         let entry = self.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
         let meta = self.file.metas.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let seek_to = crate::read::compute_data_offset(&entry, &meta);
+        let seek_to = crate::read::compute_data_offset(entry, meta);
 
         self.reader.seek(SeekFrom::Start(seek_to)).await?;
         Ok(ZipEntryReader::new_with_borrow(&mut self.reader, entry.compression(), entry.uncompressed_size().into()))
