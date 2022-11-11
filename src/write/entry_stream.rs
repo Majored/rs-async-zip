@@ -3,7 +3,7 @@
 
 use crate::entry::ZipEntry;
 use crate::error::Result;
-use crate::spec::header::{CentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
+use crate::spec::header::{CentralDirectoryRecord, GeneralPurposeFlag, LocalFileHeader};
 use crate::write::compressed_writer::CompressedAsyncWriter;
 use crate::write::CentralDirectoryEntry;
 use crate::write::ZipFileWriter;
@@ -97,7 +97,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         inner_writer.write_all(&compressed_size.to_le_bytes()).await?;
         inner_writer.write_all(&uncompressed_size.to_le_bytes()).await?;
 
-        let cdh = CentralDirectoryHeader {
+        let cdh = CentralDirectoryRecord {
             compressed_size,
             uncompressed_size,
             crc,

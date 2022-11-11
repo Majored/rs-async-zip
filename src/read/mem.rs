@@ -1,55 +1,110 @@
-// Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
+// Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-//! A module for reading ZIP file entries concurrently from an in-memory buffer.
+//! A concurrent ZIP reader which acts over an owned vector of bytes.
+//! 
+//! Concurrency is achieved as a result of:
+//! - Wrapping the provided vector of bytes within an [`Arc`] to allow shared ownership.
+//! - Wrapping this [`Arc`] around a [`Cursor`] when reading (as the [`Arc`] can deref and coerce into a `&[u8]`).
+//! 
+//! ### Usage
+//! Unlike the [`seek`] module, we no longer hold a mutable reference to any inner reader which in turn, allows the
+//! construction of concurrent [`ZipEntryReader`]s. Though, note that each individual [`ZipEntryReader`] cannot be sent
+//! between thread boundaries due to the masked lifetime requirement. Therefore, the overarching [`ZipFileReader`]
+//! should be cloned and moved into those contexts when needed.
+//! 
+//! ### Concurrent Example
+//! ```no_run
+//! # use async_zip::read::mem::ZipFileReader;
+//! # use async_zip::error::Result;
+//! #
+//! # async fn run() -> Result<()> {
+//! let data: Vec<u8> = Vec::new();
+//! let reader = ZipFileReader::new(data).await?;
+//! 
+//! let fut_gen = |index| { async {
+//!     let mut entry_reader = local_reader.entry_reader(index).await?;
+//!     let mut data = Vec::new();
+//!     entry_reader.read_to_end(&mut data).await?;
+//! }};
+//! 
+//! tokio::join!(fut_gen(0), fut_gen(1)).map(|res| res?);
+//! #   Ok(())
+//! # }
+//! ```
+//! 
+//! ### Parallel Example
+//! ```no_run
+//! # use async_zip::read::mem::ZipFileReader;
+//! # use async_zip::error::Result;
+//! #
+//! # async fn run() -> Result<()> {
+//! let data: Vec<u8> = Vec::new();
+//! let reader = ZipFileReader::new(data).await?;
+//! 
+//! let fut_gen = |index| {
+//!     let local_reader = reader.clone();
+//! 
+//!     tokio::spawn(async move {
+//!         let mut entry_reader = local_reader.entry_reader(index).await?;
+//!         let mut data = Vec::new();
+//!         entry_reader.read_to_end(&mut data).await.unwrap();
+//!     })
+//! };
+//! 
+//! tokio::join!(fut_gen(0), fut_gen(1)).map(|res| res?);
+//! #   Ok(())
+//! # }
+//! ```
 
+#[cfg(doc)]
+use crate::read::seek;
+
+use crate::read::io::entry::ZipEntryReader;
+use crate::file::ZipFile;
 use crate::error::{Result, ZipError};
-use crate::read::ZipEntryMeta;
-use crate::read::{CompressionReader, OwnedReader, PrependReader, ZipEntry, ZipEntryReader};
-use crate::spec::header::LocalFileHeader;
 
-use std::io::{Cursor, SeekFrom};
+use std::sync::Arc;
+use std::io::Cursor;
 
-use tokio::io::AsyncSeekExt;
+use tokio::io::{AsyncSeekExt, SeekFrom};
 
-/// The type returned as an entry reader within this concurrent module.
-pub type ConcurrentReader<'b, 'a> = ZipEntryReader<'b, Cursor<&'a [u8]>>;
-
-/// A reader which acts concurrently over an in-memory buffer.
-pub struct ZipFileReader<'a> {
-    pub(crate) data: &'a [u8],
-    pub(crate) entries: Vec<(ZipEntry, ZipEntryMeta)>,
-    pub(crate) comment: Option<String>,
+struct Inner {
+    data: Vec<u8>,
+    file: ZipFile,
 }
 
-impl<'a> ZipFileReader<'a> {
-    /// Constructs a new ZIP file reader from an in-memory buffer.
-    pub async fn new(data: &'a [u8]) -> Result<ZipFileReader<'a>> {
-        let (entries, comment) = crate::read::seek::read_cd(&mut Cursor::new(data)).await?;
-        Ok(ZipFileReader { data, entries, comment })
+// A concurrent ZIP reader which acts over an owned vector of bytes.
+#[derive(Clone)]
+pub struct ZipFileReader {
+    inner: Arc<Inner>,
+}
+
+impl ZipFileReader {
+    /// Constructs a new ZIP reader from an owned vector of bytes.
+    pub async fn new(data: Vec<u8>) -> Result<ZipFileReader> {
+        let file = crate::read::file(Cursor::new(&data)).await?;
+        Ok(ZipFileReader { inner: Arc::new(Inner { data, file }) })
     }
 
-    crate::read::reader_entry_impl!();
+    /// Returns this ZIP file's information.
+    pub fn file(&self) -> &ZipFile {
+        &self.inner.file
+    }
 
-    /// Opens an entry at the provided index for reading.
-    pub async fn entry_reader<'b>(&'b mut self, index: usize) -> Result<ConcurrentReader<'b, 'a>> {
-        let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
+    /// Returns the raw bytes provided to the reader during construction.
+    pub fn data(&self) -> &[u8] {
+        &self.inner.data
+    }
 
-        let mut cursor = Cursor::new(<&[u8]>::clone(&self.data));
-        cursor.seek(SeekFrom::Start(entry.1.file_offset.unwrap() as u64 + 4)).await?;
-
-        let header = LocalFileHeader::from_reader(&mut cursor).await?;
-        let data_offset = (header.file_name_length + header.extra_field_length) as i64;
-        cursor.seek(SeekFrom::Current(data_offset)).await?;
-
-        let reader = OwnedReader::Owned(cursor);
-        let reader = PrependReader::Normal(reader);
-        let reader = CompressionReader::from_reader(
-            &entry.0.compression(),
-            reader,
-            Some(entry.0.compressed_size()).map(u32::into),
-        )?;
-
-        Ok(ZipEntryReader::from_raw(&entry.0, &entry.1, reader, entry.1.general_purpose_flag.data_descriptor))
+    /// Returns a new entry reader if the provided index is valid.
+    pub async fn entry(&self, index: usize) -> Result<ZipEntryReader<Cursor<&[u8]>>> {
+        let entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
+        let meta = self.inner.file.metas.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
+        let seek_to = crate::read::compute_data_offset(&entry, &meta);
+        let mut cursor = Cursor::new(&self.inner.data[..]);
+        
+        cursor.seek(SeekFrom::Start(seek_to)).await?;
+        Ok(ZipEntryReader::new_with_owned(cursor, entry.compression(), entry.uncompressed_size().into()))
     }
 }

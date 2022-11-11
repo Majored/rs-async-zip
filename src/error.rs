@@ -30,4 +30,6 @@ pub enum ZipError {
     MissingCompressedSize,
     #[error("Unable to locate the end of central directory record.")]
     UnableToLocateEOCDR,
+    #[error("Attempted to read a ZIP64 file whilst on a 32-bit target.")]
+    TargetZip64Unsupported,
 }

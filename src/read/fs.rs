@@ -1,76 +1,111 @@
-// Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
+// Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-//! A module for reading ZIP file entries concurrently from the filesystem.
-//!
-//! # Example
+//! A concurrent ZIP reader which acts over a file system path.
+//! 
+//! Concurrency is achieved as a result of:
+//! - Wrapping the provided path within an [`Arc`] to allow shared ownership.
+//! - Constructing a new [`File`] from the path when reading.
+//! 
+//! ### Usage
+//! Unlike the [`seek`] module, we no longer hold a mutable reference to any inner reader which in turn, allows the
+//! construction of concurrent [`ZipEntryReader`]s. Though, note that each individual [`ZipEntryReader`] cannot be sent
+//! between thread boundaries due to the masked lifetime requirement. Therefore, the overarching [`ZipFileReader`]
+//! should be cloned and moved into those contexts when needed.
+//! 
+//! ### Concurrent Example
 //! ```no_run
 //! # use async_zip::read::fs::ZipFileReader;
-//! # use async_zip::error::ZipError;
+//! # use async_zip::error::Result;
 //! #
-//! # async fn run() -> Result<(), ZipError> {
-//! let zip = ZipFileReader::new(String::from("./Archive.zip")).await.unwrap();
-//! assert_eq!(zip.entries().len(), 2);
-//!
-//! let mut reader1 = zip.entry_reader(0).await.unwrap();
-//! let mut reader2 = zip.entry_reader(1).await.unwrap();
-//!
-//! tokio::select! {
-//!    _ = reader1.read_to_string_crc() => {}
-//!    _ = reader2.read_to_string_crc() => {}
+//! # async fn run() -> Result<()> {
+//! let reader = ZipFileReader::new("./foo.zip").await?;
+//! 
+//! let fut_gen = |index| { async {
+//!     let mut entry_reader = local_reader.entry_reader(index).await?;
+//!     let mut data = Vec::new();
+//!     entry_reader.read_to_end(&mut data).await?;
+//! }};
+//! 
+//! tokio::join!(fut_gen(0), fut_gen(1)).map(|res| res?);
+//! #   Ok(())
+//! # }
+//! ```
+//! 
+//! ### Parallel Example
+//! ```no_run
+//! # use async_zip::read::fs::ZipFileReader;
+//! # use async_zip::error::Result;
+//! #
+//! # async fn run() -> Result<()> {
+//! let reader = ZipFileReader::new("./foo.zip").await?;
+//! 
+//! let fut_gen = |index| {
+//!     let local_reader = reader.clone();
+//! 
+//!     tokio::spawn(async move {
+//!         let mut entry_reader = local_reader.entry_reader(index).await?;
+//!         let mut data = Vec::new();
+//!         entry_reader.read_to_end(&mut data).await.unwrap();
+//!     })
 //! };
+//! 
+//! tokio::join!(fut_gen(0), fut_gen(1)).map(|res| res?);
 //! #   Ok(())
 //! # }
 //! ```
 
-use super::CompressionReader;
+#[cfg(doc)]
+use crate::read::seek;
+
+use crate::read::io::entry::ZipEntryReader;
+use crate::file::ZipFile;
 use crate::error::{Result, ZipError};
-use crate::read::ZipEntryMeta;
-use crate::read::{OwnedReader, PrependReader, ZipEntry, ZipEntryReader};
-use crate::spec::header::LocalFileHeader;
 
-use std::io::SeekFrom;
+use std::sync::Arc;
 use std::path::{Path, PathBuf};
-use tokio::fs::File;
-use tokio::io::AsyncSeekExt;
 
-/// A reader which acts concurrently over a filesystem file.
+use tokio::io::{AsyncSeekExt, SeekFrom};
+use tokio::fs::File;
+
+struct Inner {
+    path: PathBuf,
+    file: ZipFile,
+}
+
+/// A concurrent ZIP reader which acts over a file system path.
+#[derive(Clone)]
 pub struct ZipFileReader {
-    pub(crate) filename: PathBuf,
-    pub(crate) entries: Vec<(ZipEntry, ZipEntryMeta)>,
-    pub(crate) comment: Option<String>,
+    inner: Arc<Inner>,
 }
 
 impl ZipFileReader {
-    /// Constructs a new ZIP file reader from a filename.
-    pub async fn new<P: AsRef<Path>>(filename: P) -> Result<ZipFileReader> {
-        let mut fs_file = File::open(&filename).await?;
-        let (entries, comment) = crate::read::seek::read_cd(&mut fs_file).await?;
-
-        Ok(ZipFileReader { filename: filename.as_ref().to_path_buf(), entries, comment })
+    /// Constructs a new ZIP reader from a file system path.
+    pub async fn new<P>(path: P) -> Result<ZipFileReader> where P: AsRef<Path> {
+        let path = path.as_ref().to_owned();
+        let file = crate::read::file(File::open(&path).await?).await?;
+        
+        Ok(ZipFileReader { inner: Arc::new(Inner { path, file }) })
     }
 
-    crate::read::reader_entry_impl!();
+    /// Returns this ZIP file's information.
+    pub fn file(&self) -> &ZipFile {
+        &self.inner.file
+    }
 
-    /// Opens an entry at the provided index for reading.
-    pub async fn entry_reader(&self, index: usize) -> Result<ZipEntryReader<'_, File>> {
-        let entry = self.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
+    /// Returns the file system path provided to the reader during construction.
+    pub fn path(&self) -> &Path {
+        &self.inner.path
+    }
 
-        let mut fs_file = File::open(&self.filename).await?;
-        fs_file.seek(SeekFrom::Start(entry.1.file_offset.unwrap() as u64 + 4)).await?;
-
-        let header = LocalFileHeader::from_reader(&mut fs_file).await?;
-        let data_offset = (header.file_name_length + header.extra_field_length) as i64;
-        fs_file.seek(SeekFrom::Current(data_offset)).await?;
-
-        let reader = OwnedReader::Owned(fs_file);
-        let reader = PrependReader::Normal(reader);
-        let reader = CompressionReader::from_reader(
-            &entry.0.compression(),
-            reader,
-            Some(entry.0.compressed_size()).map(u32::into),
-        )?;
-
-        Ok(ZipEntryReader::from_raw(&entry.0, &entry.1, reader, entry.1.general_purpose_flag.data_descriptor))
+    /// Returns a new entry reader if the provided index is valid.
+    pub async fn entry(&self, index: usize) -> Result<ZipEntryReader<File>> {
+        let entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
+        let meta = self.inner.file.metas.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
+        let seek_to = crate::read::compute_data_offset(&entry, &meta);
+        let mut fs_file = File::open(&self.inner.path).await?;
+        
+        fs_file.seek(SeekFrom::Start(seek_to)).await?;
+        Ok(ZipEntryReader::new_with_owned(fs_file, entry.compression(), entry.uncompressed_size().into()))
     }
 }

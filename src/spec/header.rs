@@ -24,7 +24,7 @@ pub struct GeneralPurposeFlag {
 }
 
 // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4312
-pub struct CentralDirectoryHeader {
+pub struct CentralDirectoryRecord {
     pub v_made_by: u16,
     pub v_needed: u16,
     pub flags: GeneralPurposeFlag,

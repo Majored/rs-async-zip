@@ -58,14 +58,14 @@ pub use entry_stream::EntryStreamWriter;
 
 use crate::entry::ZipEntry;
 use crate::error::Result;
-use crate::spec::header::{CentralDirectoryHeader, EndOfCentralDirectoryHeader};
+use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader};
 use async_io_utilities::AsyncOffsetWriter;
 use entry_whole::EntryWholeWriter;
 
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
 pub(crate) struct CentralDirectoryEntry {
-    pub header: CentralDirectoryHeader,
+    pub header: CentralDirectoryRecord,
     pub entry: ZipEntry,
 }
 
