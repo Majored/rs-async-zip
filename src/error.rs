@@ -12,24 +12,22 @@ pub type Result<V> = std::result::Result<V, ZipError>;
 #[non_exhaustive]
 #[derive(Debug, Error)]
 pub enum ZipError {
-    #[error("Encountered an unexpected header (actual: {0:#x}, expected: {1:#x}).")]
-    UnexpectedHeaderError(u32, u32),
-    #[error("{0} is not a supported compression type.")]
-    UnsupportedCompressionError(u16),
-    #[error("{0} is not a supported host attribute compatibility.")]
-    UnsupportedAttributeCompatibility(u16),
-    #[error("An upstream reader returned an error: '{0:?}'.")]
-    UpstreamReadError(#[from] std::io::Error),
-    #[error("Feature not currently supported: '{0}'.")]
+    #[error("feature not supported: '{0}'")]
     FeatureNotSupported(&'static str),
-    #[error("A computed CRC32 value did not match the expected value.")]
-    CRC32CheckError,
-    #[error("Entry index was out of bounds.")]
-    EntryIndexOutOfBounds,
-    #[error("Compressed size is required to be present in the Local File Header when using Stored compression.")]
-    MissingCompressedSize,
-    #[error("Unable to locate the end of central directory record.")]
+    #[error("compression not supported: {0}")]
+    CompressionNotSupported(u16),
+    #[error("host attribute compatibility not supported: {0}")]
+    AttributeCompatibilityNotSupported(u16),
+    #[error("attempted to read a ZIP64 file whilst on a 32-bit target")]
+    TargetZip64NotSupported,
+
+    #[error("unable to locate the end of central directory record")]
     UnableToLocateEOCDR,
-    #[error("Attempted to read a ZIP64 file whilst on a 32-bit target.")]
-    TargetZip64Unsupported,
+
+    #[error("an upstream reader returned an error: {0}")]
+    UpstreamReadError(#[from] std::io::Error),
+    #[error("a computed CRC32 value did not match the expected value")]
+    CRC32CheckError,
+    #[error("entry index was out of bounds")]
+    EntryIndexOutOfBounds,
 }

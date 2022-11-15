@@ -39,7 +39,7 @@ impl TryFrom<u16> for Compression {
             93 => Ok(Compression::Zstd),
             #[cfg(feature = "xz")]
             95 => Ok(Compression::Xz),
-            _ => Err(ZipError::UnsupportedCompressionError(value)),
+            _ => Err(ZipError::CompressionNotSupported(value)),
         }
     }
 }

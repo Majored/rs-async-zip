@@ -46,7 +46,7 @@ pub(crate) async fn cd<R>(mut reader: R, num_of_entries: u64) -> Result<(Vec<Zip
 where
     R: AsyncRead + Unpin,
 {
-    let num_of_entries: usize = num_of_entries.try_into().map_err(|_| ZipError::TargetZip64Unsupported)?;
+    let num_of_entries = num_of_entries.try_into().map_err(|_| ZipError::TargetZip64NotSupported)?;
     let mut entries = Vec::with_capacity(num_of_entries);
     let mut metas = Vec::with_capacity(num_of_entries);
 

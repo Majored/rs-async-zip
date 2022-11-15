@@ -18,7 +18,7 @@ impl TryFrom<u16> for AttributeCompatibility {
     fn try_from(value: u16) -> Result<Self> {
         match value {
             3 => Ok(AttributeCompatibility::Unix),
-            _ => Err(ZipError::UnsupportedAttributeCompatibility(value)),
+            _ => Err(ZipError::AttributeCompatibilityNotSupported(value)),
         }
     }
 }
