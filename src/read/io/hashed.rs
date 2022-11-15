@@ -12,10 +12,7 @@ use tokio::io::{AsyncRead, ReadBuf};
 
 /// A wrapping reader which computes the CRC32 hash of data read via [`AsyncRead`].
 #[pin_project]
-pub(crate) struct HashedReader<R>
-where
-    R: AsyncRead + Unpin,
-{
+pub(crate) struct HashedReader<R> {
     #[pin]
     pub(crate) reader: R,
     pub(crate) hasher: Hasher,

@@ -16,10 +16,7 @@ use tokio::io::{AsyncRead, ReadBuf};
 
 /// A wrapping reader which holds concrete types for all respective compression method readers.
 #[pin_project(project = CompressedReaderProj)]
-pub(crate) enum CompressedReader<R>
-where
-    R: AsyncRead + Unpin,
-{
+pub(crate) enum CompressedReader<R> {
     Stored(#[pin] R),
     #[cfg(feature = "deflate")]
     Deflate(#[pin] bufread::DeflateDecoder<BufReader<R>>),

@@ -13,10 +13,7 @@ use pin_project::pin_project;
 use tokio::io::{AsyncRead, AsyncReadExt, ReadBuf, Take};
 
 #[pin_project]
-pub struct ZipEntryReader<'a, R>
-where
-    R: AsyncRead + Unpin,
-{
+pub struct ZipEntryReader<'a, R> {
     #[pin]
     reader: HashedReader<CompressedReader<Take<OwnedReader<'a, R>>>>,
 }
