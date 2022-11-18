@@ -23,6 +23,12 @@ impl ZipEntryBuilder {
         Self(ZipEntry::new(filename, compression))
     }
 
+    /// Sets the entry's filename
+    pub fn filename(mut self, filename: String) -> Self {
+        self.0.filename = filename;
+        self
+    }
+
     /// Set the deflate compression option.
     ///
     /// If the compression type isn't deflate, this option has no effect.
