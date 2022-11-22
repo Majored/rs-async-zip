@@ -108,6 +108,10 @@ impl ZipFileReader {
         let mut fs_file = File::open(&self.inner.path).await?;
 
         fs_file.seek(SeekFrom::Start(seek_to)).await?;
-        Ok(ZipEntryReader::new_with_owned(fs_file, stored_entry.entry.compression(), stored_entry.entry.uncompressed_size().into()))
+        Ok(ZipEntryReader::new_with_owned(
+            fs_file,
+            stored_entry.entry.compression(),
+            stored_entry.entry.uncompressed_size().into(),
+        ))
     }
 }
