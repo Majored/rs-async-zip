@@ -57,7 +57,7 @@ where
         let read = reader.read(&mut buffer).await?;
 
         if let Some(match_index) = reverse_search_buffer(&buffer[..read], signature) {
-            return Ok(position + ((match_index + 1) - SIGNATURE_LENGTH) as u64);
+            return Ok(position + (match_index + 1) as u64);
         }
 
         // If we hit the start of the data or the lower bound, we're unable to locate the EOCDR.

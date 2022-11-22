@@ -47,13 +47,26 @@ where
         &self.file
     }
 
+    /// Returns a mutable reference to the inner reader
+    pub fn inner_mut(&mut self) -> &mut R {
+        &mut self.reader
+    }
+
+    /// Unwraps this `ZipFileReader<R>`, returning the underlying reader.
+    pub fn into_inner(self) -> R {
+        self.reader
+    }
+
     /// Returns a new entry reader if the provided index is valid.
     pub async fn entry(&mut self, index: usize) -> Result<ZipEntryReader<'_, R>> {
-        let entry = self.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let meta = self.file.metas.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let seek_to = crate::read::compute_data_offset(entry, meta);
+        let stored_entry = self.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
+        let seek_to = stored_entry.data_offset();
 
         self.reader.seek(SeekFrom::Start(seek_to)).await?;
-        Ok(ZipEntryReader::new_with_borrow(&mut self.reader, entry.compression(), entry.uncompressed_size().into()))
+        Ok(ZipEntryReader::new_with_borrow(
+            &mut self.reader,
+            stored_entry.entry.compression(),
+            stored_entry.entry.uncompressed_size().into(),
+        ))
     }
 }

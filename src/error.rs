@@ -30,4 +30,6 @@ pub enum ZipError {
     CRC32CheckError,
     #[error("entry index was out of bounds")]
     EntryIndexOutOfBounds,
+    #[error("Encountered an unexpected header (actual: {0:#x}, expected: {1:#x}).")]
+    UnexpectedHeaderError(u32, u32),
 }

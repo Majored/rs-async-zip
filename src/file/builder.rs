@@ -14,7 +14,7 @@ impl From<ZipFile> for ZipFileBuilder {
 
 impl Default for ZipFileBuilder {
     fn default() -> Self {
-        ZipFileBuilder(ZipFile { entries: Vec::new(), metas: Vec::new(), zip64: false, comment: String::new() })
+        ZipFileBuilder(ZipFile { entries: Vec::new(), zip64: false, comment: String::new() })
     }
 }
 
