@@ -36,7 +36,7 @@ async fn locator_empty_test() {
     let eocdr = crate::read::io::locator::eocdr(&mut cursor).await;
 
     assert!(eocdr.is_ok());
-    assert_eq!(eocdr.unwrap(), 0);
+    assert_eq!(eocdr.unwrap(), 4);
 }
 
 #[tokio::test]
@@ -48,7 +48,7 @@ async fn locator_empty_max_comment_test() {
     let eocdr = crate::read::io::locator::eocdr(&mut cursor).await;
 
     assert!(eocdr.is_ok());
-    assert_eq!(eocdr.unwrap(), 0);
+    assert_eq!(eocdr.unwrap(), 4);
 }
 
 #[tokio::test]
@@ -60,5 +60,5 @@ async fn locator_buffer_boundary_test() {
     let eocdr = crate::read::io::locator::eocdr(&mut cursor).await;
 
     assert!(eocdr.is_ok());
-    assert_eq!(eocdr.unwrap(), 0);
+    assert_eq!(eocdr.unwrap(), 4);
 }
