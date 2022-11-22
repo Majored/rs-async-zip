@@ -153,9 +153,7 @@ impl StoredZipEntry {
     /// Returns the offset in bytes from where the data of the entry starts.
     pub fn data_offset(&self) -> u64 {
         let header_length = SIGNATURE_LENGTH + LFH_LENGTH;
-        let trailing_length = self.entry.comment().as_bytes().len()
-            + self.entry.extra_field().len()
-            + self.entry.filename.as_bytes().len();
+        let trailing_length = self.entry.filename.as_bytes().len() + self.entry.extra_field().len();
 
         self.meta.file_offset + (header_length as u64) + (trailing_length as u64)
     }
