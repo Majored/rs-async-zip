@@ -103,12 +103,11 @@ impl ZipFileReader {
 
     /// Returns a new entry reader if the provided index is valid.
     pub async fn entry(&self, index: usize) -> Result<ZipEntryReader<File>> {
-        let entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let meta = self.inner.file.metas.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let seek_to = crate::read::compute_data_offset(entry, meta);
+        let stored_entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
+        let seek_to = stored_entry.data_offset();
         let mut fs_file = File::open(&self.inner.path).await?;
 
         fs_file.seek(SeekFrom::Start(seek_to)).await?;
-        Ok(ZipEntryReader::new_with_owned(fs_file, entry.compression(), entry.uncompressed_size().into()))
+        Ok(ZipEntryReader::new_with_owned(fs_file, stored_entry.entry.compression(), stored_entry.entry.uncompressed_size().into()))
     }
 }
