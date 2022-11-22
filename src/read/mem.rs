@@ -99,12 +99,15 @@ impl ZipFileReader {
 
     /// Returns a new entry reader if the provided index is valid.
     pub async fn entry(&self, index: usize) -> Result<ZipEntryReader<Cursor<&[u8]>>> {
-        let entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let meta = self.inner.file.metas.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let seek_to = crate::read::compute_data_offset(entry, meta);
+        let stored_entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
+        let seek_to = stored_entry.data_offset();
         let mut cursor = Cursor::new(&self.inner.data[..]);
 
         cursor.seek(SeekFrom::Start(seek_to)).await?;
-        Ok(ZipEntryReader::new_with_owned(cursor, entry.compression(), entry.uncompressed_size().into()))
+        Ok(ZipEntryReader::new_with_owned(
+            cursor,
+            stored_entry.entry.compression(),
+            stored_entry.entry.uncompressed_size().into(),
+        ))
     }
 }

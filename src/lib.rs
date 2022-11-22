@@ -19,6 +19,7 @@ pub mod write;
 pub(crate) mod entry;
 pub(crate) mod file;
 pub(crate) mod spec;
+pub(crate) mod utils;
 
 #[cfg(test)]
 pub(crate) mod tests;

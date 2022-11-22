@@ -3,15 +3,13 @@
 
 pub(crate) mod builder;
 
-use crate::entry::{ZipEntry, ZipEntryMeta};
+use crate::entry::StoredZipEntry;
 use builder::ZipFileBuilder;
 
 /// An immutable store of data about a ZIP file.
 #[derive(Clone)]
 pub struct ZipFile {
-    pub(crate) entries: Vec<ZipEntry>,
-    #[allow(dead_code)]
-    pub(crate) metas: Vec<ZipEntryMeta>,
+    pub(crate) entries: Vec<StoredZipEntry>,
     pub(crate) zip64: bool,
     pub(crate) comment: String,
 }
@@ -24,7 +22,7 @@ impl From<ZipFileBuilder> for ZipFile {
 
 impl ZipFile {
     /// Returns a list of this ZIP file's entries.
-    pub fn entries(&self) -> &[ZipEntry] {
+    pub fn entries(&self) -> &[StoredZipEntry] {
         &self.entries
     }
 
