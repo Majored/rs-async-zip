@@ -101,6 +101,9 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
         self.comment_opt = Some(comment);
     }
 
+    /// Returns a mutable reference to the inner writer.
+    /// 
+    /// Care should be taken when using this inner writer as doing so may invalidate internal state of this writer.
     pub fn inner_mut(&mut self) -> &mut W {
         self.writer.inner_mut()
     }
