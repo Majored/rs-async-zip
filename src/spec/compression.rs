@@ -93,10 +93,10 @@ impl DeflateOption {
     pub(crate) fn into_level(self) -> Level {
         // FIXME: There's no clear documentation on what these specific levels defined in the ZIP specification relate
         // to. We want to be compatible with any other library, and not specific to `async_compression`'s levels.
-	if let Self::Other(l) = self {
-	    Level::Precise(l)
-	} else {
+        if let Self::Other(l) = self {
+            Level::Precise(l)
+        } else {
             Level::Default
-	}
+        }
     }
 }

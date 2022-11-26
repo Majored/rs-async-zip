@@ -102,7 +102,7 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
     }
 
     pub fn inner_mut(&mut self) -> &mut W {
-	self.writer.inner_mut()
+        self.writer.inner_mut()
     }
 
     /// Consumes this ZIP writer and completes all closing tasks.

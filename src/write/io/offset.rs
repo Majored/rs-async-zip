@@ -42,7 +42,7 @@ where
     }
 
     pub fn inner_mut(&mut self) -> &mut W {
-	&mut self.inner
+        &mut self.inner
     }
 }
 
