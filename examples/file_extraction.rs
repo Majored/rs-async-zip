@@ -38,14 +38,16 @@ fn sanitize_file_path(path: &str) -> PathBuf {
 /// Extracts everything from the ZIP archive to the output directory
 async fn unzip_file(archive: File, out_dir: &Path) {
     let mut reader = ZipFileReader::new(archive).await.expect("Failed to read zip file");
-    for index in 0..reader.entries().len() {
-        let entry = reader.entry_reader(index).await.expect("Failed to read ZipEntry");
-        let path = out_dir.join(sanitize_file_path(entry.entry().filename()));
+    for index in 0..reader.file().entries().len() {
+        let entry = &reader.file().entries().get(index).unwrap().entry;
+        let path = out_dir.join(sanitize_file_path(entry.filename()));
         // If the filename of the entry ends with '/', it is treated as a directory.
         // This is implemented by previous versions of this crate and the Python Standard Library.
         // https://docs.rs/async_zip/0.0.8/src/async_zip/read/mod.rs.html#63-65
         // https://github.com/python/cpython/blob/820ef62833bd2d84a141adedd9a05998595d6b6d/Lib/zipfile.py#L528
-        let entry_is_dir = entry.entry().filename().ends_with('/');
+        let entry_is_dir = entry.filename().ends_with('/');
+
+        let mut entry_reader = reader.entry(index).await.expect("Failed to read ZipEntry");
 
         if entry_is_dir {
             // The directory may have been created if iteration is out of order.
@@ -65,7 +67,7 @@ async fn unzip_file(archive: File, out_dir: &Path) {
                 .open(&path)
                 .await
                 .expect("Failed to create extracted file");
-            entry.copy_to_end_crc(&mut writer, 65536).await.expect("Failed to copy to extracted file");
+            tokio::io::copy(&mut entry_reader, &mut writer).await.expect("Failed to copy to extracted file");
 
             // Closes the file and manipulates its metadata here if you wish to preserve its metadata from the archive.
         }
