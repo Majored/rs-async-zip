@@ -84,13 +84,19 @@ pub enum DeflateOption {
 
     // Super Fast (-es) compression option was used.
     Super,
+
+    /// Other implementation defined level.
+    Other(u32),
 }
 
 impl DeflateOption {
     pub(crate) fn into_level(self) -> Level {
         // FIXME: There's no clear documentation on what these specific levels defined in the ZIP specification relate
         // to. We want to be compatible with any other library, and not specific to `async_compression`'s levels.
-
-        Level::Default
+	if let Self::Other(l) = self {
+	    Level::Precise(l)
+	} else {
+            Level::Default
+	}
     }
 }

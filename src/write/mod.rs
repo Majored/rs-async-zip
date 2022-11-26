@@ -101,6 +101,10 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
         self.comment_opt = Some(comment);
     }
 
+    pub fn inner_mut(&mut self) -> &mut W {
+	self.writer.inner_mut()
+    }
+
     /// Consumes this ZIP writer and completes all closing tasks.
     ///
     /// This includes:
@@ -109,7 +113,7 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
     /// - Writing the file comment.
     ///
     /// Failiure to call this function before going out of scope would result in a corrupted ZIP file.
-    pub async fn close(mut self) -> Result<()> {
+    pub async fn close(mut self) -> Result<W> {
         let cd_offset = self.writer.offset();
 
         for entry in &self.cd_entries {
@@ -136,6 +140,6 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
             self.writer.write_all(comment.as_bytes()).await?;
         }
 
-        Ok(())
+        Ok(self.writer.into_inner())
     }
 }

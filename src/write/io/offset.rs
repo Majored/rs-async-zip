@@ -40,6 +40,10 @@ where
     pub fn into_inner(self) -> W {
         self.inner
     }
+
+    pub fn inner_mut(&mut self) -> &mut W {
+	&mut self.inner
+    }
 }
 
 impl<W> AsyncWrite for AsyncOffsetWriter<W>
