@@ -2,8 +2,8 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE
 
-use async_zip::{Compression, ZipEntryBuilder};
 use async_zip::write::ZipFileWriter;
+use async_zip::{Compression, ZipEntryBuilder};
 
 use std::path::Path;
 
@@ -11,8 +11,8 @@ use actix_multipart::Multipart;
 use actix_web::{web, App, HttpServer, Responder, ResponseError, Result};
 use derive_more::{Display, Error};
 use futures::StreamExt;
-use tokio::io::AsyncWriteExt;
 use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
 
 const TMP_DIR: &'static str = "./tmp/";
@@ -31,7 +31,7 @@ async fn main() -> std::io::Result<()> {
         tokio::fs::create_dir(tmp_path).await?;
     }
 
-    let factory = || { App::new().route("/", web::post().to(handler)) };
+    let factory = || App::new().route("/", web::post().to(handler));
     HttpServer::new(factory).bind(("127.0.0.1", 8080))?.run().await
 }
 
@@ -52,7 +52,7 @@ async fn create_archive(mut body: Multipart) -> Result<String, anyhow::Error> {
 
     while let Some(item) = body.next().await {
         let mut field = item?;
-        
+
         let filename = match field.content_disposition().get_filename() {
             Some(filename) => sanitize_filename::sanitize(filename),
             None => Uuid::new_v4().to_string(),

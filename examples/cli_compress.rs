@@ -6,7 +6,7 @@ use async_zip::{Compression, ZipEntryBuilder};
 
 use std::path::{Path, PathBuf};
 
-use anyhow::{Result, bail, anyhow};
+use anyhow::{anyhow, bail, Result};
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
@@ -74,7 +74,7 @@ async fn handle_directory(input_path: &Path, writer: &mut ZipFileWriter<File>) -
         let entry_str = &entry_str[input_dir_str.len() + 1..];
         write_entry(entry_str, entry_path, writer).await?;
     }
-    
+
     Ok(())
 }
 
@@ -97,7 +97,7 @@ async fn walk_dir(dir: PathBuf) -> Result<Vec<PathBuf>> {
 
     while !dirs.is_empty() {
         let mut dir_iter = tokio::fs::read_dir(dirs.remove(0)).await?;
-        
+
         while let Some(entry) = dir_iter.next_entry().await? {
             let entry_path_buf = entry.path();
 

@@ -35,5 +35,16 @@ async-compression = { version = "0.3", default-features = false, features = ["to
 chrono = { version = "0.4", default-features = false, features = ["clock"], optional = true}
 
 [dev-dependencies]
-sanitize-filename = "0.4"
+# tests
 tokio = { version = "1", features = ["full"] }
+
+# shared across multiple examples
+anyhow = "1"
+sanitize-filename = "0.4"
+
+# actix_mutlipart
+actix-web = "4"
+actix-multipart = "0.4"
+futures = "0.3"
+derive_more = "0.99"
+uuid = { version = "1", features = ["v4", "serde"] } 
