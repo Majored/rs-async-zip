@@ -18,19 +18,19 @@
 //! # use async_zip::read::fs::ZipFileReader;
 //! # use async_zip::error::Result;
 //! # use tokio::io::AsyncReadExt;
-//! # 
+//! #
 //! async fn run() -> Result<()> {
 //!     let reader = ZipFileReader::new("./foo.zip").await?;
 //!     let result = tokio::join!(read(&reader, 0), read(&reader, 1));
-//! 
+//!
 //!     let data_0 = result.0?;
 //!     let data_1 = result.1?;
-//! 
+//!
 //!     // Use data within current scope.
-//! 
+//!
 //!     Ok(())
 //! }
-//! 
+//!
 //! async fn read(reader: &ZipFileReader, index: usize) -> Result<Vec<u8>> {
 //!     let mut entry = reader.entry(index).await?;
 //!     let mut data = Vec::new();
@@ -44,21 +44,21 @@
 //! # use async_zip::read::fs::ZipFileReader;
 //! # use async_zip::error::Result;
 //! # use tokio::io::AsyncReadExt;
-//! # 
+//! #
 //! async fn run() -> Result<()> {
 //!     let reader = ZipFileReader::new("./foo.zip").await?;
 //!     
 //!     let handle_0 = tokio::spawn(read(reader.clone(), 0));
 //!     let handle_1 = tokio::spawn(read(reader.clone(), 1));
-//! 
+//!
 //!     let data_0 = handle_0.await.expect("thread panicked")?;
 //!     let data_1 = handle_1.await.expect("thread panicked")?;
-//! 
+//!
 //!     // Use data within current scope.
-//! 
+//!
 //!     Ok(())
 //! }
-//! 
+//!
 //! async fn read(reader: ZipFileReader, index: usize) -> Result<Vec<u8>> {
 //!     let mut entry = reader.entry(index).await?;
 //!     let mut data = Vec::new();

@@ -13,13 +13,13 @@
 //! async fn run() -> Result<()> {
 //!     let mut data = File::open("./foo.zip").await?;
 //!     let mut reader = ZipFileReader::new(&mut data).await?;
-//! 
+//!
 //!     let mut data = Vec::new();
 //!     let mut entry = reader.entry(0).await?;
 //!     entry.read_to_end(&mut data).await?;
-//! 
+//!
 //!     // Use data within current scope.
-//! 
+//!
 //!     Ok(())
 //! }
 //! ```
