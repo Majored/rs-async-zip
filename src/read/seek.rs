@@ -7,17 +7,21 @@
 //! ```no_run
 //! # use async_zip::read::seek::ZipFileReader;
 //! # use async_zip::error::Result;
+//! # use tokio::io::AsyncReadExt;
+//! # use tokio::fs::File;
 //! #
-//! # async fn run() -> Result<()> {
-//! let data: File::open("./foo.zip").await?;
-//! let reader = ZipFileReader::new(data).await?;
-//!
-//! let mut data = Vec::new();
-//! let entry = reader.entry(0).await?;
-//! entry.read_to_end(&mut data).await?;
-//!
-//! #   Ok(())
-//! # }
+//! async fn run() -> Result<()> {
+//!     let mut data = File::open("./foo.zip").await?;
+//!     let mut reader = ZipFileReader::new(&mut data).await?;
+//! 
+//!     let mut data = Vec::new();
+//!     let mut entry = reader.entry(0).await?;
+//!     entry.read_to_end(&mut data).await?;
+//! 
+//!     // Use data within current scope.
+//! 
+//!     Ok(())
+//! }
 //! ```
 
 use crate::error::{Result, ZipError};
