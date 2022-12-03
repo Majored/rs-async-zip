@@ -16,7 +16,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Build
-      run: cargo build --verbose --all-features
-    - name: Run tests
-      run: cargo test --verbose --all-features
+    - name: Install 'cargo-all-features' helper
+      run: cargo install cargo-all-features
+    - name: Build with all combinations of feature flags
+      run: cargo build-all-features --verbose
+    - name: Test with all combinations of feature flags
+      run: cargo test-all-features --verbose
