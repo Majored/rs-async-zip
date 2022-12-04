@@ -16,7 +16,7 @@ categories = ["asynchronous", "compression"]
 full = ["date", "fs", "crc", "deflate", "bzip2", "lzma", "zstd", "xz"]
 
 date = ["chrono"]
-fs = []
+fs = ["tokio/fs"]
 crc = []
 
 deflate = ["async-compression/deflate"]
@@ -28,7 +28,7 @@ xz = ["async-compression/xz"]
 [dependencies]
 crc32fast = "1"
 thiserror = "1"
-tokio = { version = "1", features = ["io-util", "fs"] }
+tokio = { version = "1", features = ["io-util"] }
 pin-project = "1"
 
 async-compression = { version = "0.3", default-features = false, features = ["tokio"], optional = true }
