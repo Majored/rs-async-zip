@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install 'cargo-all-features' helper
       run: cargo install cargo-all-features
     - name: Build with all combinations of feature flags
