@@ -4,6 +4,8 @@
 use crate::entry::ZipEntry;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::{Compression, DeflateOption};
+
+#[cfg(feature = "date")]
 use chrono::{DateTime, Utc};
 
 /// A builder for [`ZipEntry`].
@@ -32,6 +34,7 @@ impl ZipEntryBuilder {
     /// Set the deflate compression option.
     ///
     /// If the compression type isn't deflate, this option has no effect.
+    #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
     pub fn deflate_option(mut self, option: DeflateOption) -> Self {
         self.0.compression_level = option.into_level();
         self
@@ -44,6 +47,7 @@ impl ZipEntryBuilder {
     }
 
     /// Sets the entry's last modification date.
+    #[cfg(feature = "date")]
     pub fn last_modification_date(mut self, date: DateTime<Utc>) -> Self {
         self.0.last_modification_date = date;
         self

@@ -2,6 +2,8 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::error::{Result, ZipError};
+
+#[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use async_compression::Level;
 
 /// A compression method supported by this crate.
@@ -89,6 +91,7 @@ pub enum DeflateOption {
     Other(u32),
 }
 
+#[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 impl DeflateOption {
     pub(crate) fn into_level(self) -> Level {
         // FIXME: There's no clear documentation on what these specific levels defined in the ZIP specification relate

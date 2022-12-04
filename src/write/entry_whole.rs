@@ -38,7 +38,11 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             }
         };
 
+        #[cfg(feature = "date")]
         let (mod_time, mod_date) = crate::spec::date::chrono_to_zip_time(self.entry.last_modification_date());
+
+        #[cfg(not(feature = "date"))]
+        let (mod_time, mod_date) = (0, 0);
 
         let lf_header = LocalFileHeader {
             compressed_size: compressed_data.len() as u32,

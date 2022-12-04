@@ -74,6 +74,7 @@ where
     let entry = ZipEntry {
         filename,
         compression,
+        #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
         compression_level: async_compression::Level::Default,
         attribute_compatibility: AttributeCompatibility::Unix,
         /// FIXME: Default to Unix for the moment
