@@ -1,4 +1,4 @@
-name: Build & Test (Linux)
+name: Test (Linux)
 
 on:
   push:
@@ -16,7 +16,33 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Build
-      run: cargo build --verbose --all-features
-    - name: Test
-      run: cargo test--verbose --all-features
+
+    - name: Test [no features]
+      run: cargo test --verbose
+
+    - name: Test ['date' feature]
+      run: cargo test --verbose --features date
+
+    - name: Test ['fs' feature]
+      run: cargo test --verbose --features fs
+
+    - name: Test ['crc' feature]
+      run: cargo test --verbose --features crc
+
+    - name: Test ['deflate' feature]
+      run: cargo test --verbose --features deflate
+
+    - name: Test ['bzip2' feature]
+      run: cargo test --verbose --features bzip2
+
+    - name: Test ['lzma' feature]
+      run: cargo test --verbose --features lzma
+
+    - name: Test ['zstd' feature]
+      run: cargo test --verbose --features zstd
+
+    - name: Test ['xz' feature]
+      run: cargo test --verbose --features xz
+
+    - name: Test ['full' feature]
+      run: cargo test --verbose --features full
