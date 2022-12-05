@@ -20,8 +20,8 @@ jobs:
     - name: Test [no features]
       run: cargo test --verbose
 
-    - name: Test ['date' feature]
-      run: cargo test --verbose --features date
+    - name: Test ['chrono' feature]
+      run: cargo test --verbose --features chrono
 
     - name: Test ['fs' feature]
       run: cargo test --verbose --features fs

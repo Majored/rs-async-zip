@@ -25,8 +25,8 @@ pub(crate) mod utils;
 pub(crate) mod tests;
 
 pub use crate::spec::attribute::AttributeCompatibility;
-pub use crate::spec::date::ZipDateTime;
 pub use crate::spec::compression::{Compression, DeflateOption};
+pub use crate::spec::date::ZipDateTime;
 
 pub use crate::entry::{builder::ZipEntryBuilder, StoredZipEntry, ZipEntry};
 pub use crate::file::{builder::ZipFileBuilder, ZipFile};

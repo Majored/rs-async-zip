@@ -4,10 +4,10 @@
 pub mod builder;
 
 use crate::entry::builder::ZipEntryBuilder;
-use crate::spec::date::ZipDateTime;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
 use crate::spec::consts::{LFH_LENGTH, SIGNATURE_LENGTH};
+use crate::spec::date::ZipDateTime;
 // use crate::spec::header::GeneralPurposeFlag;
 
 /// An immutable store of data about a ZIP entry.

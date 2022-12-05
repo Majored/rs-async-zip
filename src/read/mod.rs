@@ -14,10 +14,10 @@ pub(crate) mod io;
 use crate::entry::{StoredZipEntry, ZipEntry};
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
-use crate::spec::date::ZipDateTime;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
 use crate::spec::consts::CDH_SIGNATURE;
+use crate::spec::date::ZipDateTime;
 use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader};
 
 use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt, SeekFrom};
@@ -80,7 +80,7 @@ where
         crc32: header.crc,
         uncompressed_size: header.uncompressed_size,
         compressed_size: header.compressed_size,
-        last_modification_date: ZipDateTime {date: header.mod_date, time: header.mod_time},
+        last_modification_date: ZipDateTime { date: header.mod_date, time: header.mod_time },
         internal_file_attribute: header.inter_attr,
         external_file_attribute: header.exter_attr,
         extra_field,

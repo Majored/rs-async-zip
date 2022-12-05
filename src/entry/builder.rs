@@ -3,8 +3,8 @@
 
 use crate::entry::ZipEntry;
 use crate::spec::attribute::AttributeCompatibility;
-use crate::spec::date::ZipDateTime;
 use crate::spec::compression::{Compression, DeflateOption};
+use crate::spec::date::ZipDateTime;
 
 /// A builder for [`ZipEntry`].
 pub struct ZipEntryBuilder(pub(crate) ZipEntry);
