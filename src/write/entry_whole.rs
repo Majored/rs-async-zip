@@ -38,12 +38,6 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             }
         };
 
-        #[cfg(feature = "date")]
-        let (mod_time, mod_date) = crate::spec::date::chrono_to_zip_time(self.entry.last_modification_date());
-
-        #[cfg(not(feature = "date"))]
-        let (mod_time, mod_date) = (0, 0);
-
         let lf_header = LocalFileHeader {
             compressed_size: compressed_data.len() as u32,
             uncompressed_size: self.data.len() as u32,
@@ -51,8 +45,8 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             crc: compute_crc(self.data),
             extra_field_length: self.entry.extra_field().len() as u16,
             file_name_length: self.entry.filename().as_bytes().len() as u16,
-            mod_time,
-            mod_date,
+            mod_time: self.entry.last_modification_date().time,
+            mod_date: self.entry.last_modification_date().date,
             version: crate::spec::version::as_needed_to_extract(&self.entry),
             flags: GeneralPurposeFlag {
                 data_descriptor: false,
