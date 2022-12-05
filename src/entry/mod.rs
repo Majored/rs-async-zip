@@ -4,13 +4,11 @@
 pub mod builder;
 
 use crate::entry::builder::ZipEntryBuilder;
+use crate::spec::date::ZipDateTime;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
 use crate::spec::consts::{LFH_LENGTH, SIGNATURE_LENGTH};
 // use crate::spec::header::GeneralPurposeFlag;
-
-#[cfg(feature = "date")]
-use chrono::{DateTime, Utc};
 
 /// An immutable store of data about a ZIP entry.
 ///
@@ -27,8 +25,7 @@ pub struct ZipEntry {
     pub(crate) uncompressed_size: u32,
     pub(crate) compressed_size: u32,
     pub(crate) attribute_compatibility: AttributeCompatibility,
-    #[cfg(feature = "date")]
-    pub(crate) last_modification_date: DateTime<Utc>,
+    pub(crate) last_modification_date: ZipDateTime,
     pub(crate) internal_file_attribute: u16,
     pub(crate) external_file_attribute: u32,
     pub(crate) extra_field: Vec<u8>,
@@ -52,8 +49,7 @@ impl ZipEntry {
             uncompressed_size: 0,
             compressed_size: 0,
             attribute_compatibility: AttributeCompatibility::Unix,
-            #[cfg(feature = "date")]
-            last_modification_date: Utc::now(),
+            last_modification_date: ZipDateTime::default(),
             internal_file_attribute: 0,
             external_file_attribute: 0,
             extra_field: Vec::new(),
@@ -97,8 +93,7 @@ impl ZipEntry {
     }
 
     /// Returns the entry's last modification time & date.
-    #[cfg(feature = "date")]
-    pub fn last_modification_date(&self) -> &DateTime<Utc> {
+    pub fn last_modification_date(&self) -> &ZipDateTime {
         &self.last_modification_date
     }
 

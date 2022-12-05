@@ -3,10 +3,8 @@
 
 use crate::entry::ZipEntry;
 use crate::spec::attribute::AttributeCompatibility;
+use crate::spec::date::ZipDateTime;
 use crate::spec::compression::{Compression, DeflateOption};
-
-#[cfg(feature = "date")]
-use chrono::{DateTime, Utc};
 
 /// A builder for [`ZipEntry`].
 pub struct ZipEntryBuilder(pub(crate) ZipEntry);
@@ -25,9 +23,15 @@ impl ZipEntryBuilder {
         Self(ZipEntry::new(filename, compression))
     }
 
-    /// Sets the entry's filename
+    /// Sets the entry's filename.
     pub fn filename(mut self, filename: String) -> Self {
         self.0.filename = filename;
+        self
+    }
+
+    /// Sets the entry's compression method.
+    pub fn compression(mut self, compression: Compression) -> Self {
+        self.0.compression = compression;
         self
     }
 
@@ -47,8 +51,7 @@ impl ZipEntryBuilder {
     }
 
     /// Sets the entry's last modification date.
-    #[cfg(feature = "date")]
-    pub fn last_modification_date(mut self, date: DateTime<Utc>) -> Self {
+    pub fn last_modification_date(mut self, date: ZipDateTime) -> Self {
         self.0.last_modification_date = date;
         self
     }

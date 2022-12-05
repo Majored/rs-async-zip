@@ -13,9 +13,8 @@ keywords = ["async", "zip", "archive", "tokio"]
 categories = ["asynchronous", "compression"]
 
 [features]
-full = ["date", "fs", "crc", "deflate", "bzip2", "lzma", "zstd", "xz"]
+full = ["chrono", "fs", "crc", "deflate", "bzip2", "lzma", "zstd", "xz"]
 
-date = ["chrono"]
 fs = ["tokio/fs"]
 crc = []
 

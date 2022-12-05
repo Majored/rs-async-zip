@@ -14,6 +14,7 @@ pub(crate) mod io;
 use crate::entry::{StoredZipEntry, ZipEntry};
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
+use crate::spec::date::ZipDateTime;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
 use crate::spec::consts::CDH_SIGNATURE;
@@ -68,8 +69,6 @@ where
     let compression = Compression::try_from(header.compression)?;
     let extra_field = crate::read::io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
     let comment = crate::read::io::read_string(reader, header.file_comment_length.into()).await?;
-    #[cfg(feature = "date")]
-    let last_modification_date = crate::spec::date::zip_date_to_chrono(header.mod_date, header.mod_time);
 
     let entry = ZipEntry {
         filename,
@@ -81,8 +80,7 @@ where
         crc32: header.crc,
         uncompressed_size: header.uncompressed_size,
         compressed_size: header.compressed_size,
-        #[cfg(feature = "date")]
-        last_modification_date,
+        last_modification_date: ZipDateTime {date: header.mod_date, time: header.mod_time},
         internal_file_attribute: header.inter_attr,
         external_file_attribute: header.exter_attr,
         extra_field,
