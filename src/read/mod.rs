@@ -11,7 +11,7 @@ pub mod fs;
 
 pub(crate) mod io;
 
-use crate::entry::{StoredZipEntry, ZipEntry, ZipEntryMeta};
+use crate::entry::{StoredZipEntry, ZipEntry};
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 use crate::spec::attribute::AttributeCompatibility;
@@ -89,7 +89,6 @@ where
         comment,
     };
 
-    let meta = ZipEntryMeta { general_purpose_flag: header.flags, file_offset: header.lh_offset as u64 };
-
-    Ok(StoredZipEntry { entry, meta })
+    // general_purpose_flag: header.flags,
+    Ok(StoredZipEntry { entry, file_offset: header.lh_offset as u64 })
 }

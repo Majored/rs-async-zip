@@ -7,7 +7,7 @@ use crate::entry::builder::ZipEntryBuilder;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
 use crate::spec::consts::{LFH_LENGTH, SIGNATURE_LENGTH};
-use crate::spec::header::GeneralPurposeFlag;
+// use crate::spec::header::GeneralPurposeFlag;
 
 #[cfg(feature = "date")]
 use chrono::{DateTime, Utc};
@@ -140,28 +140,32 @@ impl ZipEntry {
     }
 }
 
-#[derive(Clone)]
-#[allow(dead_code)]
-pub(crate) struct ZipEntryMeta {
-    pub(crate) general_purpose_flag: GeneralPurposeFlag,
-    pub(crate) file_offset: u64,
-}
-
 /// Stores information about a Zip entry inside of an archive. Besides storing archive independant
 /// information like the size and timestamp it can also be used to query information about how the
 /// entry is stored in an archive.
 #[derive(Clone)]
 pub struct StoredZipEntry {
-    pub entry: ZipEntry,
-    pub(crate) meta: ZipEntryMeta,
+    pub(crate) entry: ZipEntry,
+    // pub(crate) general_purpose_flag: GeneralPurposeFlag,
+    pub(crate) file_offset: u64,
 }
 
 impl StoredZipEntry {
+    /// Returns a reference to the inner ZIP entry.
+    pub fn entry(&self) -> &ZipEntry {
+        &self.entry
+    }
+
+    /// Returns the offset in bytes from the header of th entry starts.
+    pub fn header_offset(&self) -> u64 {
+        self.file_offset
+    }
+
     /// Returns the offset in bytes from where the data of the entry starts.
     pub fn data_offset(&self) -> u64 {
         let header_length = SIGNATURE_LENGTH + LFH_LENGTH;
         let trailing_length = self.entry.filename.as_bytes().len() + self.entry.extra_field().len();
 
-        self.meta.file_offset + (header_length as u64) + (trailing_length as u64)
+        self.file_offset + (header_length as u64) + (trailing_length as u64)
     }
 }
