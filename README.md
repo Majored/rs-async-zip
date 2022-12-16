@@ -2,7 +2,7 @@
 [![Crates.io](https://img.shields.io/crates/v/async_zip?style=flat-square)](https://crates.io/crates/async_zip)
 [![Crates.io](https://img.shields.io/crates/d/async_zip?style=flat-square)](https://crates.io/crates/async_zip)
 [![docs.rs](https://img.shields.io/docsrs/async_zip?style=flat-square)](https://docs.rs/async_zip/)
-[![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/Majored/rs-async-zip/ci-linux.yml?branch=main&style=flat-square)](https://github.com/Majored/rs-async-zip/actions?query=branch%3Amain)&[![GitHub](https://img.shields.io/github/license/Majored/rs-async-zip?style=flat-square)](https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
+[![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/Majored/rs-async-zip/ci-linux.yml?branch=main&style=flat-square)](https://github.com/Majored/rs-async-zip/actions?query=branch%3Amain)[![GitHub](https://img.shields.io/github/license/Majored/rs-async-zip?style=flat-square)](https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 An asynchronous ZIP archive reading/writing crate powered by [`tokio`](https://crates.io/crates/tokio).
 
