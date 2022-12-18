@@ -31,6 +31,7 @@ use crate::read::io::entry::ZipEntryReader;
 use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt, SeekFrom};
 
 /// A ZIP reader which acts over a seekable source.
+#[derive(Clone)]
 pub struct ZipFileReader<R> {
     reader: R,
     file: ZipFile,
