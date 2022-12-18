@@ -20,7 +20,10 @@ use crate::spec::consts::CDH_SIGNATURE;
 use crate::spec::date::ZipDateTime;
 use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader};
 
-use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt, SeekFrom};
+use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt, BufReader, SeekFrom};
+
+/// The max buffer size used when parsing the central directory, equal to 20MiB.
+const MAX_CD_BUFFER_SIZE: usize = 20 * 1024 * 1024;
 
 pub(crate) async fn file<R>(mut reader: R) -> Result<ZipFile>
 where
@@ -38,7 +41,11 @@ where
     }
 
     reader.seek(SeekFrom::Start(eocdr.cent_dir_offset.into())).await?;
-    let entries = crate::read::cd(&mut reader, eocdr.num_of_entries.into()).await?;
+
+    // To avoid lots of small reads to `reader` when parsing the central directory, we use a BufReader that can read the whole central directory at once.
+    // Because `eocdr.size_cent_dir` is a u32, we use MAX_CD_BUFFER_SIZE to prevent very large buffer sizes.
+    let buf = BufReader::with_capacity(std::cmp::min(eocdr.size_cent_dir as _, MAX_CD_BUFFER_SIZE), reader);
+    let entries = crate::read::cd(buf, eocdr.num_of_entries.into()).await?;
 
     Ok(ZipFile { entries, comment, zip64: false })
 }
