@@ -10,10 +10,10 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use pin_project::pin_project;
-use tokio::io::{AsyncRead, AsyncReadExt, ReadBuf, Take};
+use tokio::io::{AsyncRead, AsyncReadExt, BufReader, ReadBuf, Take};
 
 #[pin_project]
-pub struct ZipEntryReader<'a, R> {
+pub struct ZipEntryReader<'a, R: AsyncRead + Unpin> {
     #[pin]
     reader: HashedReader<CompressedReader<Take<OwnedReader<'a, R>>>>,
 }
@@ -23,12 +23,12 @@ where
     R: AsyncRead + Unpin,
 {
     /// Constructs a new entry reader from its required parameters (incl. an owned R).
-    pub(crate) fn new_with_owned(reader: R, compression: Compression, size: u64) -> Self {
+    pub(crate) fn new_with_owned(reader: BufReader<R>, compression: Compression, size: u64) -> Self {
         Self { reader: HashedReader::new(CompressedReader::new(OwnedReader::Owned(reader).take(size), compression)) }
     }
 
     /// Constructs a new entry reader from its required parameters (incl. a mutable borrow of an R).
-    pub(crate) fn new_with_borrow(reader: &'a mut R, compression: Compression, size: u64) -> Self {
+    pub(crate) fn new_with_borrow(reader: BufReader<&'a mut R>, compression: Compression, size: u64) -> Self {
         Self { reader: HashedReader::new(CompressedReader::new(OwnedReader::Borrow(reader).take(size), compression)) }
     }
 }

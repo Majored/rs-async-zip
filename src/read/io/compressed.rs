@@ -12,49 +12,49 @@ use async_compression::tokio::bufread;
 use tokio::io::BufReader;
 
 use pin_project::pin_project;
-use tokio::io::{AsyncRead, ReadBuf};
+use tokio::io::{AsyncBufRead, AsyncRead, ReadBuf};
 
 /// A wrapping reader which holds concrete types for all respective compression method readers.
 #[pin_project(project = CompressedReaderProj)]
 pub(crate) enum CompressedReader<R> {
     Stored(#[pin] R),
     #[cfg(feature = "deflate")]
-    Deflate(#[pin] bufread::DeflateDecoder<BufReader<R>>),
+    Deflate(#[pin] bufread::DeflateDecoder<R>),
     #[cfg(feature = "bzip2")]
-    Bz(#[pin] bufread::BzDecoder<BufReader<R>>),
+    Bz(#[pin] bufread::BzDecoder<R>),
     #[cfg(feature = "lzma")]
-    Lzma(#[pin] bufread::LzmaDecoder<BufReader<R>>),
+    Lzma(#[pin] bufread::LzmaDecoder<R>),
     #[cfg(feature = "zstd")]
-    Zstd(#[pin] bufread::ZstdDecoder<BufReader<R>>),
+    Zstd(#[pin] bufread::ZstdDecoder<R>),
     #[cfg(feature = "xz")]
-    Xz(#[pin] bufread::XzDecoder<BufReader<R>>),
+    Xz(#[pin] bufread::XzDecoder<R>),
 }
 
 impl<R> CompressedReader<R>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncBufRead + Unpin,
 {
-    /// Constructs a new wrapping reader from a generic [`AsyncRead`] implementer.
+    /// Constructs a new wrapping reader from a generic [`AsyncBufRead`] implementer.
     pub(crate) fn new(reader: R, compression: Compression) -> Self {
         match compression {
             Compression::Stored => CompressedReader::Stored(reader),
             #[cfg(feature = "deflate")]
-            Compression::Deflate => CompressedReader::Deflate(bufread::DeflateDecoder::new(BufReader::new(reader))),
+            Compression::Deflate => CompressedReader::Deflate(bufread::DeflateDecoder::new(reader)),
             #[cfg(feature = "bzip2")]
-            Compression::Bz => CompressedReader::Bz(bufread::BzDecoder::new(BufReader::new(reader))),
+            Compression::Bz => CompressedReader::Bz(bufread::BzDecoder::new(reader)),
             #[cfg(feature = "lzma")]
-            Compression::Lzma => CompressedReader::Lzma(bufread::LzmaDecoder::new(BufReader::new(reader))),
+            Compression::Lzma => CompressedReader::Lzma(bufread::LzmaDecoder::new(reader)),
             #[cfg(feature = "zstd")]
-            Compression::Zstd => CompressedReader::Zstd(bufread::ZstdDecoder::new(BufReader::new(reader))),
+            Compression::Zstd => CompressedReader::Zstd(bufread::ZstdDecoder::new(reader)),
             #[cfg(feature = "xz")]
-            Compression::Xz => CompressedReader::Xz(bufread::XzDecoder::new(BufReader::new(reader))),
+            Compression::Xz => CompressedReader::Xz(bufread::XzDecoder::new(reader)),
         }
     }
 }
 
 impl<R> AsyncRead for CompressedReader<R>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncBufRead + Unpin,
 {
     fn poll_read(self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
         match self.project() {

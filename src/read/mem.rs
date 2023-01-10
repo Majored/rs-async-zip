@@ -77,7 +77,7 @@ use crate::read::io::entry::ZipEntryReader;
 use std::io::Cursor;
 use std::sync::Arc;
 
-use tokio::io::{AsyncSeekExt, SeekFrom};
+use tokio::io::BufReader;
 
 struct Inner {
     data: Vec<u8>,
@@ -110,10 +110,10 @@ impl ZipFileReader {
     /// Returns a new entry reader if the provided index is valid.
     pub async fn entry(&self, index: usize) -> Result<ZipEntryReader<Cursor<&[u8]>>> {
         let stored_entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let seek_to = stored_entry.data_offset();
-        let mut cursor = Cursor::new(&self.inner.data[..]);
+        let mut cursor = BufReader::new(Cursor::new(&self.inner.data[..]));
 
-        cursor.seek(SeekFrom::Start(seek_to)).await?;
+        stored_entry.seek_to_data_offset(&mut cursor).await?;
+
         Ok(ZipEntryReader::new_with_owned(
             cursor,
             stored_entry.entry.compression(),
