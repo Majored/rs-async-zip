@@ -12,7 +12,7 @@ use tokio::io::{AsyncBufRead, AsyncRead, BufReader, ReadBuf};
 /// This is used to represent whether the supplied reader can be acted on concurrently or not (with an owned value
 /// suggesting that R implements some method of synchronisation & cloning).
 #[pin_project(project = OwnedReaderProj)]
-pub(crate) enum OwnedReader<'a, R: AsyncRead + Unpin> {
+pub(crate) enum OwnedReader<'a, R> {
     Owned(#[pin] BufReader<R>),
     Borrow(#[pin] BufReader<&'a mut R>),
 }
