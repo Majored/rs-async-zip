@@ -47,6 +47,32 @@ where
         Ok(ZipFileReader { reader, file })
     }
 
+    /// Constructs a ZIP reader from a seekable source and zip file information
+    /// derived from that source.
+    ///
+    /// This can be used to avoid parsing the same zip file several times
+    ///
+    /// ```no_run
+    /// # use tokio::fs::File;
+    /// # use async_zip::read::seek::ZipFileReader;
+    /// # use async_zip::error::Result;
+    /// #
+    /// # async fn run() -> Result<()> {
+    /// let reader1 = File::open("/somefile").await?;
+    /// let reader2 = File::open("/somefile").await?;
+    ///
+    /// let zfr1 = ZipFileReader::new(reader1).await?;
+    ///
+    /// // Avoid parsing the zip file again
+    /// let zfr2 = ZipFileReader::from_parts(reader2, zfr1.file().clone());
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    pub fn from_parts(reader: R, file: ZipFile) -> ZipFileReader<R> {
+        ZipFileReader { reader, file }
+    }
+
     /// Returns this ZIP file's information.
     pub fn file(&self) -> &ZipFile {
         &self.file
