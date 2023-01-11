@@ -21,7 +21,7 @@ use crate::spec::consts::{CDH_SIGNATURE, LFH_SIGNATURE};
 use crate::spec::date::ZipDateTime;
 use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader, LocalFileHeader};
 
-use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt, BufReader, SeekFrom};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, BufReader, SeekFrom};
 
 /// The max buffer size used when parsing the central directory, equal to 20MiB.
 const MAX_CD_BUFFER_SIZE: usize = 20 * 1024 * 1024;
@@ -99,11 +99,15 @@ where
     Ok(StoredZipEntry { entry, file_offset: header.lh_offset as u64 })
 }
 
-pub(crate) async fn lfh<R>(mut reader: R) -> Result<ZipEntry>
+pub(crate) async fn lfh<R>(mut reader: R) -> Result<Option<ZipEntry>>
 where
     R: AsyncRead + Unpin,
 {
-    crate::utils::assert_signature(&mut reader, LFH_SIGNATURE).await?;
+    match reader.read_u32_le().await? {
+        actual if actual == LFH_SIGNATURE => (),
+        actual if actual == CDH_SIGNATURE => return Ok(None),
+        actual => return Err(ZipError::UnexpectedHeaderError(actual, LFH_SIGNATURE)),
+    };
 
     let header = LocalFileHeader::from_reader(&mut reader).await?;
     let filename = crate::read::io::read_string(&mut reader, header.file_name_length.into()).await?;
@@ -127,5 +131,5 @@ where
         comment: String::new(),
     };
 
-    Ok(entry)
+    Ok(Some(entry))
 }

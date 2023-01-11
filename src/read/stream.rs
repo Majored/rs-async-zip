@@ -73,7 +73,10 @@ where
 
     /// Opens the next entry for reading if the central directory hasn’t yet been reached.
     pub async fn next_entry(mut self) -> Result<Option<ZipFileReader<Reading<'a, R>>>> {
-        let entry = crate::read::lfh(&mut self.0 .0).await?;
+        let entry = match crate::read::lfh(&mut self.0 .0).await? {
+            Some(entry) => entry,
+            None => return Ok(None),
+        };
 
         let reader = BufReader::new(self.0 .0);
         let reader = ZipEntryReader::new_with_owned(reader, entry.compression, entry.uncompressed_size.into());
