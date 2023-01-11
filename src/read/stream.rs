@@ -45,15 +45,13 @@
 //! # }
 //! ```
 
+use crate::entry::ZipEntry;
 use crate::error::Result;
 use crate::error::ZipError;
-use crate::spec::header::LocalFileHeader;
-use crate::utils::assert_signature;
-use crate::{AttributeCompatibility, Compression, ZipDateTime, ZipEntry};
+use crate::read::io::entry::ZipEntryReader;
+
 use tokio::io::AsyncReadExt;
 use tokio::io::{AsyncRead, BufReader};
-
-use super::seek::ZipEntryReader;
 
 pub struct Ready<R>(R);
 pub struct Reading<'a, R>(ZipEntryReader<'a, R>, ZipEntry);
@@ -75,35 +73,12 @@ where
 
     /// Opens the next entry for reading if the central directory hasn’t yet been reached.
     pub async fn next_entry(mut self) -> Result<Option<ZipFileReader<Reading<'a, R>>>> {
-        assert_signature(&mut self.0 .0, crate::spec::consts::LFH_SIGNATURE).await?;
-
-        let header = LocalFileHeader::from_reader(&mut self.0 .0).await?;
-        let filename = crate::read::io::read_string(&mut self.0 .0, header.file_name_length.into()).await?;
-        let compression = Compression::try_from(header.compression)?;
-        let extra_field = crate::read::io::read_bytes(&mut self.0 .0, header.extra_field_length.into()).await?;
-
-        let entry = ZipEntry {
-            filename,
-            compression,
-            #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
-            compression_level: async_compression::Level::Default,
-            attribute_compatibility: AttributeCompatibility::Unix,
-            /// FIXME: Default to Unix for the moment
-            crc32: header.crc,
-            uncompressed_size: header.uncompressed_size,
-            compressed_size: header.compressed_size,
-            last_modification_date: ZipDateTime { date: header.mod_date, time: header.mod_time },
-            internal_file_attribute: 0,
-            external_file_attribute: 0,
-            extra_field,
-            comment: String::new(),
-        };
+        let entry = crate::read::lfh(&mut self.0 .0).await?;
 
         let reader = BufReader::new(self.0 .0);
-        Ok(Some(ZipFileReader(Reading(
-            ZipEntryReader::new_with_owned(reader, compression, entry.uncompressed_size.into()),
-            entry,
-        ))))
+        let reader = ZipEntryReader::new_with_owned(reader, entry.compression, entry.uncompressed_size.into());
+
+        Ok(Some(ZipFileReader(Reading(reader, entry))))
     }
 }
 

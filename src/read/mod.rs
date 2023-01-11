@@ -17,9 +17,9 @@ use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
-use crate::spec::consts::CDH_SIGNATURE;
+use crate::spec::consts::{CDH_SIGNATURE, LFH_SIGNATURE};
 use crate::spec::date::ZipDateTime;
-use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader};
+use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader, LocalFileHeader};
 
 use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt, BufReader, SeekFrom};
 
@@ -97,4 +97,35 @@ where
 
     // general_purpose_flag: header.flags,
     Ok(StoredZipEntry { entry, file_offset: header.lh_offset as u64 })
+}
+
+pub(crate) async fn lfh<R>(mut reader: R) -> Result<ZipEntry>
+where
+    R: AsyncRead + Unpin,
+{
+    crate::utils::assert_signature(&mut reader, LFH_SIGNATURE).await?;
+
+    let header = LocalFileHeader::from_reader(&mut reader).await?;
+    let filename = crate::read::io::read_string(&mut reader, header.file_name_length.into()).await?;
+    let compression = Compression::try_from(header.compression)?;
+    let extra_field = crate::read::io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
+
+    let entry = ZipEntry {
+        filename,
+        compression,
+        #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
+        compression_level: async_compression::Level::Default,
+        attribute_compatibility: AttributeCompatibility::Unix,
+        /// FIXME: Default to Unix for the moment
+        crc32: header.crc,
+        uncompressed_size: header.uncompressed_size,
+        compressed_size: header.compressed_size,
+        last_modification_date: ZipDateTime { date: header.mod_date, time: header.mod_time },
+        internal_file_attribute: 0,
+        external_file_attribute: 0,
+        extra_field,
+        comment: String::new(),
+    };
+
+    Ok(entry)
 }
