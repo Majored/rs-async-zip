@@ -1,10 +1,11 @@
-// Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
+// Copyright (c) 2022-2023 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 //! A module which supports reading ZIP files.
 
 pub mod mem;
 pub mod seek;
+pub mod stream;
 
 #[cfg(feature = "fs")]
 pub mod fs;
