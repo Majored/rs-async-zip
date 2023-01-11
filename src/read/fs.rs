@@ -78,7 +78,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use tokio::fs::File;
-use tokio::io::{AsyncSeekExt, SeekFrom};
+use tokio::io::{AsyncSeekExt, BufReader, SeekFrom};
 
 struct Inner {
     path: PathBuf,
@@ -116,10 +116,10 @@ impl ZipFileReader {
     /// Returns a new entry reader if the provided index is valid.
     pub async fn entry(&self, index: usize) -> Result<ZipEntryReader<File>> {
         let stored_entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let seek_to = stored_entry.data_offset();
-        let mut fs_file = File::open(&self.inner.path).await?;
+        let mut fs_file = BufReader::new(File::open(&self.inner.path).await?);
 
-        fs_file.seek(SeekFrom::Start(seek_to)).await?;
+        stored_entry.seek_to_data_offset(&mut fs_file).await?;
+
         Ok(ZipEntryReader::new_with_owned(
             fs_file,
             stored_entry.entry.compression(),

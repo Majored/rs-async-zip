@@ -28,7 +28,7 @@ use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 pub use crate::read::io::entry::ZipEntryReader;
 
-use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt, SeekFrom};
+use tokio::io::{AsyncRead, AsyncSeek, BufReader};
 
 /// A ZIP reader which acts over a seekable source.
 #[derive(Clone)]
@@ -65,11 +65,13 @@ where
     /// Returns a new entry reader if the provided index is valid.
     pub async fn entry(&mut self, index: usize) -> Result<ZipEntryReader<'_, R>> {
         let stored_entry = self.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let seek_to = stored_entry.data_offset();
 
-        self.reader.seek(SeekFrom::Start(seek_to)).await?;
+        let mut reader = BufReader::new(&mut self.reader);
+
+        stored_entry.seek_to_data_offset(&mut reader).await?;
+
         Ok(ZipEntryReader::new_with_borrow(
-            &mut self.reader,
+            reader,
             stored_entry.entry.compression(),
             stored_entry.entry.uncompressed_size().into(),
         ))
@@ -77,16 +79,18 @@ where
 
     /// Returns a new entry reader if the provided index is valid.
     /// Consumes self
-    pub async fn into_entry<'a>(mut self, index: usize) -> Result<ZipEntryReader<'a, R>>
+    pub async fn into_entry<'a>(self, index: usize) -> Result<ZipEntryReader<'a, R>>
     where
         R: 'a,
     {
         let stored_entry = self.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let seek_to = stored_entry.data_offset();
 
-        self.reader.seek(SeekFrom::Start(seek_to)).await?;
+        let mut reader = BufReader::new(self.reader);
+
+        stored_entry.seek_to_data_offset(&mut reader).await?;
+
         Ok(ZipEntryReader::new_with_owned(
-            self.reader,
+            reader,
             stored_entry.entry.compression(),
             stored_entry.entry.uncompressed_size().into(),
         ))

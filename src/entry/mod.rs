@@ -3,11 +3,16 @@
 
 pub mod builder;
 
+use std::io::SeekFrom;
+
+use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt};
+
 use crate::entry::builder::ZipEntryBuilder;
+use crate::error::Result;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
-use crate::spec::consts::{LFH_LENGTH, SIGNATURE_LENGTH};
 use crate::spec::date::ZipDateTime;
+use crate::spec::header::LocalFileHeader;
 // use crate::spec::header::GeneralPurposeFlag;
 
 /// An immutable store of data about a ZIP entry.
@@ -156,11 +161,16 @@ impl StoredZipEntry {
         self.file_offset
     }
 
-    /// Returns the offset in bytes from where the data of the entry starts.
-    pub fn data_offset(&self) -> u64 {
-        let header_length = SIGNATURE_LENGTH + LFH_LENGTH;
-        let trailing_length = self.entry.filename.as_bytes().len() + self.entry.extra_field().len();
+    /// Seek to the offset in bytes where the data of the entry starts.
+    pub async fn seek_to_data_offset<R: AsyncRead + AsyncSeek + Unpin>(&self, mut reader: &mut R) -> Result<()> {
+        // Seek to the header
+        reader.seek(SeekFrom::Start(self.file_offset)).await?;
 
-        self.file_offset + (header_length as u64) + (trailing_length as u64)
+        // Skip the local file header and trailing data
+        let header = LocalFileHeader::from_reader(&mut reader).await?;
+        let _filename = crate::read::io::read_string(&mut reader, header.file_name_length.into()).await?;
+        let _extra_field = crate::read::io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
+
+        Ok(())
     }
 }
