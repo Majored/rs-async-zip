@@ -127,15 +127,12 @@ where
             return Err(ZipError::CRC32CheckError); // CHANGE
         }
 
-        // FIXME: Need to impl into into_inner() for ZipEntryReader.
-        todo!();
+        Ok(ZipFileReader(Ready(self.0 .0.into_inner())))
     }
 
     /// Reads until EOF and converts the reader back into the Ready state.
     pub async fn skip(mut self) -> Result<ZipFileReader<Ready<R>>> {
         while self.0 .0.read(&mut [0; 2048]).await? != 0 {}
-
-        // FIXME: Need to impl into into_inner() for ZipEntryReader.
-        todo!();
+        Ok(ZipFileReader(Ready(self.0 .0.into_inner())))
     }
 }

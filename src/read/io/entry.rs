@@ -78,4 +78,9 @@ where
             Err(ZipError::CRC32CheckError)
         }
     }
+
+    /// Consumes this reader and returns the inner value.
+    pub(crate) fn into_inner(self) -> R {
+        self.reader.into_inner().into_inner().into_inner().owned_into_inner()
+    }
 }

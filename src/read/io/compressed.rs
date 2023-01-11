@@ -50,6 +50,23 @@ where
             Compression::Xz => CompressedReader::Xz(bufread::XzDecoder::new(reader)),
         }
     }
+
+    /// Consumes this reader and returns the inner value.
+    pub(crate) fn into_inner(self) -> R {
+        match self {
+            CompressedReader::Stored(inner) => inner,
+            #[cfg(feature = "deflate")]
+            CompressedReader::Deflate(inner) => inner.into_inner(),
+            #[cfg(feature = "bzip2")]
+            CompressedReader::Bz(inner) => inner.into_inner(),
+            #[cfg(feature = "lzma")]
+            CompressedReader::Lzma(inner) => inner.into_inner(),
+            #[cfg(feature = "zstd")]
+            CompressedReader::Zstd(inner) => inner.into_inner(),
+            #[cfg(feature = "xz")]
+            CompressedReader::Xz(inner) => inner.into_inner(),
+        }
+    }
 }
 
 impl<R> AsyncRead for CompressedReader<R>

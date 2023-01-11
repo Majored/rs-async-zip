@@ -35,6 +35,11 @@ where
     pub(crate) fn swap_and_compute_hash(&mut self) -> u32 {
         std::mem::take(&mut self.hasher).finalize()
     }
+
+    /// Consumes this reader and returns the inner value.
+    pub(crate) fn into_inner(self) -> R {
+        self.reader
+    }
 }
 
 impl<R> AsyncRead for HashedReader<R>

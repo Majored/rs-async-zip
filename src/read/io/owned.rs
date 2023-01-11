@@ -17,6 +17,19 @@ pub(crate) enum OwnedReader<'a, R> {
     Borrow(#[pin] BufReader<&'a mut R>),
 }
 
+impl<'a, R> OwnedReader<'a, R>
+where
+    R: AsyncRead + Unpin,
+{
+    /// Consumes an owned reader and returns the inner value.
+    pub(crate) fn owned_into_inner(self) -> R {
+        match self {
+            OwnedReader::Owned(inner) => inner.into_inner(),
+            OwnedReader::Borrow(_) => panic!("not OwnedReader::Owned value"),
+        }
+    }
+}
+
 impl<'a, R> AsyncBufRead for OwnedReader<'a, R>
 where
     R: AsyncRead + Unpin,
