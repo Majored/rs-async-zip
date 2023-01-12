@@ -2,7 +2,10 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::error::Result;
-use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader};
+use crate::spec::header::{
+    CentralDirectoryRecord, EndOfCentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader,
+    Zip64EndOfCentralDirectoryRecord,
+};
 
 use tokio::io::{AsyncRead, AsyncReadExt};
 
@@ -152,6 +155,22 @@ impl From<[u8; 18]> for EndOfCentralDirectoryHeader {
     }
 }
 
+impl From<[u8; 52]> for Zip64EndOfCentralDirectoryRecord {
+    fn from(value: [u8; 52]) -> Zip64EndOfCentralDirectoryRecord {
+        Zip64EndOfCentralDirectoryRecord {
+            size_of_zip64_end_of_cd_record: u64::from_le_bytes(value[0..8].try_into().unwrap()),
+            version_made_by: u16::from_le_bytes(value[8..10].try_into().unwrap()),
+            version_needed_to_extract: u16::from_le_bytes(value[10..12].try_into().unwrap()),
+            disk_number: u32::from_le_bytes(value[12..16].try_into().unwrap()),
+            disk_number_start_of_cd: u32::from_le_bytes(value[16..20].try_into().unwrap()),
+            num_entries_in_directory_on_disk: u64::from_le_bytes(value[20..28].try_into().unwrap()),
+            num_entries_in_directory: u64::from_le_bytes(value[28..36].try_into().unwrap()),
+            directory_size: u64::from_le_bytes(value[36..44].try_into().unwrap()),
+            offset_of_start_of_directory: u64::from_le_bytes(value[44..52].try_into().unwrap()),
+        }
+    }
+}
+
 impl LocalFileHeader {
     pub async fn from_reader<R: AsyncRead + Unpin>(reader: &mut R) -> Result<LocalFileHeader> {
         let mut buffer: [u8; 26] = [0; 26];
@@ -175,6 +194,17 @@ impl CentralDirectoryRecord {
         Ok(CentralDirectoryRecord::from(buffer))
     }
 }
+
+impl Zip64EndOfCentralDirectoryRecord {
+    pub async fn from_reader<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Zip64EndOfCentralDirectoryRecord> {
+        let mut buffer: [u8; 52] = [0; 52];
+        reader.read_exact(&mut buffer).await?;
+        Ok(Self::from(buffer))
+    }
+}
+
+/// Parse the entire extra fields
+pub fn parse_extra_fields() {}
 
 /// Replace elements of an array at a given cursor index for use with a zero-initialised array.
 macro_rules! array_push {

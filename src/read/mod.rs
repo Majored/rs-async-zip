@@ -19,9 +19,10 @@ use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
 use crate::spec::consts::{CDH_SIGNATURE, LFH_SIGNATURE};
 use crate::spec::date::ZipDateTime;
-use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader, LocalFileHeader};
+use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader, LocalFileHeader, Zip64EndOfCentralDirectoryRecord};
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, BufReader, SeekFrom};
+use crate::read::io::combined_record::CombinedCentralDirectoryRecord;
 
 /// The max buffer size used when parsing the central directory, equal to 20MiB.
 const MAX_CD_BUFFER_SIZE: usize = 20 * 1024 * 1024;
@@ -30,25 +31,44 @@ pub(crate) async fn file<R>(mut reader: R) -> Result<ZipFile>
 where
     R: AsyncRead + AsyncSeek + Unpin,
 {
+    // First find and parse the EOCDR.
     let eocdr_offset = crate::read::io::locator::eocdr(&mut reader).await?;
 
     reader.seek(SeekFrom::Start(eocdr_offset)).await?;
     let eocdr = EndOfCentralDirectoryHeader::from_reader(&mut reader).await?;
+
     let comment = crate::read::io::read_string(&mut reader, eocdr.file_comm_length.into()).await?;
 
+    // Find the Zip64 End Of Central Directory Locator. If it exists we are now officially in zip64 mode
+    let zip64_eocdl_offset = io::locator::zip64_eocdl(&mut reader).await?;
+    let zip64 = zip64_eocdl_offset.is_some();
+    let zip64_eocdr = if let Some(offset) = zip64_eocdl_offset {
+        reader.seek(SeekFrom::Start(offset)).await?;
+        Some(Zip64EndOfCentralDirectoryRecord::from_reader(&mut reader).await?)
+    } else {
+        None
+    };
+
+    // Combine the two EOCDRs.
+    let eocdr = CombinedCentralDirectoryRecord::combine(eocdr, zip64_eocdr);
+
     // Outdated feature so unlikely to ever make it into this crate.
-    if eocdr.disk_num != eocdr.start_cent_dir_disk || eocdr.num_of_entries != eocdr.num_of_entries_disk {
+    if eocdr.disk_number != eocdr.disk_number_start_of_cd
+        || eocdr.num_entries_in_directory != eocdr.num_entries_in_directory_on_disk
+    {
         return Err(ZipError::FeatureNotSupported("Spanned/split files"));
     }
 
-    reader.seek(SeekFrom::Start(eocdr.cent_dir_offset.into())).await?;
+    // Find and parse the central directory.
+    reader.seek(SeekFrom::Start(eocdr.offset_of_start_of_directory.into())).await?;
 
     // To avoid lots of small reads to `reader` when parsing the central directory, we use a BufReader that can read the whole central directory at once.
-    // Because `eocdr.size_cent_dir` is a u32, we use MAX_CD_BUFFER_SIZE to prevent very large buffer sizes.
-    let buf = BufReader::with_capacity(std::cmp::min(eocdr.size_cent_dir as _, MAX_CD_BUFFER_SIZE), reader);
-    let entries = crate::read::cd(buf, eocdr.num_of_entries.into()).await?;
+    // Because `eocdr.offset_of_start_of_directory` is a u64, we use MAX_CD_BUFFER_SIZE to prevent very large buffer sizes.
+    let buf =
+        BufReader::with_capacity(std::cmp::min(eocdr.offset_of_start_of_directory as _, MAX_CD_BUFFER_SIZE), reader);
+    let entries = crate::read::cd(buf, eocdr.num_entries_in_directory.into()).await?;
 
-    Ok(ZipFile { entries, comment, zip64: false })
+    Ok(ZipFile { entries, comment, zip64 })
 }
 
 pub(crate) async fn cd<R>(mut reader: R, num_of_entries: u64) -> Result<Vec<StoredZipEntry>>

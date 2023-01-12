@@ -31,7 +31,7 @@ impl ZipFile {
         &self.comment
     }
 
-    /// Returns whether or not this ZIP file is
+    /// Returns whether or not this ZIP file is zip64
     pub fn zip64(&self) -> bool {
         self.zip64
     }
