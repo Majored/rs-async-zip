@@ -3,3 +3,4 @@
 
 pub(crate) mod compression;
 pub(crate) mod locator;
+pub(crate) mod zip64;

@@ -23,6 +23,31 @@ pub struct GeneralPurposeFlag {
     pub filename_unicode: bool,
 }
 
+/// List of 2 byte header ids
+/// Ref https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#452
+#[non_exhaustive]
+pub enum HeaderId {
+    Zip64ExtendedInformationExtraField = 0x0001,
+}
+
+/// An extended information header for Zip64.
+/// This field is used both for local file headers and central directory records.
+/// https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#453
+pub struct Zip64ExtendedInformationExtraField {
+    pub header_id: HeaderId,
+    pub data_size: u16,
+    pub uncompressed_size: u64,
+    pub compressed_size: u64,
+    pub relative_header_offset: u64,
+    pub disk_start_number: u32,
+}
+
+pub struct UnknownExtraField {
+    pub header_id: HeaderId,
+    pub data_size: u16,
+    pub content: Vec<u8>,
+}
+
 // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4312
 pub struct CentralDirectoryRecord {
     pub v_made_by: u16,
@@ -52,4 +77,27 @@ pub struct EndOfCentralDirectoryHeader {
     pub(crate) size_cent_dir: u32,
     pub(crate) cent_dir_offset: u32,
     pub(crate) file_comm_length: u16,
+}
+
+// https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4314
+pub struct Zip64EndOfCentralDirectoryRecord {
+    /// The size of this Zip64EndOfCentralDirectoryRecord.
+    /// This is specified because there is a variable-length extra zip64 information sector.
+    /// However, we will gleefully ignore this sector because it is reserved for use by PKWare.
+    pub size_of_zip64_end_of_cd_record: u64,
+    pub version_made_by: u16,
+    pub version_needed_to_extract: u16,
+    pub disk_number: u32,
+    pub disk_number_start_of_cd: u32,
+    pub num_entries_in_directory_on_disk: u64,
+    pub num_entries_in_directory: u64,
+    pub directory_size: u64,
+    pub offset_of_start_of_directory: u64,
+}
+
+// https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4315
+pub struct Zip64EndOfCentralDirectoryLocator {
+    pub number_of_disk_with_start_of_zip64_end_of_central_directory: u32,
+    pub relative_offset: u64,
+    pub total_number_of_disks: u32,
 }
