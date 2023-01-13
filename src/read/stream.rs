@@ -18,6 +18,7 @@
 //! As the central directory of a ZIP archive is stored at the end of it, a non-seekable reader doesn't have access
 //! to it. We have to rely on information provided within the local file header which may not be accurate or complete.
 //! This results in:
+//! - The inability to read internally stored ZIP archives when using the Stored compression method.
 //! - No file comment being available (defaults to an empty string).
 //! - No internal or external file attributes being available (defaults to 0).
 //! - The extra field data potentially being inconsistent with what's stored in the central directory.
@@ -54,7 +55,10 @@ use tokio::io::AsyncReadExt;
 use tokio::io::Take;
 use tokio::io::{AsyncRead, BufReader};
 
+/// A type which encodes that [`ZipFileReader`] is ready to open a new entry.
 pub struct Ready<R>(R);
+
+/// A type which encodes that [`ZipFileReader`] is currently reading an entry.
 pub struct Reading<'a, R>(ZipEntryReader<'a, R>, ZipEntry);
 
 /// A ZIP reader which acts over a non-seekable source.

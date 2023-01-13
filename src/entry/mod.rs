@@ -140,9 +140,10 @@ impl ZipEntry {
     }
 }
 
-/// Stores information about a Zip entry inside of an archive. Besides storing archive independent
-/// information like the size and timestamp it can also be used to query information about how the
-/// entry is stored in an archive.
+/// An immutable store of data about how a ZIP entry is stored within a specific archive.
+/// 
+/// Besides storing archive independent information like the size and timestamp it can also be used to query
+/// information about how the entry is stored in an archive.
 #[derive(Clone)]
 pub struct StoredZipEntry {
     pub(crate) entry: ZipEntry,
@@ -162,7 +163,7 @@ impl StoredZipEntry {
     }
 
     /// Seek to the offset in bytes where the data of the entry starts.
-    pub async fn seek_to_data_offset<R: AsyncRead + AsyncSeek + Unpin>(&self, mut reader: &mut R) -> Result<()> {
+    pub(crate) async fn seek_to_data_offset<R: AsyncRead + AsyncSeek + Unpin>(&self, mut reader: &mut R) -> Result<()> {
         // Seek to the header
         reader.seek(SeekFrom::Start(self.file_offset)).await?;
 
