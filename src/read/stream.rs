@@ -51,6 +51,7 @@ use crate::error::ZipError;
 use crate::read::io::entry::ZipEntryReader;
 
 use tokio::io::AsyncReadExt;
+use tokio::io::Take;
 use tokio::io::{AsyncRead, BufReader};
 
 pub struct Ready<R>(R);
@@ -72,20 +73,20 @@ where
     }
 
     /// Opens the next entry for reading if the central directory hasn’t yet been reached.
-    pub async fn next_entry(mut self) -> Result<Option<ZipFileReader<Reading<'a, R>>>> {
+    pub async fn next_entry(mut self) -> Result<Option<ZipFileReader<Reading<'a, Take<R>>>>> {
         let entry = match crate::read::lfh(&mut self.0 .0).await? {
             Some(entry) => entry,
             None => return Ok(None),
         };
 
-        let reader = BufReader::new(self.0 .0);
-        let reader = ZipEntryReader::new_with_owned(reader, entry.compression, entry.uncompressed_size.into());
+        let reader = BufReader::new(self.0 .0.take(entry.compressed_size.into()));
+        let reader = ZipEntryReader::new_with_owned(reader, entry.compression, entry.compressed_size.into());
 
         Ok(Some(ZipFileReader(Reading(reader, entry))))
     }
 }
 
-impl<'a, R> ZipFileReader<Reading<'a, R>>
+impl<'a, R> ZipFileReader<Reading<'a, Take<R>>>
 where
     R: AsyncRead + Unpin,
 {
@@ -95,7 +96,7 @@ where
     }
 
     /// Returns a mutable reference to the inner entry reader.
-    pub fn reader(&mut self) -> &mut ZipEntryReader<'a, R> {
+    pub fn reader(&mut self) -> &mut ZipEntryReader<'a, Take<R>> {
         &mut self.0 .0
     }
 
@@ -105,12 +106,12 @@ where
             return Err(ZipError::CRC32CheckError); // CHANGE
         }
 
-        Ok(ZipFileReader(Ready(self.0 .0.into_inner())))
+        Ok(ZipFileReader(Ready(self.0 .0.into_inner().into_inner())))
     }
 
     /// Reads until EOF and converts the reader back into the Ready state.
     pub async fn skip(mut self) -> Result<ZipFileReader<Ready<R>>> {
         while self.0 .0.read(&mut [0; 2048]).await? != 0 {}
-        Ok(ZipFileReader(Ready(self.0 .0.into_inner())))
+        Ok(ZipFileReader(Ready(self.0 .0.into_inner().into_inner())))
     }
 }
