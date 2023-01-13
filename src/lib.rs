@@ -10,6 +10,15 @@
 //! - Support for writing complete data (u8 slices) or stream writing using data descriptors.
 //! - Aims for reasonable [specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) compliance.
 //!
+//! ## Feature Flags
+//! - `chrono` - Enables support for parsing dates via `chrono`.
+//! - `fs` - Enables support for the `fs` reading module.
+//! - `deflate` - Enables support for the Deflate compression method.
+//! - `bzip2` - Enables support for the bzip2 compression method.
+//! - `lzma` - Enables support for the LZMA compression method.
+//! - `zstd` - Enables support for the zstd compression method.
+//! - `xz` - Enables support for the xz compression method.
+//!
 //! [Read more.](https://github.com/Majored/rs-async-zip)
 
 pub mod error;

@@ -1,6 +1,6 @@
 [package]
 name = "async_zip"
-version = "0.0.9"
+version = "0.0.10"
 edition = "2021"
 authors = ["Harry [hello@majored.pw]"]
 repository = "https://github.com/Majored/rs-async-zip"
@@ -13,10 +13,9 @@ keywords = ["async", "zip", "archive", "tokio"]
 categories = ["asynchronous", "compression"]
 
 [features]
-full = ["chrono", "fs", "crc", "deflate", "bzip2", "lzma", "zstd", "xz"]
+full = ["chrono", "fs", "deflate", "bzip2", "lzma", "zstd", "xz"]
 
 fs = ["tokio/fs"]
-crc = []
 
 deflate = ["async-compression/deflate"]
 bzip2 = ["async-compression/bzip2"]

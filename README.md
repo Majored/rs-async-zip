@@ -17,10 +17,19 @@ An asynchronous ZIP archive reading/writing crate powered by [`tokio`](https://c
 
 ```toml
 [dependencies]
-async_zip = "0.0.9"
+async_zip = { version = "0.0.10", features = ["full"] }
 ```
 
 A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-zip/tree/main/examples) can be found under the `/examples` directory.
+
+### Feature Flags
+- `chrono` - Enables support for parsing dates via `chrono`.
+- `fs` - Enables support for the `fs` reading module.
+- `deflate` - Enables support for the Deflate compression method.
+- `bzip2` - Enables support for the bzip2 compression method.
+- `lzma` - Enables support for the LZMA compression method.
+- `zstd` - Enables support for the zstd compression method.
+- `xz` - Enables support for the xz compression method.
 
 ### Reading
 ```rust
@@ -31,8 +40,10 @@ use async_zip::read::seek::ZipFileReader;
 let mut file = File::open("./Archive.zip").await.unwrap();
 let mut zip = ZipFileReader::new(&mut file).await.unwrap();
 
-let mut reader = zip.entry_reader(0).await.unwrap();
-let txt = reader.read_to_string_crc().await.unwrap();
+let entry = zip.file().entries().get(0).unwrap().clone();
+let mut string = String::new();
+let mut reader = zip.entry(0).await.unwrap();
+let txt = reader.read_to_string_checked(&mut string, entry.entry()).await.unwrap();
 
 println!("{}", txt);
 ```
