@@ -81,7 +81,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
     /// - Constructing a central directory header.
     /// - Pushing that central directory header to the [`ZipFileWriter`]'s store.
     ///
-    /// Failiure to call this function before going out of scope would result in a corrupted ZIP file.
+    /// Failure to call this function before going out of scope would result in a corrupted ZIP file.
     pub async fn close(mut self) -> Result<()> {
         self.writer.shutdown().await?;
 

@@ -111,11 +111,11 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
     /// Consumes this ZIP writer and completes all closing tasks.
     ///
     /// This includes:
-    /// - Writing all central directroy headers.
+    /// - Writing all central directory headers.
     /// - Writing the end of central directory header.
     /// - Writing the file comment.
     ///
-    /// Failiure to call this function before going out of scope would result in a corrupted ZIP file.
+    /// Failure to call this function before going out of scope would result in a corrupted ZIP file.
     pub async fn close(mut self) -> Result<W> {
         let cd_offset = self.writer.offset();
 

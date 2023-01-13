@@ -20,7 +20,7 @@ mod inner {
     const TMP_DIR: &str = "./tmp/";
 
     #[derive(Debug, Display, Error)]
-    #[display(fmt = "An error occured during ZIP creation which was logged to stderr.")]
+    #[display(fmt = "An error occurred during ZIP creation which was logged to stderr.")]
     struct CreationError;
 
     impl ResponseError for CreationError {}
@@ -38,7 +38,7 @@ mod inner {
 
     async fn handler(multipart: Multipart) -> Result<impl Responder, CreationError> {
         match create_archive(multipart).await {
-            Ok(name) => Ok(format!("Sucessfully created archive: {}", name)),
+            Ok(name) => Ok(format!("Successfully created archive: {}", name)),
             Err(err) => {
                 eprintln!("[ERROR] {:?}", err);
                 Err(CreationError)
