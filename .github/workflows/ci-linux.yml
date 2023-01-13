@@ -26,9 +26,6 @@ jobs:
     - name: Test ['fs' feature]
       run: cargo test --verbose --features fs
 
-    - name: Test ['crc' feature]
-      run: cargo test --verbose --features crc
-
     - name: Test ['deflate' feature]
       run: cargo test --verbose --features deflate
 
