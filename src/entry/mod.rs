@@ -67,7 +67,7 @@ impl ZipEntry {
     /// ## Note
     /// This will return the raw filename stored during ZIP creation. If calling this method on entries retrieved from
     /// untrusted ZIP files, the filename should be sanitised before being used as a path to prevent [directory
-    /// travesal attacks](https://en.wikipedia.org/wiki/Directory_traversal_attack).
+    /// traversal attacks](https://en.wikipedia.org/wiki/Directory_traversal_attack).
     pub fn filename(&self) -> &str {
         &self.filename
     }
@@ -140,7 +140,7 @@ impl ZipEntry {
     }
 }
 
-/// Stores information about a Zip entry inside of an archive. Besides storing archive independant
+/// Stores information about a Zip entry inside of an archive. Besides storing archive independent
 /// information like the size and timestamp it can also be used to query information about how the
 /// entry is stored in an archive.
 #[derive(Clone)]

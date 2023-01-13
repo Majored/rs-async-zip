@@ -18,10 +18,10 @@
 //! As the central directory of a ZIP archive is stored at the end of it, a non-seekable reader doesn't have access
 //! to it. We have to rely on information provided within the local file header which may not be accurate or complete.
 //! This results in:
-//! - No file comment being avaliable (defaults to an empty string).
-//! - No internal or external file attributes being avaliable (defaults to 0).
+//! - No file comment being available (defaults to an empty string).
+//! - No internal or external file attributes being available (defaults to 0).
 //! - The extra field data potentially being inconsistent with what's stored in the central directory.
-//! - None of the following being avaliable when the entry was written with a data descriptor (defaults to 0):
+//! - None of the following being available when the entry was written with a data descriptor (defaults to 0):
 //!     - CRC
 //!     - compressed size
 //!     - uncompressed size

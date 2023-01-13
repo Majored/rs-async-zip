@@ -82,7 +82,7 @@ impl ZipEntryBuilder {
 
     /// Sets the entry's Unix permissions mode.
     ///
-    /// If the attribute host compatability isn't set to Unix, this will have no effect.
+    /// If the attribute host compatibility isn't set to Unix, this will have no effect.
     pub fn unix_permissions(mut self, mode: u16) -> Self {
         if matches!(self.0.attribute_compatibility, AttributeCompatibility::Unix) {
             self.0.external_file_attribute = (self.0.external_file_attribute & 0xFFFF) | (mode as u32) << 16;
