@@ -23,6 +23,9 @@ lzma = ["async-compression/lzma"]
 zstd = ["async-compression/zstd"]
 xz = ["async-compression/xz"]
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 crc32fast = "1"
 thiserror = "1"
