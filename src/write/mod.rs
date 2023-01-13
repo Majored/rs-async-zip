@@ -59,6 +59,7 @@ pub use entry_stream::EntryStreamWriter;
 
 use crate::entry::ZipEntry;
 use crate::error::Result;
+use crate::spec::extra_field::ExtraFieldAsBytes;
 use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader};
 use entry_whole::EntryWholeWriter;
 use io::offset::AsyncOffsetWriter;
@@ -123,7 +124,7 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
             self.writer.write_all(&crate::spec::consts::CDH_SIGNATURE.to_le_bytes()).await?;
             self.writer.write_all(&entry.header.as_slice()).await?;
             self.writer.write_all(entry.entry.filename().as_bytes()).await?;
-            self.writer.write_all(entry.entry.extra_field()).await?;
+            self.writer.write_all(&entry.entry.extra_fields().as_bytes()).await?;
             self.writer.write_all(entry.entry.comment().as_bytes()).await?;
         }
 

@@ -23,6 +23,7 @@ use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader, L
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, BufReader, SeekFrom};
 use crate::read::io::combined_record::CombinedCentralDirectoryRecord;
+use crate::spec::parse::parse_extra_fields;
 
 /// The max buffer size used when parsing the central directory, equal to 20MiB.
 const MAX_CD_BUFFER_SIZE: usize = 20 * 1024 * 1024;
@@ -96,6 +97,7 @@ where
     let filename = crate::read::io::read_string(&mut reader, header.file_name_length.into()).await?;
     let compression = Compression::try_from(header.compression)?;
     let extra_field = crate::read::io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
+    let extra_fields = parse_extra_fields(extra_field)?;
     let comment = crate::read::io::read_string(reader, header.file_comment_length.into()).await?;
 
     let entry = ZipEntry {
@@ -111,7 +113,7 @@ where
         last_modification_date: ZipDateTime { date: header.mod_date, time: header.mod_time },
         internal_file_attribute: header.inter_attr,
         external_file_attribute: header.exter_attr,
-        extra_field,
+        extra_fields,
         comment,
     };
 

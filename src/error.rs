@@ -25,6 +25,10 @@ pub enum ZipError {
 
     #[error("unable to locate the end of central directory record")]
     UnableToLocateEOCDR,
+    #[error("extra field size was indicated to be {0} but only {1} bytes remain")]
+    InvalidExtraFieldHeader(u16, usize),
+    #[error("zip64 extended information field was incomplete")]
+    Zip64ExtendedFieldIncomplete,
 
     #[error("an upstream reader returned an error: {0}")]
     UpstreamReadError(#[from] std::io::Error),

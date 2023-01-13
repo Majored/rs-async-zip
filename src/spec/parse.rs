@@ -1,9 +1,9 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::error::Result;
+use crate::error::{Result, ZipError};
 use crate::spec::header::{
-    CentralDirectoryRecord, EndOfCentralDirectoryHeader, GeneralPurposeFlag, LocalFileHeader,
+    CentralDirectoryRecord, EndOfCentralDirectoryHeader, ExtraField, GeneralPurposeFlag, HeaderId, LocalFileHeader,
     Zip64EndOfCentralDirectoryRecord,
 };
 
@@ -203,8 +203,22 @@ impl Zip64EndOfCentralDirectoryRecord {
     }
 }
 
-/// Parse the entire extra fields
-pub fn parse_extra_fields() {}
+/// Parse the extra fields.
+pub fn parse_extra_fields(data: Vec<u8>) -> Result<Vec<ExtraField>> {
+    let mut cursor = 0;
+    let mut extra_fields = Vec::new();
+    while cursor + 4 < data.len() {
+        let header_id: HeaderId = u16::from_le_bytes(data[cursor..cursor + 2].try_into().unwrap()).into();
+        let field_size = u16::from_le_bytes(data[cursor + 2..cursor + 4].try_into().unwrap());
+        if cursor + 8 + field_size as usize >= data.len() {
+            return Err(ZipError::InvalidExtraFieldHeader(field_size, data.len() - cursor - 8 - field_size as usize));
+        }
+        let data = &data[cursor + 4..cursor + 4 + field_size as usize];
+        extra_fields.push(extra_field_from_bytes(header_id, field_size, data)?);
+        cursor += 4 + field_size as usize;
+    }
+    Ok(extra_fields)
+}
 
 /// Replace elements of an array at a given cursor index for use with a zero-initialised array.
 macro_rules! array_push {
@@ -216,4 +230,5 @@ macro_rules! array_push {
     }};
 }
 
+use crate::spec::extra_field::extra_field_from_bytes;
 pub(crate) use array_push;

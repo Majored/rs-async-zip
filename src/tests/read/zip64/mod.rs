@@ -1,4 +1,3 @@
-use std::io::Cursor;
 use tokio::io::AsyncReadExt;
 
 use crate::read::mem::ZipFileReader;

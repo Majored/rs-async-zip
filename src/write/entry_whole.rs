@@ -4,6 +4,7 @@
 use crate::entry::ZipEntry;
 use crate::error::Result;
 use crate::spec::compression::Compression;
+use crate::spec::extra_field::ExtraFieldAsBytes;
 use crate::spec::header::{CentralDirectoryRecord, GeneralPurposeFlag, LocalFileHeader};
 use crate::write::{CentralDirectoryEntry, ZipFileWriter};
 
@@ -43,7 +44,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             uncompressed_size: self.data.len() as u32,
             compression: self.entry.compression().into(),
             crc: compute_crc(self.data),
-            extra_field_length: self.entry.extra_field().len() as u16,
+            extra_field_length: self.entry.extra_fields().len() as u16,
             file_name_length: self.entry.filename().as_bytes().len() as u16,
             mod_time: self.entry.last_modification_date().time,
             mod_date: self.entry.last_modification_date().date,
@@ -77,7 +78,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
         self.writer.writer.write_all(&crate::spec::consts::LFH_SIGNATURE.to_le_bytes()).await?;
         self.writer.writer.write_all(&lf_header.as_slice()).await?;
         self.writer.writer.write_all(self.entry.filename().as_bytes()).await?;
-        self.writer.writer.write_all(self.entry.extra_field()).await?;
+        self.writer.writer.write_all(&self.entry.extra_fields().as_bytes()).await?;
         self.writer.writer.write_all(compressed_data).await?;
 
         self.writer.cd_entries.push(CentralDirectoryEntry { header, entry: self.entry });
