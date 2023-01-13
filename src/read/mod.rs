@@ -114,6 +114,13 @@ where
     let compression = Compression::try_from(header.compression)?;
     let extra_field = crate::read::io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
 
+    if header.flags.data_descriptor {
+        return Err(ZipError::FeatureNotSupported("stream reading entries with data descriptors (planned to be reintroduced)"));
+    }
+    if header.flags.encrypted {
+        return Err(ZipError::FeatureNotSupported("encryption"));
+    }
+
     let entry = ZipEntry {
         filename,
         compression,
