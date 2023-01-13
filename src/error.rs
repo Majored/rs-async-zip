@@ -20,6 +20,8 @@ pub enum ZipError {
     AttributeCompatibilityNotSupported(u16),
     #[error("attempted to read a ZIP64 file whilst on a 32-bit target")]
     TargetZip64NotSupported,
+    #[error("end of file has not been reached")]
+    EOFNotReached,
 
     #[error("unable to locate the end of central directory record")]
     UnableToLocateEOCDR,

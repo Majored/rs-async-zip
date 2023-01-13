@@ -141,7 +141,7 @@ impl ZipEntry {
 }
 
 /// An immutable store of data about how a ZIP entry is stored within a specific archive.
-/// 
+///
 /// Besides storing archive independent information like the size and timestamp it can also be used to query
 /// information about how the entry is stored in an archive.
 #[derive(Clone)]

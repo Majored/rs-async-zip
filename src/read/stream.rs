@@ -107,7 +107,7 @@ where
     /// Converts the reader back into the Ready state if EOF has been reached.
     pub async fn done(mut self) -> Result<ZipFileReader<Ready<R>>> {
         if self.0 .0.read(&mut [0; 1]).await? != 0 {
-            return Err(ZipError::CRC32CheckError); // CHANGE
+            return Err(ZipError::EOFNotReached);
         }
 
         Ok(ZipFileReader(Ready(self.0 .0.into_inner().into_inner())))
