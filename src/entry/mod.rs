@@ -13,8 +13,7 @@ use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
 use crate::spec::consts::LFH_SIGNATURE;
 use crate::spec::date::ZipDateTime;
-use crate::spec::header::LocalFileHeader;
-// use crate::spec::header::GeneralPurposeFlag;
+use crate::spec::header::{ExtraField, LocalFileHeader};
 
 /// An immutable store of data about a ZIP entry.
 ///
@@ -34,7 +33,7 @@ pub struct ZipEntry {
     pub(crate) last_modification_date: ZipDateTime,
     pub(crate) internal_file_attribute: u16,
     pub(crate) external_file_attribute: u32,
-    pub(crate) extra_field: Vec<u8>,
+    pub(crate) extra_fields: Vec<ExtraField>,
     pub(crate) comment: String,
 }
 
@@ -58,7 +57,7 @@ impl ZipEntry {
             last_modification_date: ZipDateTime::default(),
             internal_file_attribute: 0,
             external_file_attribute: 0,
-            extra_field: Vec::new(),
+            extra_fields: Vec::new(),
             comment: String::new(),
         }
     }
@@ -114,8 +113,8 @@ impl ZipEntry {
     }
 
     /// Returns the entry's extra field data.
-    pub fn extra_field(&self) -> &[u8] {
-        &self.extra_field
+    pub fn extra_fields(&self) -> &[ExtraField] {
+        &self.extra_fields
     }
 
     /// Returns the entry's file comment.

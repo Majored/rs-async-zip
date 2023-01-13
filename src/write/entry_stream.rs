@@ -3,6 +3,7 @@
 
 use crate::entry::ZipEntry;
 use crate::error::Result;
+use crate::spec::extra_field::ExtraFieldAsBytes;
 use crate::spec::header::{CentralDirectoryRecord, GeneralPurposeFlag, LocalFileHeader};
 use crate::write::compressed_writer::CompressedAsyncWriter;
 use crate::write::io::offset::AsyncOffsetWriter;
@@ -53,7 +54,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             uncompressed_size: 0,
             compression: entry.compression().into(),
             crc: 0,
-            extra_field_length: entry.extra_field().len() as u16,
+            extra_field_length: entry.extra_fields().len() as u16,
             file_name_length: entry.filename().as_bytes().len() as u16,
             mod_time: entry.last_modification_date().time,
             mod_date: entry.last_modification_date().date,
@@ -68,7 +69,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         writer.writer.write_all(&crate::spec::consts::LFH_SIGNATURE.to_le_bytes()).await?;
         writer.writer.write_all(&lfh.as_slice()).await?;
         writer.writer.write_all(entry.filename().as_bytes()).await?;
-        writer.writer.write_all(entry.extra_field()).await?;
+        writer.writer.write_all(&entry.extra_fields().as_bytes()).await?;
 
         Ok(lfh)
     }

@@ -5,6 +5,7 @@ use crate::entry::ZipEntry;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::{Compression, DeflateOption};
 use crate::spec::date::ZipDateTime;
+use crate::spec::header::ExtraField;
 
 /// A builder for [`ZipEntry`].
 pub struct ZipEntryBuilder(pub(crate) ZipEntry);
@@ -69,8 +70,8 @@ impl ZipEntryBuilder {
     }
 
     /// Sets the entry's extra field data.
-    pub fn extra_field(mut self, field: Vec<u8>) -> Self {
-        self.0.extra_field = field;
+    pub fn extra_fields(mut self, field: Vec<ExtraField>) -> Self {
+        self.0.extra_fields = field;
         self
     }
 

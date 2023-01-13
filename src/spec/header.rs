@@ -23,25 +23,38 @@ pub struct GeneralPurposeFlag {
     pub filename_unicode: bool,
 }
 
-/// List of 2 byte header ids
+/// 2 byte header ids
 /// Ref https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#452
-#[non_exhaustive]
+#[derive(Clone, Copy)]
 pub enum HeaderId {
-    Zip64ExtendedInformationExtraField = 0x0001,
+    Zip64ExtendedInformationExtraField,
+    Other(u16),
+}
+
+/// Represents each extra field.
+/// Not strictly part of the spec, but is the most useful way to represent the data.
+#[derive(Clone)]
+pub enum ExtraField {
+    Zip64ExtendedInformationExtraField(Zip64ExtendedInformationExtraField),
+    UnknownExtraField(UnknownExtraField),
 }
 
 /// An extended information header for Zip64.
 /// This field is used both for local file headers and central directory records.
 /// https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#453
+#[derive(Clone)]
 pub struct Zip64ExtendedInformationExtraField {
     pub header_id: HeaderId,
     pub data_size: u16,
     pub uncompressed_size: u64,
     pub compressed_size: u64,
-    pub relative_header_offset: u64,
-    pub disk_start_number: u32,
+    // While not specified in the spec, these two fields are often left out in practice.
+    pub relative_header_offset: Option<u64>,
+    pub disk_start_number: Option<u64>,
 }
 
+/// Represents any unparsed extra field.
+#[derive(Clone)]
 pub struct UnknownExtraField {
     pub header_id: HeaderId,
     pub data_size: u16,
