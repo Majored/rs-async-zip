@@ -1,4 +1,5 @@
 use tokio::io::AsyncReadExt;
+use crate::tests::init_logger;
 
 const ZIP64_ZIP_CONTENTS: &str = "Hello World!\n";
 
@@ -7,8 +8,7 @@ const ZIP64_ZIP_CONTENTS: &str = "Hello World!\n";
 #[tokio::test]
 async fn test_read_zip64_archive_mem() {
     use crate::read::mem::ZipFileReader;
-
-    env_logger::init();
+    init_logger();
 
     let data = include_bytes!("zip64.zip").to_vec();
 
@@ -30,8 +30,7 @@ async fn test_read_zip64_archive_mem() {
 #[tokio::test]
 async fn test_read_zip64_archive_stream() {
     use crate::read::stream::ZipFileReader;
-
-    env_logger::init();
+    init_logger();
 
     let data = include_bytes!("zip64.zip").to_vec();
 
