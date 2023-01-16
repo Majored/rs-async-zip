@@ -35,7 +35,7 @@ const EOCDR_UPPER_BOUND: u64 = EOCDR_LENGTH as u64;
 const EOCDR_LOWER_BOUND: u64 = EOCDR_UPPER_BOUND + SIGNATURE_LENGTH as u64 + u16::MAX as u64;
 
 /// Locate the `end of central directory record` offset, if one exists.
-pub(crate) async fn eocdr<R>(mut reader: R) -> ZipResult<u64>
+pub(crate) async fn eocdr<R>(reader: R) -> ZipResult<u64>
 where
     R: AsyncRead + AsyncSeek + Unpin,
 {
@@ -47,7 +47,7 @@ where
 }
 
 /// Locate the `zip64 end of central directory locator` offset, if it exists.
-pub(crate) async fn zip64_eocdl<R>(mut reader: R) -> ZipResult<Option<u64>>
+pub(crate) async fn zip64_eocdl<R>(reader: R) -> ZipResult<Option<u64>>
 where
     R: AsyncRead + AsyncSeek + Unpin,
 {
