@@ -1,3 +1,5 @@
+// Copyright Cognite AS, 2023
+
 use crate::error::{Result as ZipResult, ZipError};
 use crate::spec::header::{ExtraField, HeaderId, UnknownExtraField, Zip64ExtendedInformationExtraField};
 

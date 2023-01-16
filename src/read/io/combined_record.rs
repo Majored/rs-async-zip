@@ -1,3 +1,5 @@
+// Copyright Cognite AS, 2023
+
 use crate::spec::header::{EndOfCentralDirectoryHeader, Zip64EndOfCentralDirectoryRecord};
 
 /// Combines all the fields in EOCDR and Zip64EOCDR into one struct.
