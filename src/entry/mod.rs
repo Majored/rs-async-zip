@@ -5,12 +5,13 @@ pub mod builder;
 
 use std::io::SeekFrom;
 
-use tokio::io::{AsyncRead, AsyncSeek, AsyncSeekExt};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt};
 
 use crate::entry::builder::ZipEntryBuilder;
-use crate::error::Result;
+use crate::error::{Result, ZipError};
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
+use crate::spec::consts::LFH_SIGNATURE;
 use crate::spec::date::ZipDateTime;
 use crate::spec::header::LocalFileHeader;
 // use crate::spec::header::GeneralPurposeFlag;
@@ -166,6 +167,12 @@ impl StoredZipEntry {
     pub(crate) async fn seek_to_data_offset<R: AsyncRead + AsyncSeek + Unpin>(&self, mut reader: &mut R) -> Result<()> {
         // Seek to the header
         reader.seek(SeekFrom::Start(self.file_offset)).await?;
+
+        // Check the signature
+        match reader.read_u32_le().await? {
+            actual if actual == LFH_SIGNATURE => (),
+            actual => return Err(ZipError::UnexpectedHeaderError(actual, LFH_SIGNATURE)),
+        };
 
         // Skip the local file header and trailing data
         let header = LocalFileHeader::from_reader(&mut reader).await?;
