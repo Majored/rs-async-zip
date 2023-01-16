@@ -3,6 +3,7 @@
 use crate::spec::header::{EndOfCentralDirectoryHeader, Zip64EndOfCentralDirectoryRecord};
 
 /// Combines all the fields in EOCDR and Zip64EOCDR into one struct.
+#[derive(Debug)]
 pub struct CombinedCentralDirectoryRecord {
     pub version_made_by: Option<u16>,
     pub version_needed_to_extract: Option<u16>,
@@ -33,10 +34,10 @@ impl CombinedCentralDirectoryRecord {
                 combined.num_entries_in_directory_on_disk = zip64eocdr.num_entries_in_directory_on_disk;
             }
             if eocdr.num_of_entries == u16::MAX {
-                combined.num_entries_in_directory = zip64eocdr.num_entries_in_directory;
+                combined.num_entries_in_directory = zip64eocdr.num_entries_in_directory_on_disk;
             }
             if eocdr.size_cent_dir == u32::MAX {
-                combined.directory_size = zip64eocdr.directory_size;
+                combined.directory_size = zip64eocdr.num_entries_in_directory_on_disk;
             }
             if eocdr.cent_dir_offset == u32::MAX {
                 combined.offset_of_start_of_directory = zip64eocdr.offset_of_start_of_directory;

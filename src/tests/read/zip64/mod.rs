@@ -1,6 +1,9 @@
 // Copyright Cognite AS, 2023
 
+use std::path::PathBuf;
+
 use tokio::io::AsyncReadExt;
+
 use crate::tests::init_logger;
 
 const ZIP64_ZIP_CONTENTS: &str = "Hello World!\n";
@@ -48,4 +51,54 @@ async fn test_read_zip64_archive_stream() {
         "{read_data:?} != {ZIP64_ZIP_CONTENTS:?}"
     );
     assert_eq!(read_data, ZIP64_ZIP_CONTENTS);
+}
+
+/// Generate an example file only if it doesn't exist already.
+/// The file is placed adjacent to this rs file.
+fn generate_zip64many_zip() -> PathBuf {
+    use std::io::Write;
+    use zip::write::FileOptions;
+
+    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    path.push("src/tests/read/zip64/zip64many.zip");
+
+    // Only recreate the zip if it doesnt already exist.
+    if path.exists() {
+        return path;
+    }
+
+    let zip_file = std::fs::File::create(&path).unwrap();
+    let mut zip = zip::ZipWriter::new(zip_file);
+    let options = FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+
+    for i in 0..2_u32.pow(16) + 1 {
+        zip.start_file(format!("{i}.txt"), options).unwrap();
+        zip.write_all(b"\n").unwrap();
+    }
+
+    zip.finish().unwrap();
+
+    path
+}
+
+/// Test reading a generated zip64 archive that contains more than 2^16 entries.
+#[tokio::test]
+async fn test_read_zip64_archive_many_entries() {
+    use crate::read::fs::ZipFileReader;
+
+    init_logger();
+
+    let path = generate_zip64many_zip();
+
+    let reader = ZipFileReader::new(path).await.unwrap();
+
+    // Verify that each entry exists and is has the contents "\n"
+    for i in 0..2_u32.pow(16) + 1 {
+        let entry = reader.get_entry(i as usize).unwrap();
+        assert_eq!(entry.filename, format!("{i}.txt"));
+        let mut entry = reader.entry(i as usize).await.unwrap();
+        let mut contents = String::new();
+        entry.read_to_string(&mut contents).await.unwrap();
+        assert_eq!(contents, "\n");
+    }
 }
