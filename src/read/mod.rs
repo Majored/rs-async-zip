@@ -52,14 +52,16 @@ where
         reader.seek(SeekFrom::Start(locator_offset)).await?;
         let zip64_locator = Zip64EndOfCentralDirectoryLocator::from_reader(&mut reader).await?;
         log::debug!("Zip64EOCDL: {zip64_locator:?}");
-        reader.seek(SeekFrom::Start(zip64_locator.relative_offset)).await?;
+        reader.seek(SeekFrom::Start(zip64_locator.relative_offset + 4)).await?;
         Some(Zip64EndOfCentralDirectoryRecord::from_reader(&mut reader).await?)
     } else {
         None
     };
+    log::debug!("Zip64EOCDR: {zip64_eocdr:?}");
 
     // Combine the two EOCDRs.
     let eocdr = CombinedCentralDirectoryRecord::combine(eocdr, zip64_eocdr);
+    log::debug!("Combined directory: {eocdr:?}");
 
     // Outdated feature so unlikely to ever make it into this crate.
     if eocdr.disk_number != eocdr.disk_number_start_of_cd

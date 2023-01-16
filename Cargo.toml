@@ -40,6 +40,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock"], opti
 # tests
 tokio = { version = "1", features = ["full"] }
 env_logger = "0.10.0"
+zip = "0.6.3"
 
 # shared across multiple examples
 anyhow = "1"

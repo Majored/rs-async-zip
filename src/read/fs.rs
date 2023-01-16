@@ -77,6 +77,7 @@ use crate::read::io::entry::ZipEntryReader;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use crate::{StoredZipEntry, ZipEntry};
 use tokio::fs::File;
 use tokio::io::{AsyncSeekExt, BufReader, SeekFrom};
 
@@ -111,6 +112,12 @@ impl ZipFileReader {
     /// Returns the file system path provided to the reader during construction.
     pub fn path(&self) -> &Path {
         &self.inner.path
+    }
+
+    /// Fetches the metadata for an entry if the provided index is valid.
+    pub fn get_entry(&self, index: usize) -> Result<&ZipEntry> {
+        let entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
+        Ok(&entry.entry)
     }
 
     /// Returns a new entry reader if the provided index is valid.
