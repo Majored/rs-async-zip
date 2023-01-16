@@ -77,9 +77,9 @@ use crate::read::io::entry::ZipEntryReader;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::{StoredZipEntry, ZipEntry};
+use crate::ZipEntry;
 use tokio::fs::File;
-use tokio::io::{AsyncSeekExt, BufReader, SeekFrom};
+use tokio::io::BufReader;
 
 struct Inner {
     path: PathBuf,

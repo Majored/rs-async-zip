@@ -6,13 +6,11 @@ pub mod builder;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
 
 use crate::entry::builder::ZipEntryBuilder;
-use crate::error::Result as ZipResult;
 use crate::error::{Result, ZipError};
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
 use crate::spec::consts::LFH_SIGNATURE;
 use crate::spec::date::ZipDateTime;
-use crate::spec::extra_field::ExtraFieldAsBytes;
 use crate::spec::header::{ExtraField, LocalFileHeader};
 
 /// An immutable store of data about a ZIP entry.
