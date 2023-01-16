@@ -28,6 +28,7 @@ all-features = true
 
 [dependencies]
 crc32fast = "1"
+log = "0.4.17"
 thiserror = "1"
 tokio = { version = "1", features = ["io-util"] }
 pin-project = "1"
@@ -38,6 +39,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock"], opti
 [dev-dependencies]
 # tests
 tokio = { version = "1", features = ["full"] }
+env_logger = "0.10.0"
 
 # shared across multiple examples
 anyhow = "1"
