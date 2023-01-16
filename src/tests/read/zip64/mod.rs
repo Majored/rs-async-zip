@@ -1,3 +1,5 @@
+// Copyright Cognite AS, 2023
+
 use tokio::io::AsyncReadExt;
 use crate::tests::init_logger;
 
