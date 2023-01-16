@@ -155,8 +155,8 @@ impl From<[u8; 18]> for EndOfCentralDirectoryHeader {
     }
 }
 
-impl From<[u8; 52]> for Zip64EndOfCentralDirectoryRecord {
-    fn from(value: [u8; 52]) -> Self {
+impl From<[u8; 44]> for Zip64EndOfCentralDirectoryRecord {
+    fn from(value: [u8; 44]) -> Self {
         Self {
             size_of_zip64_end_of_cd_record: u64::from_le_bytes(value[0..8].try_into().unwrap()),
             version_made_by: u16::from_le_bytes(value[8..10].try_into().unwrap()),
@@ -164,9 +164,8 @@ impl From<[u8; 52]> for Zip64EndOfCentralDirectoryRecord {
             disk_number: u32::from_le_bytes(value[12..16].try_into().unwrap()),
             disk_number_start_of_cd: u32::from_le_bytes(value[16..20].try_into().unwrap()),
             num_entries_in_directory_on_disk: u64::from_le_bytes(value[20..28].try_into().unwrap()),
-            num_entries_in_directory: u64::from_le_bytes(value[28..36].try_into().unwrap()),
-            directory_size: u64::from_le_bytes(value[36..44].try_into().unwrap()),
-            offset_of_start_of_directory: u64::from_le_bytes(value[44..52].try_into().unwrap()),
+            directory_size: u64::from_le_bytes(value[28..36].try_into().unwrap()),
+            offset_of_start_of_directory: u64::from_le_bytes(value[36..44].try_into().unwrap()),
         }
     }
 }
@@ -209,7 +208,7 @@ impl CentralDirectoryRecord {
 
 impl Zip64EndOfCentralDirectoryRecord {
     pub async fn from_reader<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Zip64EndOfCentralDirectoryRecord> {
-        let mut buffer: [u8; 52] = [0; 52];
+        let mut buffer: [u8; 44] = [0; 44];
         reader.read_exact(&mut buffer).await?;
         Ok(Self::from(buffer))
     }
@@ -252,3 +251,34 @@ macro_rules! array_push {
 
 use crate::spec::extra_field::extra_field_from_bytes;
 pub(crate) use array_push;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_zip64_eocdr() {
+        let eocdr: [u8; 56] = [
+            0x50, 0x4B, 0x06, 0x06, 0x2C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2E, 0x00, 0x2E, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0xD1, 0xD4, 0x36, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC2, 0xD4, 0x27, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+        ];
+
+        let without_signature: [u8; 44] = eocdr[4..48].try_into().unwrap();
+        let zip64eocdr = Zip64EndOfCentralDirectoryRecord::from(without_signature);
+        assert_eq!(
+            zip64eocdr,
+            Zip64EndOfCentralDirectoryRecord {
+                size_of_zip64_end_of_cd_record: 44,
+                version_made_by: 46,
+                version_needed_to_extract: 46,
+                disk_number: 0,
+                disk_number_start_of_cd: 0,
+                num_entries_in_directory_on_disk: 65537,
+                directory_size: 65537,
+                offset_of_start_of_directory: 3593425,
+            }
+        )
+    }
+}
