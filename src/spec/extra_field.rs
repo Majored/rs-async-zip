@@ -21,6 +21,8 @@ impl From<HeaderId> for u16 {
 
 pub(crate) trait ExtraFieldAsBytes {
     fn as_bytes(&self) -> Vec<u8>;
+
+    fn count_bytes(&self) -> usize;
 }
 
 impl ExtraFieldAsBytes for &[ExtraField] {
@@ -31,6 +33,10 @@ impl ExtraFieldAsBytes for &[ExtraField] {
         }
         buffer
     }
+
+    fn count_bytes(&self) -> usize {
+        self.iter().map(|field| field.count_bytes()).sum()
+    }
 }
 
 impl ExtraFieldAsBytes for ExtraField {
@@ -38,6 +44,13 @@ impl ExtraFieldAsBytes for ExtraField {
         match self {
             ExtraField::Zip64ExtendedInformationExtraField(field) => field.as_bytes(),
             ExtraField::UnknownExtraField(field) => field.as_bytes(),
+        }
+    }
+
+    fn count_bytes(&self) -> usize {
+        match self {
+            ExtraField::Zip64ExtendedInformationExtraField(field) => field.count_bytes(),
+            ExtraField::UnknownExtraField(field) => field.count_bytes(),
         }
     }
 }
@@ -51,6 +64,10 @@ impl ExtraFieldAsBytes for UnknownExtraField {
         bytes.append(&mut self.content.clone());
 
         bytes
+    }
+
+    fn count_bytes(&self) -> usize {
+        4 + self.content.len()
     }
 }
 
@@ -70,6 +87,11 @@ impl ExtraFieldAsBytes for Zip64ExtendedInformationExtraField {
         }
 
         bytes
+    }
+
+    fn count_bytes(&self) -> usize {
+        20 + self.relative_header_offset.map(|_| 8).unwrap_or_default()
+            + self.disk_start_number.map(|_| 8).unwrap_or_default()
     }
 }
 

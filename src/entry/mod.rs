@@ -3,16 +3,16 @@
 
 pub mod builder;
 
-use std::io::SeekFrom;
-
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
 
 use crate::entry::builder::ZipEntryBuilder;
+use crate::error::Result as ZipResult;
 use crate::error::{Result, ZipError};
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
 use crate::spec::consts::LFH_SIGNATURE;
 use crate::spec::date::ZipDateTime;
+use crate::spec::extra_field::ExtraFieldAsBytes;
 use crate::spec::header::{ExtraField, LocalFileHeader};
 
 /// An immutable store of data about a ZIP entry.
@@ -20,15 +20,15 @@ use crate::spec::header::{ExtraField, LocalFileHeader};
 /// This type cannot be directly constructed so instead, the [`ZipEntryBuilder`] must be used. Internally this builder
 /// stores a [`ZipEntry`] so conversions between these two types via the [`From`] implementations will be
 /// non-allocating.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ZipEntry {
     pub(crate) filename: String,
     pub(crate) compression: Compression,
     #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
     pub(crate) compression_level: async_compression::Level,
     pub(crate) crc32: u32,
-    pub(crate) uncompressed_size: u32,
-    pub(crate) compressed_size: u32,
+    pub(crate) uncompressed_size: u64,
+    pub(crate) compressed_size: u64,
     pub(crate) attribute_compatibility: AttributeCompatibility,
     pub(crate) last_modification_date: ZipDateTime,
     pub(crate) internal_file_attribute: u16,
@@ -83,12 +83,12 @@ impl ZipEntry {
     }
 
     /// Returns the entry's uncompressed size.
-    pub fn uncompressed_size(&self) -> u32 {
+    pub fn uncompressed_size(&self) -> u64 {
         self.uncompressed_size
     }
 
     /// Returns the entry's compressed size.
-    pub fn compressed_size(&self) -> u32 {
+    pub fn compressed_size(&self) -> u64 {
         self.compressed_size
     }
 
@@ -157,7 +157,7 @@ impl StoredZipEntry {
         &self.entry
     }
 
-    /// Returns the offset in bytes from the header of th entry starts.
+    /// Returns the offset in bytes to where the header of the entry starts.
     pub fn header_offset(&self) -> u64 {
         self.file_offset
     }

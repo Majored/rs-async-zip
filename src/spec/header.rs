@@ -25,7 +25,7 @@ pub struct GeneralPurposeFlag {
 
 /// 2 byte header ids
 /// Ref https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#452
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum HeaderId {
     Zip64ExtendedInformationExtraField,
     Other(u16),
@@ -33,7 +33,7 @@ pub enum HeaderId {
 
 /// Represents each extra field.
 /// Not strictly part of the spec, but is the most useful way to represent the data.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ExtraField {
     Zip64ExtendedInformationExtraField(Zip64ExtendedInformationExtraField),
     UnknownExtraField(UnknownExtraField),
@@ -42,7 +42,7 @@ pub enum ExtraField {
 /// An extended information header for Zip64.
 /// This field is used both for local file headers and central directory records.
 /// https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#453
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Zip64ExtendedInformationExtraField {
     pub header_id: HeaderId,
     pub data_size: u16,
@@ -54,7 +54,7 @@ pub struct Zip64ExtendedInformationExtraField {
 }
 
 /// Represents any unparsed extra field.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UnknownExtraField {
     pub header_id: HeaderId,
     pub data_size: u16,
@@ -82,6 +82,7 @@ pub struct CentralDirectoryRecord {
 }
 
 // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4316
+#[derive(Debug)]
 pub struct EndOfCentralDirectoryHeader {
     pub(crate) disk_num: u16,
     pub(crate) start_cent_dir_disk: u16,
@@ -93,6 +94,7 @@ pub struct EndOfCentralDirectoryHeader {
 }
 
 // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4314
+#[derive(Debug)]
 pub struct Zip64EndOfCentralDirectoryRecord {
     /// The size of this Zip64EndOfCentralDirectoryRecord.
     /// This is specified because there is a variable-length extra zip64 information sector.
@@ -109,6 +111,7 @@ pub struct Zip64EndOfCentralDirectoryRecord {
 }
 
 // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4315
+#[derive(Debug)]
 pub struct Zip64EndOfCentralDirectoryLocator {
     pub number_of_disk_with_start_of_zip64_end_of_central_directory: u32,
     pub relative_offset: u64,

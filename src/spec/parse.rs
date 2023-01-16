@@ -4,7 +4,7 @@
 use crate::error::{Result, ZipError};
 use crate::spec::header::{
     CentralDirectoryRecord, EndOfCentralDirectoryHeader, ExtraField, GeneralPurposeFlag, HeaderId, LocalFileHeader,
-    Zip64EndOfCentralDirectoryRecord,
+    Zip64EndOfCentralDirectoryLocator, Zip64EndOfCentralDirectoryRecord,
 };
 
 use tokio::io::{AsyncRead, AsyncReadExt};
@@ -156,8 +156,8 @@ impl From<[u8; 18]> for EndOfCentralDirectoryHeader {
 }
 
 impl From<[u8; 52]> for Zip64EndOfCentralDirectoryRecord {
-    fn from(value: [u8; 52]) -> Zip64EndOfCentralDirectoryRecord {
-        Zip64EndOfCentralDirectoryRecord {
+    fn from(value: [u8; 52]) -> Self {
+        Self {
             size_of_zip64_end_of_cd_record: u64::from_le_bytes(value[0..8].try_into().unwrap()),
             version_made_by: u16::from_le_bytes(value[8..10].try_into().unwrap()),
             version_needed_to_extract: u16::from_le_bytes(value[10..12].try_into().unwrap()),
@@ -167,6 +167,18 @@ impl From<[u8; 52]> for Zip64EndOfCentralDirectoryRecord {
             num_entries_in_directory: u64::from_le_bytes(value[28..36].try_into().unwrap()),
             directory_size: u64::from_le_bytes(value[36..44].try_into().unwrap()),
             offset_of_start_of_directory: u64::from_le_bytes(value[44..52].try_into().unwrap()),
+        }
+    }
+}
+
+impl From<[u8; 16]> for Zip64EndOfCentralDirectoryLocator {
+    fn from(value: [u8; 16]) -> Self {
+        Self {
+            number_of_disk_with_start_of_zip64_end_of_central_directory: u32::from_le_bytes(
+                value[0..4].try_into().unwrap(),
+            ),
+            relative_offset: u64::from_le_bytes(value[4..12].try_into().unwrap()),
+            total_number_of_disks: u32::from_le_bytes(value[12..16].try_into().unwrap()),
         }
     }
 }
@@ -198,6 +210,14 @@ impl CentralDirectoryRecord {
 impl Zip64EndOfCentralDirectoryRecord {
     pub async fn from_reader<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Zip64EndOfCentralDirectoryRecord> {
         let mut buffer: [u8; 52] = [0; 52];
+        reader.read_exact(&mut buffer).await?;
+        Ok(Self::from(buffer))
+    }
+}
+
+impl Zip64EndOfCentralDirectoryLocator {
+    pub async fn from_reader<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Zip64EndOfCentralDirectoryLocator> {
+        let mut buffer: [u8; 16] = [0; 16];
         reader.read_exact(&mut buffer).await?;
         Ok(Self::from(buffer))
     }

@@ -17,9 +17,12 @@ use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
-use crate::spec::consts::{CDH_SIGNATURE, LFH_SIGNATURE};
+use crate::spec::consts::{CDH_SIGNATURE, LFH_SIGNATURE, NON_ZIP64_MAX_SIZE};
 use crate::spec::date::ZipDateTime;
-use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader, LocalFileHeader, Zip64EndOfCentralDirectoryRecord};
+use crate::spec::header::{
+    CentralDirectoryRecord, EndOfCentralDirectoryHeader, ExtraField, LocalFileHeader, Zip64EndOfCentralDirectoryLocator,
+    Zip64EndOfCentralDirectoryRecord, Zip64ExtendedInformationExtraField,
+};
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, BufReader, SeekFrom};
 use crate::read::io::combined_record::CombinedCentralDirectoryRecord;
@@ -33,18 +36,23 @@ where
     R: AsyncRead + AsyncSeek + Unpin,
 {
     // First find and parse the EOCDR.
+    log::debug!("Locate EOCDR");
     let eocdr_offset = crate::read::io::locator::eocdr(&mut reader).await?;
 
     reader.seek(SeekFrom::Start(eocdr_offset)).await?;
     let eocdr = EndOfCentralDirectoryHeader::from_reader(&mut reader).await?;
+    log::debug!("EOCDR: {:?}", eocdr);
 
     let comment = crate::read::io::read_string(&mut reader, eocdr.file_comm_length.into()).await?;
 
     // Find the Zip64 End Of Central Directory Locator. If it exists we are now officially in zip64 mode
     let zip64_eocdl_offset = io::locator::zip64_eocdl(&mut reader).await?;
     let zip64 = zip64_eocdl_offset.is_some();
-    let zip64_eocdr = if let Some(offset) = zip64_eocdl_offset {
-        reader.seek(SeekFrom::Start(offset)).await?;
+    let zip64_eocdr = if let Some(locator_offset) = zip64_eocdl_offset {
+        reader.seek(SeekFrom::Start(locator_offset)).await?;
+        let zip64_locator = Zip64EndOfCentralDirectoryLocator::from_reader(&mut reader).await?;
+        log::debug!("Zip64EOCDL: {zip64_locator:?}");
+        reader.seek(SeekFrom::Start(zip64_locator.relative_offset)).await?;
         Some(Zip64EndOfCentralDirectoryRecord::from_reader(&mut reader).await?)
     } else {
         None
@@ -61,18 +69,19 @@ where
     }
 
     // Find and parse the central directory.
+    log::debug!("Read central directory");
     reader.seek(SeekFrom::Start(eocdr.offset_of_start_of_directory.into())).await?;
 
     // To avoid lots of small reads to `reader` when parsing the central directory, we use a BufReader that can read the whole central directory at once.
     // Because `eocdr.offset_of_start_of_directory` is a u64, we use MAX_CD_BUFFER_SIZE to prevent very large buffer sizes.
     let buf =
         BufReader::with_capacity(std::cmp::min(eocdr.offset_of_start_of_directory as _, MAX_CD_BUFFER_SIZE), reader);
-    let entries = crate::read::cd(buf, eocdr.num_entries_in_directory.into()).await?;
+    let entries = crate::read::cd(buf, eocdr.num_entries_in_directory.into(), zip64).await?;
 
     Ok(ZipFile { entries, comment, zip64 })
 }
 
-pub(crate) async fn cd<R>(mut reader: R, num_of_entries: u64) -> Result<Vec<StoredZipEntry>>
+pub(crate) async fn cd<R>(mut reader: R, num_of_entries: u64, zip64: bool) -> Result<Vec<StoredZipEntry>>
 where
     R: AsyncRead + Unpin,
 {
@@ -80,14 +89,23 @@ where
     let mut entries = Vec::with_capacity(num_of_entries);
 
     for _ in 0..num_of_entries {
-        let entry = cd_record(&mut reader).await?;
+        let entry = cd_record(&mut reader, zip64).await?;
         entries.push(entry);
     }
 
     Ok(entries)
 }
 
-pub(crate) async fn cd_record<R>(mut reader: R) -> Result<StoredZipEntry>
+fn get_zip64_extra_field(extra_fields: &[ExtraField]) -> Option<&Zip64ExtendedInformationExtraField> {
+    for field in extra_fields {
+        if let ExtraField::Zip64ExtendedInformationExtraField(zip64field) = field {
+            return Some(zip64field);
+        }
+    }
+    None
+}
+
+pub(crate) async fn cd_record<R>(mut reader: R, zip64: bool) -> Result<StoredZipEntry>
 where
     R: AsyncRead + Unpin,
 {
@@ -100,6 +118,26 @@ where
     let extra_fields = parse_extra_fields(extra_field)?;
     let comment = crate::read::io::read_string(reader, header.file_comment_length.into()).await?;
 
+    let mut uncompressed_size = header.uncompressed_size as u64;
+    let mut compressed_size = header.compressed_size as u64;
+    let mut file_offset = header.lh_offset as u64;
+
+    if zip64 {
+        if let Some(extra_field) = get_zip64_extra_field(&extra_fields) {
+            if uncompressed_size == NON_ZIP64_MAX_SIZE as u64 {
+                uncompressed_size = extra_field.uncompressed_size;
+            }
+            if compressed_size == NON_ZIP64_MAX_SIZE as u64 {
+                compressed_size = extra_field.compressed_size;
+            }
+            if file_offset == NON_ZIP64_MAX_SIZE as u64 {
+                if let Some(offset) = extra_field.relative_header_offset {
+                    file_offset = offset;
+                }
+            }
+        }
+    }
+
     let entry = ZipEntry {
         filename,
         compression,
@@ -108,8 +146,8 @@ where
         attribute_compatibility: AttributeCompatibility::Unix,
         /// FIXME: Default to Unix for the moment
         crc32: header.crc,
-        uncompressed_size: header.uncompressed_size,
-        compressed_size: header.compressed_size,
+        uncompressed_size,
+        compressed_size,
         last_modification_date: ZipDateTime { date: header.mod_date, time: header.mod_time },
         internal_file_attribute: header.inter_attr,
         external_file_attribute: header.exter_attr,
@@ -117,8 +155,10 @@ where
         comment,
     };
 
+    log::debug!("Entry: {entry:?}, offset {file_offset}");
+
     // general_purpose_flag: header.flags,
-    Ok(StoredZipEntry { entry, file_offset: header.lh_offset as u64 })
+    Ok(StoredZipEntry { entry, file_offset })
 }
 
 pub(crate) async fn lfh<R>(mut reader: R) -> Result<Option<ZipEntry>>
