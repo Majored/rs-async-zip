@@ -72,13 +72,13 @@ where
 
     // Find and parse the central directory.
     log::debug!("Read central directory");
-    reader.seek(SeekFrom::Start(eocdr.offset_of_start_of_directory.into())).await?;
+    reader.seek(SeekFrom::Start(eocdr.offset_of_start_of_directory)).await?;
 
     // To avoid lots of small reads to `reader` when parsing the central directory, we use a BufReader that can read the whole central directory at once.
     // Because `eocdr.offset_of_start_of_directory` is a u64, we use MAX_CD_BUFFER_SIZE to prevent very large buffer sizes.
     let buf =
         BufReader::with_capacity(std::cmp::min(eocdr.offset_of_start_of_directory as _, MAX_CD_BUFFER_SIZE), reader);
-    let entries = crate::read::cd(buf, eocdr.num_entries_in_directory.into(), zip64).await?;
+    let entries = crate::read::cd(buf, eocdr.num_entries_in_directory, zip64).await?;
 
     Ok(ZipFile { entries, comment, zip64 })
 }

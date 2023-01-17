@@ -7,12 +7,14 @@ pub const SIGNATURE_LENGTH: usize = 4;
 //
 // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#437
 pub const LFH_SIGNATURE: u32 = 0x4034b50;
+#[allow(dead_code)]
 pub const LFH_LENGTH: usize = 26;
 
 // Central directory header constants
 //
 // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4312
 pub const CDH_SIGNATURE: u32 = 0x2014b50;
+#[allow(dead_code)]
 pub const CDH_LENGTH: usize = 42;
 
 // End of central directory record constants
