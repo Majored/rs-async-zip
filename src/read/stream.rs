@@ -83,8 +83,8 @@ where
             None => return Ok(None),
         };
 
-        let reader = BufReader::new(self.0 .0.take(entry.compressed_size.into()));
-        let reader = ZipEntryReader::new_with_owned(reader, entry.compression, entry.compressed_size.into());
+        let reader = BufReader::new(self.0 .0.take(entry.compressed_size));
+        let reader = ZipEntryReader::new_with_owned(reader, entry.compression, entry.compressed_size);
 
         Ok(Some(ZipFileReader(Reading(reader, entry))))
     }
