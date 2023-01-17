@@ -117,7 +117,7 @@ impl ZipFileReader {
         Ok(ZipEntryReader::new_with_owned(
             cursor,
             stored_entry.entry.compression(),
-            stored_entry.entry.uncompressed_size().into(),
+            stored_entry.entry.compressed_size().into(),
         ))
     }
 }
