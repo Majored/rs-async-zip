@@ -2,10 +2,13 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::entry::ZipEntry;
-use crate::error::Result;
+use crate::error::{Result, Zip64ErrorCase, ZipError};
 use crate::spec::{
     extra_field::ExtraFieldAsBytes,
-    header::{CentralDirectoryRecord, GeneralPurposeFlag, LocalFileHeader},
+    header::{
+        CentralDirectoryRecord, ExtraField, GeneralPurposeFlag, HeaderId, LocalFileHeader,
+        Zip64ExtendedInformationExtraField,
+    },
     Compression,
 };
 use crate::write::{CentralDirectoryEntry, ZipFileWriter};
@@ -13,6 +16,7 @@ use crate::write::{CentralDirectoryEntry, ZipFileWriter};
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use std::io::Cursor;
 
+use crate::spec::consts::{NON_ZIP64_MAX_NUM_FILES, NON_ZIP64_MAX_SIZE};
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use async_compression::tokio::write;
 use crc32fast::Hasher;
@@ -29,7 +33,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
         Self { writer, entry, data }
     }
 
-    pub async fn write(self) -> Result<()> {
+    pub async fn write(mut self) -> Result<()> {
         let mut _compressed_data: Option<Vec<u8>> = None;
         let compressed_data = match self.entry.compression() {
             Compression::Stored => self.data,
@@ -41,9 +45,34 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             }
         };
 
+        let (lfh_compressed_size, lfh_uncompressed_size) =
+        if self.data.len() as u64 > NON_ZIP64_MAX_SIZE as u64
+            || compressed_data.len() as u64 > NON_ZIP64_MAX_SIZE as u64
+        {
+            if self.writer.force_no_zip64 {
+                return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
+            }
+            if !self.writer.is_zip64 {
+                self.writer.is_zip64 = true;
+            }
+            self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformationExtraField(
+                Zip64ExtendedInformationExtraField {
+                    header_id: HeaderId::Zip64ExtendedInformationExtraField,
+                    data_size: 16,
+                    uncompressed_size: self.data.len() as u64,
+                    compressed_size: compressed_data.len() as u64,
+                    relative_header_offset: None,
+                    disk_start_number: None,
+                },
+            ));
+            (NON_ZIP64_MAX_SIZE, NON_ZIP64_MAX_SIZE)
+        } else {
+            (compressed_data.len() as u32, self.data.len() as u32)
+        };
+
         let lf_header = LocalFileHeader {
-            compressed_size: compressed_data.len() as u32,
-            uncompressed_size: self.data.len() as u32,
+            compressed_size: lfh_compressed_size,
+            uncompressed_size: lfh_uncompressed_size,
             compression: self.entry.compression().into(),
             crc: compute_crc(self.data),
             extra_field_length: self.entry.extra_fields().len() as u16,
@@ -84,8 +113,12 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
         self.writer.writer.write_all(compressed_data).await?;
 
         self.writer.cd_entries.push(CentralDirectoryEntry { header, entry: self.entry });
-
-        Ok(())
+        // Ensure that we can fit this many files in this archive if forcing no zip64
+        if self.writer.cd_entries.len() > NON_ZIP64_MAX_NUM_FILES as usize && self.writer.force_no_zip64 {
+            Err(ZipError::Zip64Needed(Zip64ErrorCase::TooManyFiles))
+        } else {
+            Ok(())
+        }
     }
 }
 

@@ -33,6 +33,15 @@ impl ZipEntryBuilder {
         self
     }
 
+    /// Set a size hint for the file, to be written into the local file header.
+    /// Unlikely to be useful except for the case of streaming files to be Store'd.
+    /// This size hint does not affect the central directory, nor does it affect whole files.
+    pub fn size<N: Into<u64>, M: Into<u64>>(mut self, compressed_size: N, uncompressed_size: M) -> Self {
+        self.0.compressed_size = compressed_size.into();
+        self.0.uncompressed_size = uncompressed_size.into();
+        self
+    }
+
     /// Set the deflate compression option.
     ///
     /// If the compression type isn't deflate, this option has no effect.

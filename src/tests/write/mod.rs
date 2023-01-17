@@ -2,3 +2,4 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 pub(crate) mod offset;
+mod zip64;

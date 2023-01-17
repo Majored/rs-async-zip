@@ -9,7 +9,7 @@ use thiserror::Error;
 /// A Result type alias over ZipError to minimise repetition.
 pub type Result<V> = std::result::Result<V, ZipError>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Zip64ErrorCase {
     TooManyFiles,
     LargeFile,
