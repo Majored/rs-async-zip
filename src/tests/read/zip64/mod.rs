@@ -57,6 +57,7 @@ async fn test_read_zip64_archive_stream() {
 
 /// Generate an example file only if it doesn't exist already.
 /// The file is placed adjacent to this rs file.
+#[cfg(feature = "fs")]
 fn generate_zip64many_zip() -> PathBuf {
     use std::io::Write;
     use zip::write::FileOptions;

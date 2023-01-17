@@ -45,8 +45,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             }
         };
 
-        let (lfh_compressed_size, lfh_uncompressed_size) =
-        if self.data.len() as u64 > NON_ZIP64_MAX_SIZE as u64
+        let (lfh_compressed_size, lfh_uncompressed_size) = if self.data.len() as u64 > NON_ZIP64_MAX_SIZE as u64
             || compressed_data.len() as u64 > NON_ZIP64_MAX_SIZE as u64
         {
             if self.writer.force_no_zip64 {
