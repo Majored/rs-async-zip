@@ -3,10 +3,26 @@
 
 //! A module which holds relevant error reporting structures/types.
 
+use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
 /// A Result type alias over ZipError to minimise repetition.
 pub type Result<V> = std::result::Result<V, ZipError>;
+
+#[derive(Debug)]
+pub enum Zip64ErrorCase {
+    TooManyFiles,
+    LargeFile,
+}
+
+impl Display for Zip64ErrorCase {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::TooManyFiles => write!(f, "More than 65536 files in archive"),
+            Self::LargeFile => write!(f, "File is larger than 4 GiB"),
+        }
+    }
+}
 
 /// An enum of possible errors and their descriptions.
 #[non_exhaustive]
@@ -20,6 +36,8 @@ pub enum ZipError {
     AttributeCompatibilityNotSupported(u16),
     #[error("attempted to read a ZIP64 file whilst on a 32-bit target")]
     TargetZip64NotSupported,
+    #[error("attempted to write a ZIP file with force_no_zip64 when ZIP64 is needed: {0}")]
+    Zip64Needed(Zip64ErrorCase),
     #[error("end of file has not been reached")]
     EOFNotReached,
 
