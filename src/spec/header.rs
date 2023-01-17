@@ -105,6 +105,7 @@ pub struct Zip64EndOfCentralDirectoryRecord {
     pub disk_number: u32,
     pub disk_number_start_of_cd: u32,
     pub num_entries_in_directory_on_disk: u64,
+    pub num_entries_in_directory: u64,
     pub directory_size: u64,
     pub offset_of_start_of_directory: u64,
 }
