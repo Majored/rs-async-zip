@@ -69,8 +69,9 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
     }
 
     async fn write_lfh(writer: &'b mut ZipFileWriter<W>, entry: &mut ZipEntry) -> Result<LocalFileHeader> {
-        let (lfh_compressed, lfh_uncompressed) =
-        if entry.compressed_size > NON_ZIP64_MAX_SIZE as u64 || entry.uncompressed_size > NON_ZIP64_MAX_SIZE as u64 {
+        let (lfh_compressed, lfh_uncompressed) = if entry.compressed_size > NON_ZIP64_MAX_SIZE as u64
+            || entry.uncompressed_size > NON_ZIP64_MAX_SIZE as u64
+        {
             if writer.force_no_zip64 {
                 return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
             }
@@ -136,31 +137,31 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         let compressed_size = (inner_writer.offset() - self.data_offset) as u64;
 
         let (cdr_compressed_size, cdr_uncompressed_size) =
-        if uncompressed_size > NON_ZIP64_MAX_SIZE as u64 || compressed_size > NON_ZIP64_MAX_SIZE as u64 {
-            if self.force_no_zip64 {
-                return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
-            }
-            if !*self.is_zip64 {
-                *self.is_zip64 = true;
-            }
-            // Only append to the extra fields if a zip64 extra field doesn't already exist.
-            if let None = get_zip64_extra_field(&self.entry.extra_fields) {
-                self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformationExtraField(
-                    Zip64ExtendedInformationExtraField {
-                        header_id: HeaderId::Zip64ExtendedInformationExtraField,
-                        data_size: 16,
-                        uncompressed_size,
-                        compressed_size,
-                        relative_header_offset: None,
-                        disk_start_number: None,
-                    },
-                ))
-            }
+            if uncompressed_size > NON_ZIP64_MAX_SIZE as u64 || compressed_size > NON_ZIP64_MAX_SIZE as u64 {
+                if self.force_no_zip64 {
+                    return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
+                }
+                if !*self.is_zip64 {
+                    *self.is_zip64 = true;
+                }
+                // Only append to the extra fields if a zip64 extra field doesn't already exist.
+                if let None = get_zip64_extra_field(&self.entry.extra_fields) {
+                    self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformationExtraField(
+                        Zip64ExtendedInformationExtraField {
+                            header_id: HeaderId::Zip64ExtendedInformationExtraField,
+                            data_size: 16,
+                            uncompressed_size,
+                            compressed_size,
+                            relative_header_offset: None,
+                            disk_start_number: None,
+                        },
+                    ))
+                }
 
-            (NON_ZIP64_MAX_SIZE, NON_ZIP64_MAX_SIZE)
-        } else {
-            (compressed_size as u32, uncompressed_size as u32)
-        };
+                (NON_ZIP64_MAX_SIZE, NON_ZIP64_MAX_SIZE)
+            } else {
+                (compressed_size as u32, uncompressed_size as u32)
+            };
 
         inner_writer.write_all(&crate::spec::consts::DATA_DESCRIPTOR_SIGNATURE.to_le_bytes()).await?;
         inner_writer.write_all(&crc.to_le_bytes()).await?;

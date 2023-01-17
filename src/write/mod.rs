@@ -60,12 +60,15 @@ pub use entry_stream::EntryStreamWriter;
 use crate::entry::ZipEntry;
 use crate::error::Result;
 use crate::spec::extra_field::ExtraFieldAsBytes;
-use crate::spec::header::{CentralDirectoryRecord, EndOfCentralDirectoryHeader, Zip64EndOfCentralDirectoryLocator, Zip64EndOfCentralDirectoryRecord};
+use crate::spec::header::{
+    CentralDirectoryRecord, EndOfCentralDirectoryHeader, Zip64EndOfCentralDirectoryLocator,
+    Zip64EndOfCentralDirectoryRecord,
+};
 use entry_whole::EntryWholeWriter;
 use io::offset::AsyncOffsetWriter;
 
-use tokio::io::{AsyncWrite, AsyncWriteExt};
 use crate::spec::consts::{NON_ZIP64_MAX_NUM_FILES, NON_ZIP64_MAX_SIZE};
+use tokio::io::{AsyncWrite, AsyncWriteExt};
 
 pub(crate) struct CentralDirectoryEntry {
     pub header: CentralDirectoryRecord,
@@ -165,11 +168,7 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
             num_entries_in_directory as u16
         };
         let cd_offset = cd_offset as u64;
-        let cd_offset_u32 = if cd_offset > NON_ZIP64_MAX_SIZE as u64 {
-            NON_ZIP64_MAX_SIZE
-        } else {
-            cd_offset as u32
-        };
+        let cd_offset_u32 = if cd_offset > NON_ZIP64_MAX_SIZE as u64 { NON_ZIP64_MAX_SIZE } else { cd_offset as u32 };
 
         // Add the zip64 EOCDR and EOCDL if we are in zip64 mode.
         if self.is_zip64 {
