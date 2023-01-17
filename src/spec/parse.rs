@@ -213,6 +213,23 @@ impl Zip64EndOfCentralDirectoryRecord {
         reader.read_exact(&mut buffer).await?;
         Ok(Self::from(buffer))
     }
+
+    pub fn as_bytes(&self) -> [u8; 52] {
+        let mut array = [0; 52];
+        let mut cursor = 0;
+
+        array_push!(array, cursor, self.size_of_zip64_end_of_cd_record.to_le_bytes());
+        array_push!(array, cursor, self.version_made_by.to_le_bytes());
+        array_push!(array, cursor, self.version_needed_to_extract.to_le_bytes());
+        array_push!(array, cursor, self.disk_number.to_le_bytes());
+        array_push!(array, cursor, self.disk_number_start_of_cd.to_le_bytes());
+        array_push!(array, cursor, self.num_entries_in_directory_on_disk.to_le_bytes());
+        array_push!(array, cursor, self.num_entries_in_directory.to_le_bytes());
+        array_push!(array, cursor, self.directory_size.to_le_bytes());
+        array_push!(array, cursor, self.offset_of_start_of_directory.to_le_bytes());
+
+        array
+    }
 }
 
 impl Zip64EndOfCentralDirectoryLocator {
@@ -228,6 +245,17 @@ impl Zip64EndOfCentralDirectoryLocator {
         let mut buffer: [u8; 16] = [0; 16];
         reader.read_exact(&mut buffer).await?;
         Ok(Some(Self::from(buffer)))
+    }
+
+    pub fn as_bytes(&self) -> [u8; 16] {
+        let mut array = [0; 16];
+        let mut cursor = 0;
+
+        array_push!(array, cursor, self.number_of_disk_with_start_of_zip64_end_of_central_directory.to_le_bytes());
+        array_push!(array, cursor, self.relative_offset.to_le_bytes());
+        array_push!(array, cursor, self.total_number_of_disks.to_le_bytes());
+
+        array
     }
 }
 

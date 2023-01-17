@@ -32,6 +32,8 @@ pub const ZIP64_EOCDL_LENGTH: u64 = 20;
 
 /// The contents of a header field when one must reference the zip64 version instead.
 pub const NON_ZIP64_MAX_SIZE: u32 = 0xFFFFFFFF;
+/// The maximum number of files or disks in a ZIP file before it requires ZIP64.
+pub const NON_ZIP64_MAX_NUM_FILES: u16 = 0xFFFF;
 
 // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#439
 pub const DATA_DESCRIPTOR_SIGNATURE: u32 = 0x8074b50;

@@ -99,7 +99,7 @@ where
     Ok(entries)
 }
 
-fn get_zip64_extra_field(extra_fields: &[ExtraField]) -> Option<&Zip64ExtendedInformationExtraField> {
+pub(crate) fn get_zip64_extra_field(extra_fields: &[ExtraField]) -> Option<&Zip64ExtendedInformationExtraField> {
     for field in extra_fields {
         if let ExtraField::Zip64ExtendedInformationExtraField(zip64field) = field {
             return Some(zip64field);
