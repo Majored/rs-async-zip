@@ -15,6 +15,9 @@ categories = ["asynchronous", "compression"]
 [features]
 full = ["chrono", "fs", "deflate", "bzip2", "lzma", "zstd", "xz"]
 
+# All features that are compatible with WASM
+full-wasm = ["chrono", "deflate", "zstd"]
+
 fs = ["tokio/fs"]
 
 deflate = ["async-compression/deflate"]
