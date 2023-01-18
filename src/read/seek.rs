@@ -99,7 +99,7 @@ where
         Ok(ZipEntryReader::new_with_borrow(
             reader,
             stored_entry.entry.compression(),
-            stored_entry.entry.uncompressed_size(),
+            stored_entry.entry.compressed_size(),
         ))
     }
 
@@ -118,7 +118,7 @@ where
         Ok(ZipEntryReader::new_with_owned(
             reader,
             stored_entry.entry.compression(),
-            stored_entry.entry.uncompressed_size(),
+            stored_entry.entry.compressed_size(),
         ))
     }
 }
