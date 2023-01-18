@@ -189,11 +189,16 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
 
         self.cd_entries.push(CentralDirectoryEntry { header: cdh, entry: self.entry });
         // Ensure that we can fit this many files in this archive if forcing no zip64
-        if self.cd_entries.len() > NON_ZIP64_MAX_NUM_FILES as usize && self.force_no_zip64 {
-            Err(ZipError::Zip64Needed(Zip64ErrorCase::TooManyFiles))
-        } else {
-            Ok(())
+        if self.cd_entries.len() > NON_ZIP64_MAX_NUM_FILES as usize {
+            if self.force_no_zip64 {
+                return Err(ZipError::Zip64Needed(Zip64ErrorCase::TooManyFiles));
+            }
+            if !*self.is_zip64 {
+                *self.is_zip64 = true;
+            }
         }
+
+        Ok(())
     }
 }
 

@@ -23,6 +23,10 @@ pub const CDH_LENGTH: usize = 42;
 pub const EOCDR_SIGNATURE: u32 = 0x6054b50;
 /// The minimum length of the EOCDR, excluding the signature.
 pub const EOCDR_LENGTH: usize = 18;
+
+/// The signature for the zip64 end of central directory record.
+/// Ref: https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4314
+pub const ZIP64_EOCDR_SIGNATURE: u32 = 0x06064b50;
 /// The signature for the zip64 end of central directory locator.
 /// Ref: https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4315
 pub const ZIP64_EOCDL_SIGNATURE: u32 = 0x07064b50;
