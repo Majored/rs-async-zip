@@ -12,7 +12,7 @@
 //!
 //! ## Installation
 //!
-//! ```
+//! ```toml
 //! [dependencies]
 //! async_zip = { version = "0.0.11", features = ["full"] }
 //! ```
