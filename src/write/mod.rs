@@ -85,7 +85,7 @@ pub struct ZipFileWriter<W: AsyncWrite + Unpin> {
     /// If true, will error if a Zip64 struct must be written.
     force_no_zip64: bool,
     /// Whether to write Zip64 end of directory structs.
-    is_zip64: bool,
+    pub(crate) is_zip64: bool,
     comment_opt: Option<String>,
 }
 
@@ -108,7 +108,8 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
         self
     }
 
-    /// Force the ZIP writer to emit Zip64 structs.
+    /// Force the ZIP writer to emit Zip64 structs at the end of the archive.
+    /// Zip64 extended fields will only be written if needed.
     pub fn force_zip64(mut self) -> Self {
         self.is_zip64 = true;
         self
@@ -185,7 +186,7 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
                 directory_size: central_directory_size,
                 offset_of_start_of_directory: cd_offset as u64,
             };
-            self.writer.write_all(&crate::spec::consts::CDH_SIGNATURE.to_le_bytes()).await?;
+            self.writer.write_all(&crate::spec::consts::ZIP64_EOCDR_SIGNATURE.to_le_bytes()).await?;
             self.writer.write_all(&eocdr.as_bytes()).await?;
 
             let eocdl = Zip64EndOfCentralDirectoryLocator {
