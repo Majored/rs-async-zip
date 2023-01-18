@@ -12,6 +12,7 @@ use std::task::{Context, Poll};
 use pin_project::pin_project;
 use tokio::io::{AsyncRead, AsyncReadExt, BufReader, ReadBuf, Take};
 
+/// A ZIP entry reader which may implement decompression.
 #[pin_project]
 pub struct ZipEntryReader<'a, R> {
     #[pin]

@@ -12,6 +12,8 @@ pub mod fs;
 
 pub(crate) mod io;
 
+pub use crate::read::io::entry::ZipEntryReader;
+
 use crate::entry::{StoredZipEntry, ZipEntry};
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;

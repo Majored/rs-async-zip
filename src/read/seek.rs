@@ -26,7 +26,7 @@
 
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
-pub use crate::read::io::entry::ZipEntryReader;
+use crate::read::io::entry::ZipEntryReader;
 
 use tokio::io::{AsyncRead, AsyncSeek, BufReader};
 
