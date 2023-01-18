@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Harry [Majored] [hello@majored.pw]
+// MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
+
 mod common;
 
 const ZSTD_ZIP_FILE: &str = "tests/test_inputs/sample_data.zstd.zip";

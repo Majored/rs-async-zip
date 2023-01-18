@@ -1,9 +1,6 @@
 // Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-// Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
-// MIT License (https://github.com/Majored/rs-async-io-utilities/blob/main/LICENSE)
-
 use std::io::{Error, IoSlice};
 use std::pin::Pin;
 use std::task::{Context, Poll};

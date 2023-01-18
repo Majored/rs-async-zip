@@ -1,4 +1,6 @@
-// Copyright Cognite AS, 2023
+// Copyright (c) 2023 Harry [Majored] [hello@majored.pw]
+// Copyright (c) 2023 Cognite AS
+// MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::spec::header::{EndOfCentralDirectoryHeader, Zip64EndOfCentralDirectoryRecord};
 

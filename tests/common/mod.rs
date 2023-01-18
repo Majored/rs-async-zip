@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Harry [Majored] [hello@majored.pw]
+// MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
+
 use async_zip::read::mem;
 use async_zip::read::seek;
 use async_zip::write::ZipFileWriter;
