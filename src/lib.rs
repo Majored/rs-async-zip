@@ -1,16 +1,24 @@
 // Copyright (c) 2021-2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-//! An asynchronous ZIP archive reading/writing crate with a heavy focus on streaming support.
+//! An asynchronous ZIP archive reading/writing crate powered by [`tokio`].
 //!
 //! ## Features
-//! - Asynchronous design powered by tokio.
 //! - Support for Stored, Deflate, bzip2, LZMA, zstd, and xz compression methods.
 //! - Various different reading approaches (seek, stream, filesystem, in-memory buffer).
 //! - Support for writing complete data (u8 slices) or stream writing using data descriptors.
-//! - Aims for reasonable [specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) compliance.
+//! - Initial support for ZIP64 reading.
+//! - Aims for reasonable [specification](https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md) compliance.
 //!
-//! ## Feature Flags
+//! ## Installation
+//!
+//! ```
+//! [dependencies]
+//! async_zip = { version = "0.0.10", features = ["full"] }
+//! ```
+//!
+//! ### Feature Flags
+//! - `full` - Enables all below features.
 //! - `chrono` - Enables support for parsing dates via `chrono`.
 //! - `fs` - Enables support for the `fs` reading module.
 //! - `deflate` - Enables support for the Deflate compression method.
