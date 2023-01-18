@@ -14,7 +14,7 @@
 //!
 //! ```
 //! [dependencies]
-//! async_zip = { version = "0.0.10", features = ["full"] }
+//! async_zip = { version = "0.0.11", features = ["full"] }
 //! ```
 //!
 //! ### Feature Flags
