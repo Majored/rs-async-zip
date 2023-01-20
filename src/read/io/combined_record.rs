@@ -36,10 +36,10 @@ impl CombinedCentralDirectoryRecord {
                 combined.num_entries_in_directory_on_disk = zip64eocdr.num_entries_in_directory_on_disk;
             }
             if eocdr.num_of_entries == u16::MAX {
-                combined.num_entries_in_directory = zip64eocdr.num_entries_in_directory_on_disk;
+                combined.num_entries_in_directory = zip64eocdr.num_entries_in_directory;
             }
             if eocdr.size_cent_dir == u32::MAX {
-                combined.directory_size = zip64eocdr.num_entries_in_directory_on_disk;
+                combined.directory_size = zip64eocdr.directory_size;
             }
             if eocdr.cent_dir_offset == u32::MAX {
                 combined.offset_of_start_of_directory = zip64eocdr.offset_of_start_of_directory;
