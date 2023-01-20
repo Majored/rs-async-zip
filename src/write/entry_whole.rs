@@ -3,9 +3,11 @@
 
 use crate::entry::ZipEntry;
 use crate::error::Result;
-use crate::spec::compression::Compression;
-use crate::spec::extra_field::ExtraFieldAsBytes;
-use crate::spec::header::{CentralDirectoryRecord, GeneralPurposeFlag, LocalFileHeader};
+use crate::spec::{
+    extra_field::ExtraFieldAsBytes,
+    header::{CentralDirectoryRecord, GeneralPurposeFlag, LocalFileHeader},
+    Compression,
+};
 use crate::write::{CentralDirectoryEntry, ZipFileWriter};
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]

@@ -1,14 +1,13 @@
 // Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::spec::compression::Compression;
+use crate::spec::Compression;
 
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use async_compression::tokio::bufread;
-
 use pin_project::pin_project;
 use tokio::io::{AsyncBufRead, AsyncRead, ReadBuf};
 

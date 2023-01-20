@@ -2,10 +2,7 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::entry::ZipEntry;
-use crate::spec::attribute::AttributeCompatibility;
-use crate::spec::compression::Compression;
-use crate::spec::date::ZipDateTime;
-use crate::spec::header::ExtraField;
+use crate::spec::{attribute::AttributeCompatibility, date::ZipDateTime, header::ExtraField, Compression};
 
 /// A builder for [`ZipEntry`].
 pub struct ZipEntryBuilder(pub(crate) ZipEntry);
