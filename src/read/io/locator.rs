@@ -36,26 +36,6 @@ const EOCDR_LOWER_BOUND: u64 = EOCDR_UPPER_BOUND + SIGNATURE_LENGTH as u64 + u16
 
 /// Locate the `end of central directory record` offset, if one exists.
 /// The returned offset excludes the signature (4 bytes)
-pub(crate) async fn eocdr<R>(reader: R) -> ZipResult<u64>
-where
-    R: AsyncRead + AsyncSeek + Unpin,
-{
-    match locate_record_by_signature(reader, &EOCDR_SIGNATURE, &EOCDR_LENGTH).await {
-        Ok(pos) => Ok(pos),
-        Err(LocateRecordError::NotFound) => Err(ZipError::UnableToLocateEOCDR),
-        Err(LocateRecordError::IoError(e)) => Err(ZipError::UpstreamReadError(e)),
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub(crate) enum LocateRecordError {
-    #[error("Record not found")]
-    NotFound,
-    #[error("io error: {0}")]
-    IoError(#[from] std::io::Error),
-}
-
-/// Locate the position of a record by its signature and minimum record length.
 ///
 /// This method involves buffered reading in reverse and reverse linear searching along those buffers for the EOCDR
 /// signature. As a result of this buffered approach, we reduce seeks when compared to `zip-rs`'s method by a factor
@@ -63,19 +43,15 @@ pub(crate) enum LocateRecordError {
 ///
 /// Whilst I haven't done any in-depth benchmarks, when reading a ZIP file with the maximum length comment, this method
 /// saw a reduction in location time by a factor of 500 when compared with the `zip-rs` method.
-async fn locate_record_by_signature<R>(
-    mut reader: R,
-    signature: &u32,
-    record_length: &usize,
-) -> Result<u64, LocateRecordError>
+pub async fn eocdr<R>(mut reader: R) -> ZipResult<u64>
 where
     R: AsyncRead + AsyncSeek + Unpin,
 {
     let length = reader.seek(SeekFrom::End(0)).await?;
-    let signature = &signature.to_le_bytes();
+    let signature = &EOCDR_SIGNATURE.to_le_bytes();
     let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
 
-    let mut position = length.saturating_sub((record_length + BUFFER_SIZE) as u64);
+    let mut position = length.saturating_sub((EOCDR_LENGTH + BUFFER_SIZE) as u64);
     reader.seek(SeekFrom::Start(position)).await?;
 
     loop {
@@ -87,7 +63,7 @@ where
 
         // If we hit the start of the data or the lower bound, we're unable to locate the EOCDR.
         if position == 0 || position <= length.saturating_sub(EOCDR_LOWER_BOUND) {
-            return Err(LocateRecordError::NotFound);
+            return Err(ZipError::UnableToLocateEOCDR);
         }
 
         // To handle the case where the EOCDR signature crosses buffer boundaries, we simply overlap reads by the
