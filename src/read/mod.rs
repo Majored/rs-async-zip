@@ -19,7 +19,7 @@ use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::compression::Compression;
-use crate::spec::consts::{CDH_SIGNATURE, LFH_SIGNATURE, NON_ZIP64_MAX_SIZE, ZIP64_EOCDL_LENGTH};
+use crate::spec::consts::{CDH_SIGNATURE, LFH_SIGNATURE, NON_ZIP64_MAX_SIZE, SIGNATURE_LENGTH, ZIP64_EOCDL_LENGTH};
 use crate::spec::date::ZipDateTime;
 use crate::spec::header::{
     CentralDirectoryRecord, EndOfCentralDirectoryHeader, ExtraField, LocalFileHeader,
@@ -49,12 +49,12 @@ where
 
     // Check the 20 bytes before the EOCDR for the Zip64 EOCDL, plus an extra 4 bytes because the offset
     // does not include the signature. If the ECODL exists we are dealing with a Zip64 file.
-    reader.seek(SeekFrom::Start(eocdr_offset - ZIP64_EOCDL_LENGTH - 4)).await?;
+    reader.seek(SeekFrom::Start(eocdr_offset - ZIP64_EOCDL_LENGTH - SIGNATURE_LENGTH as u64)).await?;
     let zip64_locator = Zip64EndOfCentralDirectoryLocator::try_from_reader(&mut reader).await?;
     log::debug!("Zip64EOCDL: {zip64_locator:?}");
     let zip64 = zip64_locator.is_some();
     let zip64_eocdr = if let Some(locator) = zip64_locator {
-        reader.seek(SeekFrom::Start(locator.relative_offset + 4)).await?;
+        reader.seek(SeekFrom::Start(locator.relative_offset + SIGNATURE_LENGTH as u64)).await?;
         Some(Zip64EndOfCentralDirectoryRecord::from_reader(&mut reader).await?)
     } else {
         None
