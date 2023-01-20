@@ -12,22 +12,21 @@ pub mod fs;
 
 pub(crate) mod io;
 
-pub use crate::read::io::entry::ZipEntryReader;
-
 use crate::entry::{StoredZipEntry, ZipEntry};
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 use crate::spec::attribute::AttributeCompatibility;
-use crate::spec::compression::Compression;
 use crate::spec::consts::{CDH_SIGNATURE, LFH_SIGNATURE, NON_ZIP64_MAX_SIZE, SIGNATURE_LENGTH, ZIP64_EOCDL_LENGTH};
 use crate::spec::date::ZipDateTime;
 use crate::spec::header::{
     CentralDirectoryRecord, EndOfCentralDirectoryHeader, ExtraField, LocalFileHeader,
     Zip64EndOfCentralDirectoryLocator, Zip64EndOfCentralDirectoryRecord, Zip64ExtendedInformationExtraField,
 };
+use crate::spec::Compression;
 
-use crate::read::io::combined_record::CombinedCentralDirectoryRecord;
+use crate::read::io::CombinedCentralDirectoryRecord;
 use crate::spec::parse::parse_extra_fields;
+
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, BufReader, SeekFrom};
 
 /// The max buffer size used when parsing the central directory, equal to 20MiB.

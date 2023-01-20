@@ -3,7 +3,7 @@
 
 use crate::entry::ZipEntry;
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
-use crate::spec::compression::Compression;
+use crate::spec::Compression;
 
 pub(crate) const SPEC_VERSION_MADE_BY: u16 = 63;
 

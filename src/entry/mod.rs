@@ -7,11 +7,13 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
 
 use crate::entry::builder::ZipEntryBuilder;
 use crate::error::{Result, ZipError};
-use crate::spec::attribute::AttributeCompatibility;
-use crate::spec::compression::Compression;
-use crate::spec::consts::LFH_SIGNATURE;
-use crate::spec::date::ZipDateTime;
-use crate::spec::header::{ExtraField, LocalFileHeader};
+use crate::spec::{
+    attribute::AttributeCompatibility,
+    consts::LFH_SIGNATURE,
+    date::ZipDateTime,
+    header::{ExtraField, LocalFileHeader},
+    Compression,
+};
 
 /// An immutable store of data about a ZIP entry.
 ///

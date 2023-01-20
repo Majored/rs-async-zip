@@ -8,6 +8,8 @@ pub(crate) mod hashed;
 pub(crate) mod locator;
 pub(crate) mod owned;
 
+pub use combined_record::CombinedCentralDirectoryRecord;
+
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 /// Read and return a dynamic length string from a reader which impls AsyncRead.

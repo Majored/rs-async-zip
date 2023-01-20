@@ -73,11 +73,11 @@ use crate::read::seek;
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 use crate::read::io::entry::ZipEntryReader;
+use crate::ZipEntry;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::ZipEntry;
 use tokio::fs::File;
 use tokio::io::BufReader;
 
