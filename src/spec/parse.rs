@@ -216,10 +216,18 @@ impl Zip64EndOfCentralDirectoryRecord {
 }
 
 impl Zip64EndOfCentralDirectoryLocator {
-    pub async fn from_reader<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Zip64EndOfCentralDirectoryLocator> {
+    /// Read 4 bytes from the reader and check whether its signature matches that of the EOCDL.
+    /// If it does, return Some(EOCDL), otherwise return None.
+    pub async fn try_from_reader<R: AsyncRead + Unpin>(
+        reader: &mut R,
+    ) -> Result<Option<Zip64EndOfCentralDirectoryLocator>> {
+        let signature = reader.read_u32_le().await?;
+        if signature != ZIP64_EOCDL_SIGNATURE {
+            return Ok(None);
+        }
         let mut buffer: [u8; 16] = [0; 16];
         reader.read_exact(&mut buffer).await?;
-        Ok(Self::from(buffer))
+        Ok(Some(Self::from(buffer)))
     }
 }
 
@@ -250,6 +258,7 @@ macro_rules! array_push {
     }};
 }
 
+use crate::spec::consts::ZIP64_EOCDL_SIGNATURE;
 use crate::spec::extra_field::extra_field_from_bytes;
 pub(crate) use array_push;
 
@@ -280,6 +289,24 @@ mod tests {
                 num_entries_in_directory: 1,
                 directory_size: 47,
                 offset_of_start_of_directory: 64,
+            }
+        )
+    }
+
+    #[tokio::test]
+    async fn test_parse_zip64_eocdl() {
+        let eocdl: [u8; 20] = [
+            0x50, 0x4B, 0x06, 0x07, 0x00, 0x00, 0x00, 0x00, 0x6F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+            0x00, 0x00,
+        ];
+        let mut cursor = std::io::Cursor::new(eocdl);
+        let zip64eocdl = Zip64EndOfCentralDirectoryLocator::try_from_reader(&mut cursor).await.unwrap().unwrap();
+        assert_eq!(
+            zip64eocdl,
+            Zip64EndOfCentralDirectoryLocator {
+                number_of_disk_with_start_of_zip64_end_of_central_directory: 0,
+                relative_offset: 111,
+                total_number_of_disks: 1,
             }
         )
     }

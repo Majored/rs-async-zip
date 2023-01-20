@@ -111,7 +111,7 @@ pub struct Zip64EndOfCentralDirectoryRecord {
 }
 
 // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#4315
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Zip64EndOfCentralDirectoryLocator {
     pub number_of_disk_with_start_of_zip64_end_of_central_directory: u32,
     pub relative_offset: u64,

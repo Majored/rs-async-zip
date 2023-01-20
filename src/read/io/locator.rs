@@ -21,7 +21,7 @@
 use tokio::io::BufReader;
 
 use crate::error::{Result as ZipResult, ZipError};
-use crate::spec::consts::{EOCDR_LENGTH, EOCDR_SIGNATURE, SIGNATURE_LENGTH, ZIP64_EOCDL_LENGTH, ZIP64_EOCDL_SIGNATURE};
+use crate::spec::consts::{EOCDR_LENGTH, EOCDR_SIGNATURE, SIGNATURE_LENGTH};
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
 
@@ -35,6 +35,7 @@ const EOCDR_UPPER_BOUND: u64 = EOCDR_LENGTH as u64;
 const EOCDR_LOWER_BOUND: u64 = EOCDR_UPPER_BOUND + SIGNATURE_LENGTH as u64 + u16::MAX as u64;
 
 /// Locate the `end of central directory record` offset, if one exists.
+/// The returned offset excludes the signature (4 bytes)
 pub(crate) async fn eocdr<R>(reader: R) -> ZipResult<u64>
 where
     R: AsyncRead + AsyncSeek + Unpin,
@@ -42,18 +43,6 @@ where
     match locate_record_by_signature(reader, &EOCDR_SIGNATURE, &EOCDR_LENGTH).await {
         Ok(pos) => Ok(pos),
         Err(LocateRecordError::NotFound) => Err(ZipError::UnableToLocateEOCDR),
-        Err(LocateRecordError::IoError(e)) => Err(ZipError::UpstreamReadError(e)),
-    }
-}
-
-/// Locate the `zip64 end of central directory locator` offset, if it exists.
-pub(crate) async fn zip64_eocdl<R>(reader: R) -> ZipResult<Option<u64>>
-where
-    R: AsyncRead + AsyncSeek + Unpin,
-{
-    match locate_record_by_signature(reader, &ZIP64_EOCDL_SIGNATURE, &ZIP64_EOCDL_LENGTH).await {
-        Ok(pos) => Ok(Some(pos)),
-        Err(LocateRecordError::NotFound) => Ok(None),
         Err(LocateRecordError::IoError(e)) => Err(ZipError::UpstreamReadError(e)),
     }
 }
