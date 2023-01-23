@@ -8,7 +8,13 @@ use crate::write::ZipFileWriter;
 use crate::{Compression, ZipEntryBuilder};
 use std::io::{Read, Write};
 
+use crate::spec::header::ExtraField;
 use tokio::io::AsyncWriteExt;
+
+// Useful constants for writing a large file.
+const BATCH_SIZE: usize = 100_000;
+const NUM_BATCHES: usize = NON_ZIP64_MAX_SIZE as usize / BATCH_SIZE + 1;
+const BATCHED_FILE_SIZE: usize = NUM_BATCHES * BATCH_SIZE;
 
 /// Test writing a small zip64 file. No zip64 extra fields would be emitted, but z64 end of directory
 /// records should be.
@@ -42,6 +48,55 @@ async fn test_write_zip64_file() {
     assert_eq!(buffer.as_slice(), &[0, 0, 0, 0]);
 }
 
+/// Test writing a large zip64 file. This test will use upwards of 4GB of memory.
+#[tokio::test]
+async fn test_write_large_zip64_file() {
+    init_logger();
+
+    // Allocate space with some extra for metadata records
+    let mut buffer = Vec::with_capacity(BATCHED_FILE_SIZE + 100_000);
+    let mut writer = ZipFileWriter::new(&mut buffer);
+
+    // Stream-written zip files are dubiously spec-conformant. We need to specify a valid file size
+    // in order for rs-zip (and unzip) to correctly read these files.
+    let entry = ZipEntryBuilder::new("file".to_string(), Compression::Stored)
+        .size(BATCHED_FILE_SIZE as u64, BATCHED_FILE_SIZE as u64);
+    let mut entry_writer = writer.write_entry_stream(entry).await.unwrap();
+    for _ in 0..NUM_BATCHES {
+        entry_writer.write_all(&[0; BATCH_SIZE]).await.unwrap();
+    }
+    entry_writer.close().await.unwrap();
+
+    assert!(writer.is_zip64);
+    let cd_entry = writer.cd_entries.last().unwrap();
+    match &cd_entry.entry.extra_fields.last().unwrap() {
+        ExtraField::Zip64ExtendedInformationExtraField(zip64) => {
+            assert_eq!(zip64.compressed_size, BATCHED_FILE_SIZE as u64);
+            assert_eq!(zip64.uncompressed_size, BATCHED_FILE_SIZE as u64);
+        }
+        e @ _ => panic!("Expected a Zip64 extended field, got {:?}", e),
+    }
+    assert_eq!(cd_entry.header.uncompressed_size, NON_ZIP64_MAX_SIZE);
+    assert_eq!(cd_entry.header.compressed_size, NON_ZIP64_MAX_SIZE);
+    writer.close().await.unwrap();
+
+    let cursor = std::io::Cursor::new(buffer);
+    let mut archive = zip::read::ZipArchive::new(cursor).unwrap();
+    let mut file = archive.by_name("file").unwrap();
+    assert_eq!(file.compression(), zip::CompressionMethod::Stored);
+    assert_eq!(file.size(), BATCHED_FILE_SIZE as u64);
+    let mut buffer = [0; 100_000];
+    let mut bytes_total = 0;
+    loop {
+        let read_bytes = file.read(&mut buffer).unwrap();
+        if read_bytes == 0 {
+            break;
+        }
+        bytes_total += read_bytes;
+    }
+    assert_eq!(bytes_total, BATCHED_FILE_SIZE);
+}
+
 /// Test writing a zip64 file with more than u16::MAX files.
 #[tokio::test]
 async fn test_write_zip64_file_many_entries() {
@@ -63,7 +118,9 @@ async fn test_write_zip64_file_many_entries() {
     assert_eq!(zip.len(), u16::MAX as usize + 2);
 
     for i in 0..=u16::MAX as u32 + 1 {
-        zip.by_name(&i.to_string()).unwrap();
+        let mut file = zip.by_name(&i.to_string()).unwrap();
+        let mut buf = Vec::new();
+        file.read_to_end(&mut buf).unwrap();
     }
 }
 
@@ -129,7 +186,6 @@ async fn test_force_no_zip64_errors_with_too_many_files_stream() {
     assert!(matches!(result, Err(ZipError::Zip64Needed(Zip64ErrorCase::TooManyFiles))));
 }
 
-const NUM_BATCHES: usize = (NON_ZIP64_MAX_SIZE as u64 / 100_000 + 1) as usize;
 /// Tests that when force_no_zip64 is true, EntryStreamWriter errors when trying to write
 /// a file larger than ~4 GiB to an archive.
 #[tokio::test]
@@ -142,7 +198,7 @@ async fn test_force_no_zip64_errors_with_too_large_file_stream() {
 
     // Writing 4GB, 1kb at a time
     for _ in 0..NUM_BATCHES {
-        entrywriter.write_all(&[0; 100_000]).await.unwrap();
+        entrywriter.write_all(&[0; BATCH_SIZE]).await.unwrap();
     }
     let result = entrywriter.close().await;
 

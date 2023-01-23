@@ -121,6 +121,8 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
     }
 
     /// Write an entry of unknown size and data via streaming (ie. using a data descriptor).
+    /// The generated Local File Header will be invalid, with no compressed size, uncompressed size,
+    /// and a null CRC. This might cause problems with the destination reader.
     pub async fn write_entry_stream<E: Into<ZipEntry>>(&mut self, entry: E) -> Result<EntryStreamWriter<'_, W>> {
         EntryStreamWriter::from_raw(self, entry.into()).await
     }

@@ -69,12 +69,8 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
     }
 
     async fn write_lfh(writer: &'b mut ZipFileWriter<W>, entry: &mut ZipEntry) -> Result<LocalFileHeader> {
-        let (lfh_compressed, lfh_uncompressed) = if entry.compressed_size > NON_ZIP64_MAX_SIZE as u64
-            || entry.uncompressed_size > NON_ZIP64_MAX_SIZE as u64
-        {
-            if writer.force_no_zip64 {
-                return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
-            }
+        // Always emit a zip64 extended field, even if we don't need it, because we *might* need it.
+        let (lfh_compressed, lfh_uncompressed) = if !writer.force_no_zip64 {
             if !writer.is_zip64 {
                 writer.is_zip64 = true;
             }
@@ -91,6 +87,11 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
 
             (NON_ZIP64_MAX_SIZE, NON_ZIP64_MAX_SIZE)
         } else {
+            if entry.compressed_size > NON_ZIP64_MAX_SIZE as u64 || entry.uncompressed_size > NON_ZIP64_MAX_SIZE as u64
+            {
+                return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
+            }
+
             (entry.compressed_size as u32, entry.uncompressed_size as u32)
         };
 
@@ -98,8 +99,8 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             compressed_size: lfh_compressed,
             uncompressed_size: lfh_uncompressed,
             compression: entry.compression().into(),
-            crc: 0,
-            extra_field_length: entry.extra_fields().len() as u16,
+            crc: entry.crc32,
+            extra_field_length: entry.extra_fields().count_bytes() as u16,
             file_name_length: entry.filename().as_bytes().len() as u16,
             mod_time: entry.last_modification_date().time,
             mod_date: entry.last_modification_date().date,
