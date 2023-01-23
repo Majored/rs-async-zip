@@ -2,8 +2,6 @@
 // Copyright (c) 2023 Cognite AS
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use std::path::PathBuf;
-
 use tokio::io::AsyncReadExt;
 
 use crate::tests::init_logger;

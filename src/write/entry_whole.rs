@@ -74,7 +74,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             uncompressed_size: lfh_uncompressed_size,
             compression: self.entry.compression().into(),
             crc: compute_crc(self.data),
-            extra_field_length: self.entry.extra_fields().len() as u16,
+            extra_field_length: self.entry.extra_fields().count_bytes() as u16,
             file_name_length: self.entry.filename().as_bytes().len() as u16,
             mod_time: self.entry.last_modification_date().time,
             mod_date: self.entry.last_modification_date().date,
