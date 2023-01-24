@@ -186,7 +186,7 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
                 num_entries_in_directory_on_disk: num_entries_in_directory,
                 num_entries_in_directory,
                 directory_size: central_directory_size,
-                offset_of_start_of_directory: cd_offset as u64,
+                offset_of_start_of_directory: cd_offset,
             };
             self.writer.write_all(&crate::spec::consts::ZIP64_EOCDR_SIGNATURE.to_le_bytes()).await?;
             self.writer.write_all(&eocdr.as_bytes()).await?;

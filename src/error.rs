@@ -40,6 +40,12 @@ pub enum ZipError {
     Zip64Needed(Zip64ErrorCase),
     #[error("end of file has not been reached")]
     EOFNotReached,
+    #[error("extra fields exceeded maximum size")]
+    ExtraFieldTooLarge,
+    #[error("comment exceeded maximum size")]
+    CommentTooLarge,
+    #[error("filename exceeded maximum size")]
+    FileNameTooLarge,
 
     #[error("unable to locate the end of central directory record")]
     UnableToLocateEOCDR,
