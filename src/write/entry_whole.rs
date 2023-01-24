@@ -74,8 +74,19 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             uncompressed_size: lfh_uncompressed_size,
             compression: self.entry.compression().into(),
             crc: compute_crc(self.data),
-            extra_field_length: self.entry.extra_fields().count_bytes() as u16,
-            file_name_length: self.entry.filename().as_bytes().len() as u16,
+            extra_field_length: self
+                .entry
+                .extra_fields()
+                .count_bytes()
+                .try_into()
+                .map_err(|_| ZipError::ExtraFieldTooLarge)?,
+            file_name_length: self
+                .entry
+                .filename()
+                .as_bytes()
+                .len()
+                .try_into()
+                .map_err(|_| ZipError::FileNameTooLarge)?,
             mod_time: self.entry.last_modification_date().time,
             mod_date: self.entry.last_modification_date().date,
             version: crate::spec::version::as_needed_to_extract(&self.entry),
@@ -95,7 +106,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             crc: lf_header.crc,
             extra_field_length: lf_header.extra_field_length,
             file_name_length: lf_header.file_name_length,
-            file_comment_length: self.entry.comment().len() as u16,
+            file_comment_length: self.entry.comment().len().try_into().map_err(|_| ZipError::CommentTooLarge)?,
             mod_time: lf_header.mod_time,
             mod_date: lf_header.mod_date,
             flags: lf_header.flags,

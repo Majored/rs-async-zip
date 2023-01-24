@@ -101,8 +101,12 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             uncompressed_size: lfh_uncompressed,
             compression: entry.compression().into(),
             crc: entry.crc32,
-            extra_field_length: entry.extra_fields().count_bytes() as u16,
-            file_name_length: entry.filename().as_bytes().len() as u16,
+            extra_field_length: entry
+                .extra_fields()
+                .count_bytes()
+                .try_into()
+                .map_err(|_| ZipError::ExtraFieldTooLarge)?,
+            file_name_length: entry.filename().as_bytes().len().try_into().map_err(|_| ZipError::FileNameTooLarge)?,
             mod_time: entry.last_modification_date().time,
             mod_date: entry.last_modification_date().date,
             version: crate::spec::version::as_needed_to_extract(entry),
@@ -147,16 +151,20 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             // When streaming an entry, we are always using a zip64 field.
             match get_zip64_extra_field_mut(&mut self.entry.extra_fields) {
                 // This case shouldn't be necessary but is included for completeness.
-                None => self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformationExtraField(
-                    Zip64ExtendedInformationExtraField {
-                        header_id: HeaderId::Zip64ExtendedInformationExtraField,
-                        data_size: 16,
-                        uncompressed_size,
-                        compressed_size,
-                        relative_header_offset: None,
-                        disk_start_number: None,
-                    },
-                )),
+                None => {
+                    self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformationExtraField(
+                        Zip64ExtendedInformationExtraField {
+                            header_id: HeaderId::Zip64ExtendedInformationExtraField,
+                            data_size: 16,
+                            uncompressed_size,
+                            compressed_size,
+                            relative_header_offset: None,
+                            disk_start_number: None,
+                        },
+                    ));
+                    self.lfh.extra_field_length =
+                        self.entry.extra_fields().count_bytes().try_into().map_err(|_| ZipError::ExtraFieldTooLarge)?;
+                }
                 Some(zip64) => {
                     zip64.uncompressed_size = uncompressed_size;
                     zip64.compressed_size = compressed_size;
@@ -180,7 +188,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             compression: self.lfh.compression,
             extra_field_length: self.lfh.extra_field_length,
             file_name_length: self.lfh.file_name_length,
-            file_comment_length: self.entry.comment().len() as u16,
+            file_comment_length: self.entry.comment().len().try_into().map_err(|_| ZipError::CommentTooLarge)?,
             mod_time: self.lfh.mod_time,
             mod_date: self.lfh.mod_date,
             flags: self.lfh.flags,
