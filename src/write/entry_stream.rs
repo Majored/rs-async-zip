@@ -17,7 +17,7 @@ use std::io::Error;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use crate::read::get_zip64_extra_field;
+use crate::read::get_zip64_extra_field_mut;
 use crate::spec::consts::{NON_ZIP64_MAX_NUM_FILES, NON_ZIP64_MAX_SIZE};
 use crc32fast::Hasher;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
@@ -70,6 +70,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
 
     async fn write_lfh(writer: &'b mut ZipFileWriter<W>, entry: &mut ZipEntry) -> Result<LocalFileHeader> {
         // Always emit a zip64 extended field, even if we don't need it, because we *might* need it.
+        // If we are forcing no zip, we will have to error later if the file is too large.
         let (lfh_compressed, lfh_uncompressed) = if !writer.force_no_zip64 {
             if !writer.is_zip64 {
                 writer.is_zip64 = true;
@@ -137,37 +138,38 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         let inner_writer = self.writer.into_inner().into_inner();
         let compressed_size = (inner_writer.offset() - self.data_offset) as u64;
 
-        let (cdr_compressed_size, cdr_uncompressed_size) =
+        let (cdr_compressed_size, cdr_uncompressed_size) = if self.force_no_zip64 {
             if uncompressed_size > NON_ZIP64_MAX_SIZE as u64 || compressed_size > NON_ZIP64_MAX_SIZE as u64 {
-                if self.force_no_zip64 {
-                    return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
+                return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
+            }
+            (uncompressed_size as u32, compressed_size as u32)
+        } else {
+            // When streaming an entry, we are always using a zip64 field.
+            match get_zip64_extra_field_mut(&mut self.entry.extra_fields) {
+                // This case shouldn't be necessary but is included for completeness.
+                None => self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformationExtraField(
+                    Zip64ExtendedInformationExtraField {
+                        header_id: HeaderId::Zip64ExtendedInformationExtraField,
+                        data_size: 16,
+                        uncompressed_size,
+                        compressed_size,
+                        relative_header_offset: None,
+                        disk_start_number: None,
+                    },
+                )),
+                Some(zip64) => {
+                    zip64.uncompressed_size = uncompressed_size;
+                    zip64.compressed_size = compressed_size;
                 }
-                if !*self.is_zip64 {
-                    *self.is_zip64 = true;
-                }
-                // Only append to the extra fields if a zip64 extra field doesn't already exist.
-                if let None = get_zip64_extra_field(&self.entry.extra_fields) {
-                    self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformationExtraField(
-                        Zip64ExtendedInformationExtraField {
-                            header_id: HeaderId::Zip64ExtendedInformationExtraField,
-                            data_size: 16,
-                            uncompressed_size,
-                            compressed_size,
-                            relative_header_offset: None,
-                            disk_start_number: None,
-                        },
-                    ))
-                }
+            }
 
-                (NON_ZIP64_MAX_SIZE, NON_ZIP64_MAX_SIZE)
-            } else {
-                (compressed_size as u32, uncompressed_size as u32)
-            };
+            (NON_ZIP64_MAX_SIZE, NON_ZIP64_MAX_SIZE)
+        };
 
         inner_writer.write_all(&crate::spec::consts::DATA_DESCRIPTOR_SIGNATURE.to_le_bytes()).await?;
         inner_writer.write_all(&crc.to_le_bytes()).await?;
-        inner_writer.write_all(&compressed_size.to_le_bytes()).await?;
-        inner_writer.write_all(&uncompressed_size.to_le_bytes()).await?;
+        inner_writer.write_all(&cdr_compressed_size.to_le_bytes()).await?;
+        inner_writer.write_all(&cdr_uncompressed_size.to_le_bytes()).await?;
 
         let cdh = CentralDirectoryRecord {
             compressed_size: cdr_compressed_size,

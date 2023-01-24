@@ -56,11 +56,11 @@ async fn test_read_zip64_archive_stream() {
 /// Generate an example file only if it doesn't exist already.
 /// The file is placed adjacent to this rs file.
 #[cfg(feature = "fs")]
-fn generate_zip64many_zip() -> PathBuf {
+fn generate_zip64many_zip() -> std::path::PathBuf {
     use std::io::Write;
     use zip::write::FileOptions;
 
-    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let mut path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     path.push("src/tests/read/zip64/zip64many.zip");
 
     // Only recreate the zip if it doesnt already exist.

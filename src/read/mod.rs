@@ -108,6 +108,17 @@ pub(crate) fn get_zip64_extra_field(extra_fields: &[ExtraField]) -> Option<&Zip6
     None
 }
 
+pub(crate) fn get_zip64_extra_field_mut(
+    extra_fields: &mut [ExtraField],
+) -> Option<&mut Zip64ExtendedInformationExtraField> {
+    for field in extra_fields {
+        if let ExtraField::Zip64ExtendedInformationExtraField(zip64field) = field {
+            return Some(zip64field);
+        }
+    }
+    None
+}
+
 fn get_combined_sizes(
     uncompressed_size: u32,
     compressed_size: u32,
