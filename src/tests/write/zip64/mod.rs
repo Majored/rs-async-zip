@@ -6,7 +6,7 @@ use crate::tests::init_logger;
 use crate::tests::write::AsyncSink;
 use crate::write::ZipFileWriter;
 use crate::{Compression, ZipEntryBuilder};
-use std::io::{Read, Write};
+use std::io::Read;
 
 use crate::spec::header::ExtraField;
 use tokio::io::AsyncWriteExt;
@@ -16,8 +16,9 @@ const BATCH_SIZE: usize = 100_000;
 const NUM_BATCHES: usize = NON_ZIP64_MAX_SIZE as usize / BATCH_SIZE + 1;
 const BATCHED_FILE_SIZE: usize = NUM_BATCHES * BATCH_SIZE;
 
-/// Test writing a small zip64 file. No zip64 extra fields would be emitted, but z64 end of directory
-/// records should be.
+/// Test writing a small zip64 file.
+/// No zip64 extra fields will be emitted for EntryWhole.
+/// Z64 end of directory record & locator should be emitted
 #[tokio::test]
 async fn test_write_zip64_file() {
     init_logger();
@@ -42,7 +43,6 @@ async fn test_write_zip64_file() {
     drop(file1);
 
     let mut file2 = zip.by_name("file2").unwrap();
-    assert_eq!(file2.extra_data(), vec![]);
     let mut buffer = Vec::new();
     file2.read_to_end(&mut buffer).unwrap();
     assert_eq!(buffer.as_slice(), &[0, 0, 0, 0]);
@@ -89,6 +89,43 @@ async fn test_write_large_zip64_file() {
     let mut bytes_total = 0;
     loop {
         let read_bytes = file.read(&mut buffer).unwrap();
+        if read_bytes == 0 {
+            break;
+        }
+        bytes_total += read_bytes;
+    }
+    assert_eq!(bytes_total, BATCHED_FILE_SIZE);
+}
+
+/// Test writing a file, and reading it with async-zip
+#[tokio::test]
+async fn test_write_large_zip64_file_self_read() {
+    use tokio::io::AsyncReadExt;
+
+    init_logger();
+
+    // Allocate space with some extra for metadata records
+    let mut buffer = Vec::with_capacity(BATCHED_FILE_SIZE + 100_000);
+    let mut writer = ZipFileWriter::new(&mut buffer);
+
+    let entry = ZipEntryBuilder::new("file".to_string(), Compression::Stored);
+    let mut entry_writer = writer.write_entry_stream(entry).await.unwrap();
+    for _ in 0..NUM_BATCHES {
+        entry_writer.write_all(&[0; BATCH_SIZE]).await.unwrap();
+    }
+    entry_writer.close().await.unwrap();
+    writer.close().await.unwrap();
+
+    let reader = crate::read::mem::ZipFileReader::new(buffer).await.unwrap();
+    assert!(reader.file().zip64);
+    assert_eq!(reader.file().entries[0].entry.filename, "file");
+    assert_eq!(reader.file().entries[0].entry.compressed_size, BATCHED_FILE_SIZE as u64);
+    let mut entry = reader.entry(0).await.unwrap();
+
+    let mut buffer = [0; 100_000];
+    let mut bytes_total = 0;
+    loop {
+        let read_bytes = entry.read(&mut buffer).await.unwrap();
         if read_bytes == 0 {
             break;
         }
