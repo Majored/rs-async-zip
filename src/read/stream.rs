@@ -88,6 +88,11 @@ where
 
         Ok(Some(ZipFileReader(Reading(reader, entry))))
     }
+
+    /// Consumes the `ZipFileReader` returning the original `reader`
+    pub async fn into_inner(self) -> R {
+        self.0 .0
+    }
 }
 
 impl<'a, R> ZipFileReader<Reading<'a, Take<R>>>
