@@ -7,14 +7,14 @@
 //! - Support for Stored, Deflate, bzip2, LZMA, zstd, and xz compression methods.
 //! - Various different reading approaches (seek, stream, filesystem, in-memory buffer).
 //! - Support for writing complete data (u8 slices) or stream writing using data descriptors.
-//! - Initial support for ZIP64 reading.
+//! - Initial support for ZIP64 reading and writing.
 //! - Aims for reasonable [specification](https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md) compliance.
 //!
 //! ## Installation
 //!
 //! ```toml
 //! [dependencies]
-//! async_zip = { version = "0.0.11", features = ["full"] }
+//! async_zip = { version = "0.0.12", features = ["full"] }
 //! ```
 //!
 //! ### Feature Flags

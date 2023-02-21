@@ -11,14 +11,14 @@ An asynchronous ZIP archive reading/writing crate powered by [`tokio`](https://c
 - Support for Stored, Deflate, bzip2, LZMA, zstd, and xz compression methods.
 - Various different reading approaches (seek, stream, filesystem, in-memory buffer, etc).
 - Support for writing complete data (u8 slices) or streams using data descriptors.
-- Initial support for ZIP64 reading.
+- Initial support for ZIP64 reading and writing.
 - Aims for reasonable [specification](https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md) compliance.
 
 ## Installation & Basic Usage
 
 ```toml
 [dependencies]
-async_zip = { version = "0.0.11", features = ["full"] }
+async_zip = { version = "0.0.12", features = ["full"] }
 ```
 
 A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-zip/tree/main/examples) can be found under the `/examples` directory.
