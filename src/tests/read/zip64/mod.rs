@@ -96,7 +96,7 @@ async fn test_read_zip64_archive_many_entries() {
 
     // Verify that each entry exists and is has the contents "\n"
     for i in 0..2_u32.pow(16) + 1 {
-        let entry = reader.get_entry(i as usize).unwrap();
+        let entry = reader.file().entries().get(i as usize).unwrap().entry();
         assert_eq!(entry.filename, format!("{i}.txt"));
         let mut entry = reader.entry(i as usize).await.unwrap();
         let mut contents = String::new();

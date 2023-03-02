@@ -73,7 +73,6 @@ use crate::read::seek;
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 use crate::read::io::entry::ZipEntryReader;
-use crate::ZipEntry;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -112,12 +111,6 @@ impl ZipFileReader {
     /// Returns the file system path provided to the reader during construction.
     pub fn path(&self) -> &Path {
         &self.inner.path
-    }
-
-    /// Fetches the metadata for an entry if the provided index is valid.
-    pub fn get_entry(&self, index: usize) -> Result<&ZipEntry> {
-        let entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        Ok(&entry.entry)
     }
 
     /// Returns a new entry reader if the provided index is valid.
