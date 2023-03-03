@@ -94,7 +94,14 @@ impl ZipFileReader {
     /// Constructs a new ZIP reader from an owned vector of bytes.
     pub async fn new(data: Vec<u8>) -> Result<ZipFileReader> {
         let file = crate::read::file(Cursor::new(&data)).await?;
-        Ok(ZipFileReader { inner: Arc::new(Inner { data, file }) })
+        Ok(ZipFileReader::from_raw_parts(data, file))
+    }
+
+    /// Constructs a ZIP reader from an owned vector of bytes and ZIP file information derived from those bytes.
+    ///
+    /// Providing a [`ZipFile`] that wasn't derived from those bytes may lead to inaccurate parsing.
+    pub fn from_raw_parts(data: Vec<u8>, file: ZipFile) -> ZipFileReader {
+        ZipFileReader { inner: Arc::new(Inner { data, file }) }
     }
 
     /// Returns this ZIP file's information.

@@ -97,10 +97,18 @@ impl ZipFileReader {
     where
         P: AsRef<Path>,
     {
-        let path = path.as_ref().to_owned();
         let file = crate::read::file(File::open(&path).await?).await?;
+        Ok(ZipFileReader::from_raw_parts(path, file))
+    }
 
-        Ok(ZipFileReader { inner: Arc::new(Inner { path, file }) })
+    /// Constructs a ZIP reader from a file system path and ZIP file information derived from that path.
+    ///
+    /// Providing a [`ZipFile`] that wasn't derived from that path may lead to inaccurate parsing.
+    pub fn from_raw_parts<P>(path: P, file: ZipFile) -> ZipFileReader
+    where
+        P: AsRef<Path>,
+    {
+        ZipFileReader { inner: Arc::new(Inner { path: path.as_ref().to_owned(), file }) }
     }
 
     /// Returns this ZIP file's information.
