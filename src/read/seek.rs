@@ -59,12 +59,14 @@ where
         &self.file
     }
 
-    /// Returns a mutable reference to the inner reader
+    /// Returns a mutable reference to the inner seekable source.
+    /// 
+    /// Swapping the source (eg. via std::mem operations) may lead to inaccurate parsing.
     pub fn inner_mut(&mut self) -> &mut R {
         &mut self.reader
     }
 
-    /// Unwraps this `ZipFileReader<R>`, returning the underlying reader.
+    /// Returns the inner seekable source by consuming self.
     pub fn into_inner(self) -> R {
         self.reader
     }
@@ -72,7 +74,6 @@ where
     /// Returns a new entry reader if the provided index is valid.
     pub async fn entry(&mut self, index: usize) -> Result<ZipEntryReader<'_, R>> {
         let stored_entry = self.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-
         let mut reader = BufReader::new(&mut self.reader);
 
         stored_entry.seek_to_data_offset(&mut reader).await?;
@@ -91,7 +92,6 @@ where
         R: 'a,
     {
         let stored_entry = self.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-
         let mut reader = BufReader::new(self.reader);
 
         stored_entry.seek_to_data_offset(&mut reader).await?;
