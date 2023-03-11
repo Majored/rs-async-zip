@@ -3,7 +3,7 @@
 
 pub mod builder;
 
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
+use futures_util::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
 
 use crate::entry::builder::ZipEntryBuilder;
 use crate::error::{Result, ZipError};
@@ -168,8 +168,14 @@ impl StoredZipEntry {
         reader.seek(SeekFrom::Start(self.file_offset)).await?;
 
         // Check the signature
-        match reader.read_u32_le().await? {
-            actual if actual == LFH_SIGNATURE => (),
+        let signature = {
+            let mut buffer = [0; 4];
+            reader.read_exact(&mut buffer).await?;
+            u32::from_le_bytes(buffer)
+        };
+
+        match signature {
+            LFH_SIGNATURE => (),
             actual => return Err(ZipError::UnexpectedHeaderError(actual, LFH_SIGNATURE)),
         };
 

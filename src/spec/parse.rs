@@ -7,7 +7,7 @@ use crate::spec::header::{
     Zip64EndOfCentralDirectoryLocator, Zip64EndOfCentralDirectoryRecord,
 };
 
-use tokio::io::{AsyncRead, AsyncReadExt};
+use futures_util::io::{AsyncRead, AsyncReadExt};
 
 impl LocalFileHeader {
     pub fn as_slice(&self) -> [u8; 26] {
@@ -238,7 +238,11 @@ impl Zip64EndOfCentralDirectoryLocator {
     pub async fn try_from_reader<R: AsyncRead + Unpin>(
         reader: &mut R,
     ) -> Result<Option<Zip64EndOfCentralDirectoryLocator>> {
-        let signature = reader.read_u32_le().await?;
+        let signature = {
+            let mut buffer = [0; 4];
+            reader.read_exact(&mut buffer).await?;
+            u32::from_le_bytes(buffer)
+        };
         if signature != ZIP64_EOCDL_SIGNATURE {
             return Ok(None);
         }
@@ -327,7 +331,7 @@ mod tests {
             0x50, 0x4B, 0x06, 0x07, 0x00, 0x00, 0x00, 0x00, 0x6F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
             0x00, 0x00,
         ];
-        let mut cursor = std::io::Cursor::new(eocdl);
+        let mut cursor = futures_util::io::Cursor::new(eocdl);
         let zip64eocdl = Zip64EndOfCentralDirectoryLocator::try_from_reader(&mut cursor).await.unwrap().unwrap();
         assert_eq!(
             zip64eocdl,

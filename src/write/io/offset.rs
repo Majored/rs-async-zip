@@ -5,8 +5,8 @@ use std::io::{Error, IoSlice};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+use futures_util::io::AsyncWrite;
 use pin_project::pin_project;
-use tokio::io::AsyncWrite;
 
 /// A wrapper around an [`AsyncWrite`] implementation which tracks the current byte offset.
 #[pin_project(project = OffsetWriterProj)]
@@ -62,8 +62,8 @@ where
         self.project().inner.poll_flush(cx)
     }
 
-    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), Error>> {
-        self.project().inner.poll_shutdown(cx)
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), Error>> {
+        self.project().inner.poll_close(cx)
     }
 
     fn poll_write_vectored(
@@ -72,9 +72,5 @@ where
         bufs: &[IoSlice<'_>],
     ) -> Poll<Result<usize, Error>> {
         self.project().inner.poll_write_vectored(cx, bufs)
-    }
-
-    fn is_write_vectored(&self) -> bool {
-        self.inner.is_write_vectored()
     }
 }

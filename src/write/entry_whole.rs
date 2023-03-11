@@ -14,13 +14,13 @@ use crate::spec::{
 use crate::write::{CentralDirectoryEntry, ZipFileWriter};
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
-use std::io::Cursor;
+use futures_util::io::Cursor;
 
 use crate::spec::consts::{NON_ZIP64_MAX_NUM_FILES, NON_ZIP64_MAX_SIZE};
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
-use async_compression::tokio::write;
+use async_compression::futures::write;
 use crc32fast::Hasher;
-use tokio::io::{AsyncWrite, AsyncWriteExt};
+use futures_util::io::{AsyncWrite, AsyncWriteExt};
 
 pub struct EntryWholeWriter<'b, 'c, W: AsyncWrite + Unpin> {
     writer: &'b mut ZipFileWriter<W>,
@@ -146,35 +146,35 @@ async fn compress(compression: Compression, data: &[u8], level: async_compressio
         Compression::Deflate => {
             let mut writer = write::DeflateEncoder::with_quality(Cursor::new(Vec::new()), level);
             writer.write_all(data).await.unwrap();
-            writer.shutdown().await.unwrap();
+            writer.close().await.unwrap();
             writer.into_inner().into_inner()
         }
         #[cfg(feature = "bzip2")]
         Compression::Bz => {
             let mut writer = write::BzEncoder::with_quality(Cursor::new(Vec::new()), level);
             writer.write_all(data).await.unwrap();
-            writer.shutdown().await.unwrap();
+            writer.close().await.unwrap();
             writer.into_inner().into_inner()
         }
         #[cfg(feature = "lzma")]
         Compression::Lzma => {
             let mut writer = write::LzmaEncoder::with_quality(Cursor::new(Vec::new()), level);
             writer.write_all(data).await.unwrap();
-            writer.shutdown().await.unwrap();
+            writer.close().await.unwrap();
             writer.into_inner().into_inner()
         }
         #[cfg(feature = "xz")]
         Compression::Xz => {
             let mut writer = write::XzEncoder::with_quality(Cursor::new(Vec::new()), level);
             writer.write_all(data).await.unwrap();
-            writer.shutdown().await.unwrap();
+            writer.close().await.unwrap();
             writer.into_inner().into_inner()
         }
         #[cfg(feature = "zstd")]
         Compression::Zstd => {
             let mut writer = write::ZstdEncoder::with_quality(Cursor::new(Vec::new()), level);
             writer.write_all(data).await.unwrap();
-            writer.shutdown().await.unwrap();
+            writer.close().await.unwrap();
             writer.into_inner().into_inner()
         }
         _ => unreachable!(),

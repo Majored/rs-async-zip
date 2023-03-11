@@ -9,8 +9,8 @@ use crate::spec::Compression;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+use futures_util::io::{AsyncRead, AsyncReadExt, BufReader, Take};
 use pin_project::pin_project;
-use tokio::io::{AsyncRead, AsyncReadExt, BufReader, ReadBuf, Take};
 
 /// A ZIP entry reader which may implement decompression.
 #[pin_project]
@@ -38,7 +38,7 @@ impl<'a, R> AsyncRead for ZipEntryReader<'a, R>
 where
     R: AsyncRead + Unpin,
 {
-    fn poll_read(self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
+    fn poll_read(self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut [u8]) -> Poll<std::io::Result<usize>> {
         self.project().reader.poll_read(c, b)
     }
 }

@@ -20,8 +20,8 @@ mod inner {
     use std::path::{Path, PathBuf};
 
     use anyhow::{anyhow, bail, Result};
+    use futures_util::io::AsyncReadExt;
     use tokio::fs::File;
-    use tokio::io::AsyncReadExt;
 
     async fn run() -> Result<()> {
         let mut args = std::env::args().skip(1);

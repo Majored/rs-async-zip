@@ -29,7 +29,7 @@ fn search_two_byte_test() {
 
 #[tokio::test]
 async fn locator_empty_test() {
-    use std::io::Cursor;
+    use futures_util::io::Cursor;
 
     let data = &include_bytes!("empty.zip");
     let mut cursor = Cursor::new(data);
@@ -41,7 +41,7 @@ async fn locator_empty_test() {
 
 #[tokio::test]
 async fn locator_empty_max_comment_test() {
-    use std::io::Cursor;
+    use futures_util::io::Cursor;
 
     let data = &include_bytes!("empty-with-max-comment.zip");
     let mut cursor = Cursor::new(data);
@@ -53,7 +53,7 @@ async fn locator_empty_max_comment_test() {
 
 #[tokio::test]
 async fn locator_buffer_boundary_test() {
-    use std::io::Cursor;
+    use futures_util::io::Cursor;
 
     let data = &include_bytes!("empty-buffer-boundary.zip");
     let mut cursor = Cursor::new(data);

@@ -4,8 +4,8 @@
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+use futures_util::io::{AsyncBufRead, AsyncRead, BufReader};
 use pin_project::pin_project;
-use tokio::io::{AsyncBufRead, AsyncRead, BufReader, ReadBuf};
 
 /// A wrapping reader which holds an owned R or a mutable borrow to R.
 ///
@@ -53,7 +53,7 @@ impl<'a, R> AsyncRead for OwnedReader<'a, R>
 where
     R: AsyncRead + Unpin,
 {
-    fn poll_read(self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
+    fn poll_read(self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut [u8]) -> Poll<std::io::Result<usize>> {
         match self.project() {
             OwnedReaderProj::Owned(inner) => inner.poll_read(c, b),
             OwnedReaderProj::Borrow(inner) => inner.poll_read(c, b),

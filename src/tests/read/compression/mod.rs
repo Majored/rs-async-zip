@@ -27,8 +27,7 @@ macro_rules! compressed_test_helper {
         #[cfg(test)]
         #[tokio::test]
         async fn $name() {
-            use std::io::Cursor;
-            use tokio::io::AsyncReadExt;
+            use futures_util::io::{AsyncReadExt, Cursor};
 
             let data = $data;
             let data_raw = $data_raw;

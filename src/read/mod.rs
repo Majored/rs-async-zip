@@ -30,7 +30,7 @@ use crate::spec::Compression;
 use crate::read::io::CombinedCentralDirectoryRecord;
 use crate::spec::parse::parse_extra_fields;
 
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, BufReader, SeekFrom};
+use futures_util::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, BufReader, SeekFrom};
 
 /// The max buffer size used when parsing the central directory, equal to 20MiB.
 const MAX_CD_BUFFER_SIZE: usize = 20 * 1024 * 1024;
@@ -195,7 +195,12 @@ pub(crate) async fn lfh<R>(mut reader: R) -> Result<Option<ZipEntry>>
 where
     R: AsyncRead + Unpin,
 {
-    match reader.read_u32_le().await? {
+    let signature = {
+        let mut buffer = [0; 4];
+        reader.read_exact(&mut buffer).await?;
+        u32::from_le_bytes(buffer)
+    };
+    match signature {
         actual if actual == LFH_SIGNATURE => (),
         actual if actual == CDH_SIGNATURE => return Ok(None),
         actual => return Err(ZipError::UnexpectedHeaderError(actual, LFH_SIGNATURE)),

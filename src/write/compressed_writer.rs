@@ -9,8 +9,8 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
-use async_compression::tokio::write;
-use tokio::io::AsyncWrite;
+use async_compression::futures::write;
+use futures_util::io::AsyncWrite;
 
 pub enum CompressedAsyncWriter<'b, W: AsyncWrite + Unpin> {
     Stored(ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>),
@@ -95,19 +95,19 @@ impl<'b, W: AsyncWrite + Unpin> AsyncWrite for CompressedAsyncWriter<'b, W> {
         }
     }
 
-    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<std::result::Result<(), Error>> {
+    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<std::result::Result<(), Error>> {
         match *self {
-            CompressedAsyncWriter::Stored(ref mut inner) => Pin::new(inner).poll_shutdown(cx),
+            CompressedAsyncWriter::Stored(ref mut inner) => Pin::new(inner).poll_close(cx),
             #[cfg(feature = "deflate")]
-            CompressedAsyncWriter::Deflate(ref mut inner) => Pin::new(inner).poll_shutdown(cx),
+            CompressedAsyncWriter::Deflate(ref mut inner) => Pin::new(inner).poll_close(cx),
             #[cfg(feature = "bzip2")]
-            CompressedAsyncWriter::Bz(ref mut inner) => Pin::new(inner).poll_shutdown(cx),
+            CompressedAsyncWriter::Bz(ref mut inner) => Pin::new(inner).poll_close(cx),
             #[cfg(feature = "lzma")]
-            CompressedAsyncWriter::Lzma(ref mut inner) => Pin::new(inner).poll_shutdown(cx),
+            CompressedAsyncWriter::Lzma(ref mut inner) => Pin::new(inner).poll_close(cx),
             #[cfg(feature = "zstd")]
-            CompressedAsyncWriter::Zstd(ref mut inner) => Pin::new(inner).poll_shutdown(cx),
+            CompressedAsyncWriter::Zstd(ref mut inner) => Pin::new(inner).poll_close(cx),
             #[cfg(feature = "xz")]
-            CompressedAsyncWriter::Xz(ref mut inner) => Pin::new(inner).poll_shutdown(cx),
+            CompressedAsyncWriter::Xz(ref mut inner) => Pin::new(inner).poll_close(cx),
         }
     }
 }
@@ -129,7 +129,7 @@ impl<W: AsyncWrite + Unpin> AsyncWrite for ShutdownIgnoredWriter<W> {
         Pin::new(&mut self.0).poll_flush(cx)
     }
 
-    fn poll_shutdown(self: Pin<&mut Self>, _: &mut Context) -> Poll<std::result::Result<(), Error>> {
+    fn poll_close(self: Pin<&mut Self>, _: &mut Context) -> Poll<std::result::Result<(), Error>> {
         Poll::Ready(Ok(()))
     }
 }

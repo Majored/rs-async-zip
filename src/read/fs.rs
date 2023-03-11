@@ -17,7 +17,7 @@
 //! ```no_run
 //! # use async_zip::read::fs::ZipFileReader;
 //! # use async_zip::error::Result;
-//! # use tokio::io::AsyncReadExt;
+//! # use futures_util::io::AsyncReadExt;
 //! #
 //! async fn run() -> Result<()> {
 //!     let reader = ZipFileReader::new("./foo.zip").await?;
@@ -43,7 +43,7 @@
 //! ```no_run
 //! # use async_zip::read::fs::ZipFileReader;
 //! # use async_zip::error::Result;
-//! # use tokio::io::AsyncReadExt;
+//! # use futures_util::io::AsyncReadExt;
 //! #
 //! async fn run() -> Result<()> {
 //!     let reader = ZipFileReader::new("./foo.zip").await?;
@@ -77,8 +77,9 @@ use crate::read::io::entry::ZipEntryReader;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use futures_util::io::BufReader;
 use tokio::fs::File;
-use tokio::io::BufReader;
+use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
 
 struct Inner {
     path: PathBuf,
@@ -97,7 +98,7 @@ impl ZipFileReader {
     where
         P: AsRef<Path>,
     {
-        let file = crate::read::file(File::open(&path).await?).await?;
+        let file = crate::read::file(File::open(&path).await?.compat()).await?;
         Ok(ZipFileReader::from_raw_parts(path, file))
     }
 
@@ -122,9 +123,9 @@ impl ZipFileReader {
     }
 
     /// Returns a new entry reader if the provided index is valid.
-    pub async fn entry(&self, index: usize) -> Result<ZipEntryReader<File>> {
+    pub async fn entry(&self, index: usize) -> Result<ZipEntryReader<Compat<File>>> {
         let stored_entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let mut fs_file = BufReader::new(File::open(&self.inner.path).await?);
+        let mut fs_file = BufReader::new(File::open(&self.inner.path).await?.compat());
 
         stored_entry.seek_to_data_offset(&mut fs_file).await?;
 
