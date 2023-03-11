@@ -11,10 +11,11 @@
 //! # use async_zip::{Compression, ZipEntryBuilder, write::ZipFileWriter};
 //! # use tokio::{fs::File, io::AsyncWriteExt};
 //! # use async_zip::error::ZipError;
+//! # use tokio_util::compat::TokioAsyncReadCompatExt;
 //! #
 //! # async fn run() -> Result<(), ZipError> {
 //! let mut file = File::create("foo.zip").await?;
-//! let mut writer = ZipFileWriter::new(&mut file);
+//! let mut writer = ZipFileWriter::new(file.compat());
 //!
 //! let data = b"This is an example file.";
 //! let opts = ZipEntryBuilder::new(String::from("foo.txt"), Compression::Deflate);
@@ -30,12 +31,14 @@
 //! # #[cfg(feature = "deflate")]
 //! # {
 //! # use async_zip::{Compression, ZipEntryBuilder, write::ZipFileWriter};
-//! # use tokio::{fs::File, io::AsyncWriteExt};
+//! # use tokio::fs::File;
 //! # use async_zip::error::ZipError;
+//! # use futures_util::io::AsyncWriteExt;
+//! # use tokio_util::compat::TokioAsyncWriteCompatExt;
 //! #
 //! # async fn run() -> Result<(), ZipError> {
 //! let mut file = File::create("foo.zip").await?;
-//! let mut writer = ZipFileWriter::new(&mut file);
+//! let mut writer = ZipFileWriter::new(file.compat_write());
 //!
 //! let data = b"This is an example file.";
 //! let opts = ZipEntryBuilder::new(String::from("bar.txt"), Compression::Deflate);
