@@ -7,12 +7,13 @@
 //! ```no_run
 //! # use async_zip::read::seek::ZipFileReader;
 //! # use async_zip::error::Result;
-//! # use tokio::io::AsyncReadExt;
+//! # use futures_util::io::AsyncReadExt;
 //! # use tokio::fs::File;
+//! # use tokio_util::compat::TokioAsyncReadCompatExt;
 //! #
 //! async fn run() -> Result<()> {
 //!     let mut data = File::open("./foo.zip").await?;
-//!     let mut reader = ZipFileReader::new(&mut data).await?;
+//!     let mut reader = ZipFileReader::new(data.compat()).await?;
 //!
 //!     let mut data = Vec::new();
 //!     let mut entry = reader.entry(0).await?;
@@ -28,7 +29,7 @@ use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 use crate::read::io::entry::ZipEntryReader;
 
-use tokio::io::{AsyncRead, AsyncSeek, BufReader};
+use futures_util::io::{AsyncRead, AsyncSeek, BufReader};
 
 /// A ZIP reader which acts over a seekable source.
 #[derive(Clone)]
@@ -60,7 +61,7 @@ where
     }
 
     /// Returns a mutable reference to the inner seekable source.
-    /// 
+    ///
     /// Swapping the source (eg. via std::mem operations) may lead to inaccurate parsing.
     pub fn inner_mut(&mut self) -> &mut R {
         &mut self.reader

@@ -20,7 +20,7 @@ use std::task::{Context, Poll};
 use crate::read::get_zip64_extra_field_mut;
 use crate::spec::consts::{NON_ZIP64_MAX_NUM_FILES, NON_ZIP64_MAX_SIZE};
 use crc32fast::Hasher;
-use tokio::io::{AsyncWrite, AsyncWriteExt};
+use futures_util::io::{AsyncWrite, AsyncWriteExt};
 
 /// An entry writer which supports the streaming of data (ie. the writing of unknown size or data at runtime).
 ///
@@ -135,7 +135,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
     ///
     /// Failure to call this function before going out of scope would result in a corrupted ZIP file.
     pub async fn close(mut self) -> Result<()> {
-        self.writer.shutdown().await?;
+        self.writer.close().await?;
 
         let crc = self.hasher.finalize();
         let uncompressed_size = self.writer.offset() as u64;
@@ -228,7 +228,7 @@ impl<'a, W: AsyncWrite + Unpin> AsyncWrite for EntryStreamWriter<'a, W> {
         Pin::new(&mut self.writer).poll_flush(cx)
     }
 
-    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<std::result::Result<(), Error>> {
-        Pin::new(&mut self.writer).poll_shutdown(cx)
+    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<std::result::Result<(), Error>> {
+        Pin::new(&mut self.writer).poll_close(cx)
     }
 }

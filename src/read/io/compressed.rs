@@ -7,9 +7,9 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
-use async_compression::tokio::bufread;
+use async_compression::futures::bufread;
+use futures_util::io::{AsyncBufRead, AsyncRead};
 use pin_project::pin_project;
-use tokio::io::{AsyncBufRead, AsyncRead, ReadBuf};
 
 /// A wrapping reader which holds concrete types for all respective compression method readers.
 #[pin_project(project = CompressedReaderProj)]
@@ -70,7 +70,7 @@ impl<R> AsyncRead for CompressedReader<R>
 where
     R: AsyncBufRead + Unpin,
 {
-    fn poll_read(self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
+    fn poll_read(self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut [u8]) -> Poll<std::io::Result<usize>> {
         match self.project() {
             CompressedReaderProj::Stored(inner) => inner.poll_read(c, b),
             #[cfg(feature = "deflate")]

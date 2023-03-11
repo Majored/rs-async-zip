@@ -7,8 +7,8 @@ use std::pin::Pin;
 use std::task::{ready, Context, Poll};
 
 use crc32fast::Hasher;
+use futures_util::io::AsyncRead;
 use pin_project::pin_project;
-use tokio::io::{AsyncRead, ReadBuf};
 
 /// A wrapping reader which computes the CRC32 hash of data read via [`AsyncRead`].
 #[pin_project]
@@ -46,13 +46,11 @@ impl<R> AsyncRead for HashedReader<R>
 where
     R: AsyncRead + Unpin,
 {
-    fn poll_read(self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut ReadBuf<'_>) -> Poll<tokio::io::Result<()>> {
+    fn poll_read(self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut [u8]) -> Poll<std::io::Result<usize>> {
         let project = self.project();
-        let prev_len = b.filled().len();
+        let written = poll_result_ok!(ready!(project.reader.poll_read(c, b)));
+        project.hasher.update(&b[..written]);
 
-        poll_result_ok!(ready!(project.reader.poll_read(c, b)));
-        project.hasher.update(&b.filled()[prev_len..b.filled().len()]);
-
-        Poll::Ready(Ok(()))
+        Poll::Ready(Ok(written))
     }
 }

@@ -18,7 +18,7 @@ full = ["chrono", "fs", "deflate", "bzip2", "lzma", "zstd", "xz"]
 # All features that are compatible with WASM
 full-wasm = ["chrono", "deflate", "zstd"]
 
-fs = ["tokio/fs"]
+fs = ["tokio", "tokio-util"]
 
 deflate = ["async-compression/deflate"]
 bzip2 = ["async-compression/bzip2"]
@@ -31,17 +31,20 @@ all-features = true
 
 [dependencies]
 crc32fast = "1"
+futures-util = { version = "0.3", features = ["io"] }
 log = "0.4.17"
-thiserror = "1"
-tokio = { version = "1", features = ["io-util"] }
 pin-project = "1"
+thiserror = "1"
 
-async-compression = { version = "0.3", default-features = false, features = ["tokio"], optional = true }
-chrono = { version = "0.4", default-features = false, features = ["clock"], optional = true}
+async-compression = { version = "0.3", default-features = false, features = ["futures-io"], optional = true }
+chrono = { version = "0.4", default-features = false, features = ["clock"], optional = true }
+tokio = { version = "1", default-features = false, features = ["fs"], optional = true }
+tokio-util = { version = "0.7", features = ["compat"], optional = true }
 
 [dev-dependencies]
 # tests
 tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["compat"] }
 env_logger = "0.10.0"
 zip = "0.6.3"
 

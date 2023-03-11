@@ -29,7 +29,7 @@
 //!
 //! # Example
 //! ```no_run
-//! # use std::io::Cursor;
+//! # use futures_util::io::Cursor;
 //! # use async_zip::error::Result;
 //! # use async_zip::read::stream::ZipFileReader;
 //! #
@@ -51,9 +51,9 @@ use crate::error::Result;
 use crate::error::ZipError;
 use crate::read::io::entry::ZipEntryReader;
 
-use tokio::io::AsyncReadExt;
-use tokio::io::Take;
-use tokio::io::{AsyncRead, BufReader};
+use futures_util::io::AsyncReadExt;
+use futures_util::io::Take;
+use futures_util::io::{AsyncRead, BufReader};
 
 /// A type which encodes that [`ZipFileReader`] is ready to open a new entry.
 pub struct Ready<R>(R);

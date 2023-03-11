@@ -13,8 +13,8 @@ mod inner {
     use actix_web::{web, App, HttpServer, Responder, ResponseError, Result};
     use derive_more::{Display, Error};
     use futures::StreamExt;
+    use futures_util::io::AsyncWriteExt;
     use tokio::fs::File;
-    use tokio::io::AsyncWriteExt;
     use uuid::Uuid;
 
     const TMP_DIR: &str = "./tmp/";

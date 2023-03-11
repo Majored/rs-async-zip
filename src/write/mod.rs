@@ -68,7 +68,7 @@ use entry_whole::EntryWholeWriter;
 use io::offset::AsyncOffsetWriter;
 
 use crate::spec::consts::{NON_ZIP64_MAX_NUM_FILES, NON_ZIP64_MAX_SIZE};
-use tokio::io::{AsyncWrite, AsyncWriteExt};
+use futures_util::io::{AsyncWrite, AsyncWriteExt};
 
 pub(crate) struct CentralDirectoryEntry {
     pub header: CentralDirectoryRecord,

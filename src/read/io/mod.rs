@@ -10,7 +10,7 @@ pub(crate) mod owned;
 
 pub use combined_record::CombinedCentralDirectoryRecord;
 
-use tokio::io::{AsyncRead, AsyncReadExt};
+use futures_util::io::{AsyncRead, AsyncReadExt};
 
 /// Read and return a dynamic length string from a reader which impls AsyncRead.
 pub(crate) async fn read_string<R: AsyncRead + Unpin>(reader: R, length: usize) -> std::io::Result<String> {

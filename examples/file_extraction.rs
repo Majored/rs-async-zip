@@ -17,6 +17,7 @@ use std::{
 
 use async_zip::read::seek::ZipFileReader;
 use tokio::fs::{create_dir_all, File, OpenOptions};
+use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 #[tokio::main]
 async fn main() {
@@ -37,6 +38,7 @@ fn sanitize_file_path(path: &str) -> PathBuf {
 
 /// Extracts everything from the ZIP archive to the output directory
 async fn unzip_file(archive: File, out_dir: &Path) {
+    let archive = archive.compat();
     let mut reader = ZipFileReader::new(archive).await.expect("Failed to read zip file");
     for index in 0..reader.file().entries().len() {
         let entry = &reader.file().entries().get(index).unwrap().entry();
@@ -61,13 +63,15 @@ async fn unzip_file(archive: File, out_dir: &Path) {
             if !parent.is_dir() {
                 create_dir_all(parent).await.expect("Failed to create parent directories");
             }
-            let mut writer = OpenOptions::new()
+            let writer = OpenOptions::new()
                 .write(true)
                 .create_new(true)
                 .open(&path)
                 .await
                 .expect("Failed to create extracted file");
-            tokio::io::copy(&mut entry_reader, &mut writer).await.expect("Failed to copy to extracted file");
+            futures_util::io::copy(&mut entry_reader, &mut writer.compat_write())
+                .await
+                .expect("Failed to copy to extracted file");
 
             // Closes the file and manipulates its metadata here if you wish to preserve its metadata from the archive.
         }

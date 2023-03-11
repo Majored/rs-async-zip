@@ -17,7 +17,7 @@
 //! ```no_run
 //! # use async_zip::read::mem::ZipFileReader;
 //! # use async_zip::error::Result;
-//! # use tokio::io::AsyncReadExt;
+//! # use futures_util::io::AsyncReadExt;
 //! #
 //! async fn run() -> Result<()> {
 //!     let reader = ZipFileReader::new(Vec::new()).await?;
@@ -43,7 +43,7 @@
 //! ```no_run
 //! # use async_zip::read::mem::ZipFileReader;
 //! # use async_zip::error::Result;
-//! # use tokio::io::AsyncReadExt;
+//! # use futures_util::io::AsyncReadExt;
 //! #
 //! async fn run() -> Result<()> {
 //!     let reader = ZipFileReader::new(Vec::new()).await?;
@@ -74,10 +74,9 @@ use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 use crate::read::io::entry::ZipEntryReader;
 
-use std::io::Cursor;
 use std::sync::Arc;
 
-use tokio::io::BufReader;
+use futures_util::io::{BufReader, Cursor};
 
 struct Inner {
     data: Vec<u8>,

@@ -18,12 +18,12 @@
 //! of a better algorithm for this (and have tested/verified its performance).
 
 #[cfg(doc)]
-use tokio::io::BufReader;
+use futures_util::io::BufReader;
 
 use crate::error::{Result as ZipResult, ZipError};
 use crate::spec::consts::{EOCDR_LENGTH, EOCDR_SIGNATURE, SIGNATURE_LENGTH};
 
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
+use futures_util::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
 
 /// The buffer size used when locating the EOCDR, equal to 2KiB.
 const BUFFER_SIZE: usize = 2048;
