@@ -35,9 +35,9 @@ pub async fn compress_to_mem(compress: Compression) -> Vec<u8> {
     bytes
 }
 
-#[cfg(feature = "fs")]
+#[cfg(feature = "tokio")]
 pub async fn check_decompress_fs(fname: &str) {
-    use async_zip::base::read::fs;
+    use async_zip::tokio::read::fs;
     let mut zip = fs::ZipFileReader::new(fname).await.unwrap();
     let zip_entries: Vec<_> = zip.file().entries().into_iter().cloned().collect();
     for (idx, entry) in zip_entries.into_iter().enumerate() {

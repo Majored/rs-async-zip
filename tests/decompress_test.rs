@@ -45,20 +45,20 @@ async fn decompress_store_zip_mem() {
 }
 
 #[cfg(feature = "zstd")]
-#[cfg(feature = "fs")]
+#[cfg(feature = "tokio")]
 #[tokio::test]
 async fn decompress_zstd_zip_fs() {
     common::check_decompress_fs(ZSTD_ZIP_FILE).await
 }
 
 #[cfg(feature = "deflate")]
-#[cfg(feature = "fs")]
+#[cfg(feature = "tokio")]
 #[tokio::test]
 async fn decompress_deflate_zip_fs() {
     common::check_decompress_fs(DEFLATE_ZIP_FILE).await
 }
 
-#[cfg(feature = "fs")]
+#[cfg(feature = "tokio")]
 #[tokio::test]
 async fn decompress_store_zip_fs() {
     common::check_decompress_fs(STORE_ZIP_FILE).await

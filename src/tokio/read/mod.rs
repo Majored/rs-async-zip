@@ -1,9 +1,11 @@
 // Copyright (c) 2023 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-pub mod fs;
 pub mod seek;
 pub mod stream;
+
+#[cfg(feature = "tokio-fs")]
+pub mod fs;
 
 use std::{pin::Pin, task::{Context, Poll}};
 
