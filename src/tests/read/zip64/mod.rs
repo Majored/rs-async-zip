@@ -86,7 +86,7 @@ fn generate_zip64many_zip() -> std::path::PathBuf {
 #[cfg(feature = "fs")]
 #[tokio::test]
 async fn test_read_zip64_archive_many_entries() {
-    use crate::base::read::fs::ZipFileReader;
+    use crate::tokio::read::fs::ZipFileReader;
 
     init_logger();
 

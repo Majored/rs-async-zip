@@ -32,6 +32,9 @@
 pub mod error;
 pub mod base;
 
+#[cfg(feature = "tokio")]
+pub mod tokio;
+
 pub(crate) mod entry;
 pub(crate) mod file;
 pub(crate) mod spec;

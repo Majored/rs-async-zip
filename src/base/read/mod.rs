@@ -7,9 +7,6 @@ pub mod mem;
 pub mod seek;
 pub mod stream;
 
-#[cfg(feature = "fs")]
-pub mod fs;
-
 pub(crate) mod io;
 
 // Re-exported as part of the public API.
