@@ -1,7 +1,7 @@
 // Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::read::io::poll_result_ok;
+use crate::base::read::io::poll_result_ok;
 
 use std::pin::Pin;
 use std::task::{ready, Context, Poll};

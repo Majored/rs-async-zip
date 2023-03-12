@@ -3,7 +3,7 @@
 
 use crate::entry::ZipEntry;
 use crate::error::{Result, ZipError};
-use crate::read::io::{compressed::CompressedReader, hashed::HashedReader, owned::OwnedReader};
+use crate::base::read::io::{compressed::CompressedReader, hashed::HashedReader, owned::OwnedReader};
 use crate::spec::Compression;
 
 use std::pin::Pin;

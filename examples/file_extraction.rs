@@ -15,7 +15,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use async_zip::read::seek::ZipFileReader;
+use async_zip::base::read::seek::ZipFileReader;
 use tokio::fs::{create_dir_all, File, OpenOptions};
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 

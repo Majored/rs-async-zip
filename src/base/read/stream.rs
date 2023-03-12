@@ -31,7 +31,7 @@
 //! ```no_run
 //! # use futures_util::io::Cursor;
 //! # use async_zip::error::Result;
-//! # use async_zip::read::stream::ZipFileReader;
+//! # use async_zip::base::read::stream::ZipFileReader;
 //! #
 //! # async fn run() -> Result<()> {
 //! let mut zip = ZipFileReader::new(Cursor::new([0; 0]));
@@ -49,7 +49,7 @@
 use crate::entry::ZipEntry;
 use crate::error::Result;
 use crate::error::ZipError;
-use crate::read::io::entry::ZipEntryReader;
+use crate::base::read::io::entry::ZipEntryReader;
 
 use futures_util::io::AsyncReadExt;
 use futures_util::io::Take;
@@ -78,7 +78,7 @@ where
 
     /// Opens the next entry for reading if the central directory hasn’t yet been reached.
     pub async fn next_entry(mut self) -> Result<Option<ZipFileReader<Reading<'a, Take<R>>>>> {
-        let entry = match crate::read::lfh(&mut self.0 .0).await? {
+        let entry = match crate::base::read::lfh(&mut self.0 .0).await? {
             Some(entry) => entry,
             None => return Ok(None),
         };

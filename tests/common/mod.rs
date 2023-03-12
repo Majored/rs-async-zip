@@ -1,9 +1,9 @@
 // Copyright (c) 2023 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use async_zip::read::mem;
-use async_zip::read::seek;
-use async_zip::write::ZipFileWriter;
+use async_zip::base::read::mem;
+use async_zip::base::read::seek;
+use async_zip::base::write::ZipFileWriter;
 use async_zip::Compression;
 use async_zip::ZipEntryBuilder;
 use futures_util::io::AsyncWriteExt;
@@ -37,7 +37,7 @@ pub async fn compress_to_mem(compress: Compression) -> Vec<u8> {
 
 #[cfg(feature = "fs")]
 pub async fn check_decompress_fs(fname: &str) {
-    use async_zip::read::fs;
+    use async_zip::base::read::fs;
     let mut zip = fs::ZipFileReader::new(fname).await.unwrap();
     let zip_entries: Vec<_> = zip.file().entries().into_iter().cloned().collect();
     for (idx, entry) in zip_entries.into_iter().enumerate() {

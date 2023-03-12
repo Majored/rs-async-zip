@@ -5,7 +5,7 @@
 //!
 //! ### Example
 //! ```no_run
-//! # use async_zip::read::seek::ZipFileReader;
+//! # use async_zip::base::read::seek::ZipFileReader;
 //! # use async_zip::error::Result;
 //! # use futures_util::io::AsyncReadExt;
 //! # use tokio::fs::File;
@@ -27,7 +27,7 @@
 
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
-use crate::read::io::entry::ZipEntryReader;
+use crate::base::read::io::entry::ZipEntryReader;
 
 use futures_util::io::{AsyncRead, AsyncSeek, BufReader};
 
@@ -44,7 +44,7 @@ where
 {
     /// Constructs a new ZIP reader from a seekable source.
     pub async fn new(mut reader: R) -> Result<ZipFileReader<R>> {
-        let file = crate::read::file(&mut reader).await?;
+        let file = crate::base::read::file(&mut reader).await?;
         Ok(ZipFileReader::from_raw_parts(reader, file))
     }
 

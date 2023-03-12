@@ -1,7 +1,7 @@
 // Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::write::io::offset::AsyncOffsetWriter;
+use crate::base::write::io::offset::AsyncOffsetWriter;
 
 #[tokio::test]
 async fn basic() {

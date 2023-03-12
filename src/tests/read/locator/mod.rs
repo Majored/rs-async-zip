@@ -6,13 +6,13 @@ fn search_one_byte_test() {
     let buffer: &[u8] = &[0x0, 0x0, 0x0, 0x0, 0x0, 0x0];
     let signature: &[u8] = &[0x1];
 
-    let matched = crate::read::io::locator::reverse_search_buffer(buffer, signature);
+    let matched = crate::base::read::io::locator::reverse_search_buffer(buffer, signature);
     assert!(matched.is_none());
 
     let buffer: &[u8] = &[0x2, 0x1, 0x0, 0x0, 0x0, 0x0];
     let signature: &[u8] = &[0x1];
 
-    let matched = crate::read::io::locator::reverse_search_buffer(buffer, signature);
+    let matched = crate::base::read::io::locator::reverse_search_buffer(buffer, signature);
     assert!(matched.is_some());
     assert_eq!(1, matched.unwrap());
 }
@@ -22,7 +22,7 @@ fn search_two_byte_test() {
     let buffer: &[u8] = &[0x2, 0x1, 0x0, 0x0, 0x0, 0x0];
     let signature: &[u8] = &[0x2, 0x1];
 
-    let matched = crate::read::io::locator::reverse_search_buffer(buffer, signature);
+    let matched = crate::base::read::io::locator::reverse_search_buffer(buffer, signature);
     assert!(matched.is_some());
     assert_eq!(1, matched.unwrap());
 }
@@ -33,7 +33,7 @@ async fn locator_empty_test() {
 
     let data = &include_bytes!("empty.zip");
     let mut cursor = Cursor::new(data);
-    let eocdr = crate::read::io::locator::eocdr(&mut cursor).await;
+    let eocdr = crate::base::read::io::locator::eocdr(&mut cursor).await;
 
     assert!(eocdr.is_ok());
     assert_eq!(eocdr.unwrap(), 4);
@@ -45,7 +45,7 @@ async fn locator_empty_max_comment_test() {
 
     let data = &include_bytes!("empty-with-max-comment.zip");
     let mut cursor = Cursor::new(data);
-    let eocdr = crate::read::io::locator::eocdr(&mut cursor).await;
+    let eocdr = crate::base::read::io::locator::eocdr(&mut cursor).await;
 
     assert!(eocdr.is_ok());
     assert_eq!(eocdr.unwrap(), 4);
@@ -57,7 +57,7 @@ async fn locator_buffer_boundary_test() {
 
     let data = &include_bytes!("empty-buffer-boundary.zip");
     let mut cursor = Cursor::new(data);
-    let eocdr = crate::read::io::locator::eocdr(&mut cursor).await;
+    let eocdr = crate::base::read::io::locator::eocdr(&mut cursor).await;
 
     assert!(eocdr.is_ok());
     assert_eq!(eocdr.unwrap(), 4);

@@ -2,7 +2,7 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::spec::Compression;
-use crate::write::io::offset::AsyncOffsetWriter;
+use crate::base::write::io::offset::AsyncOffsetWriter;
 
 use std::io::Error;
 use std::pin::Pin;

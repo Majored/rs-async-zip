@@ -12,7 +12,7 @@ const ZIP64_ZIP_CONTENTS: &str = "Hello World!\n";
 /// It contains one file named "-" with a zip 64 extended field header.
 #[tokio::test]
 async fn test_read_zip64_archive_mem() {
-    use crate::read::mem::ZipFileReader;
+    use crate::base::read::mem::ZipFileReader;
     init_logger();
 
     let data = include_bytes!("zip64.zip").to_vec();
@@ -34,7 +34,7 @@ async fn test_read_zip64_archive_mem() {
 /// Like test_read_zip64_archive_mem() but for the streaming version
 #[tokio::test]
 async fn test_read_zip64_archive_stream() {
-    use crate::read::stream::ZipFileReader;
+    use crate::base::read::stream::ZipFileReader;
     init_logger();
 
     let data = include_bytes!("zip64.zip").to_vec();
@@ -86,7 +86,7 @@ fn generate_zip64many_zip() -> std::path::PathBuf {
 #[cfg(feature = "fs")]
 #[tokio::test]
 async fn test_read_zip64_archive_many_entries() {
-    use crate::read::fs::ZipFileReader;
+    use crate::base::read::fs::ZipFileReader;
 
     init_logger();
 

@@ -8,16 +8,16 @@ use crate::spec::header::{
     CentralDirectoryRecord, ExtraField, GeneralPurposeFlag, HeaderId, LocalFileHeader,
     Zip64ExtendedInformationExtraField,
 };
-use crate::write::compressed_writer::CompressedAsyncWriter;
-use crate::write::io::offset::AsyncOffsetWriter;
-use crate::write::CentralDirectoryEntry;
-use crate::write::ZipFileWriter;
+use crate::base::write::compressed_writer::CompressedAsyncWriter;
+use crate::base::write::io::offset::AsyncOffsetWriter;
+use crate::base::write::CentralDirectoryEntry;
+use crate::base::write::ZipFileWriter;
 
 use std::io::Error;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use crate::read::get_zip64_extra_field_mut;
+use crate::base::read::get_zip64_extra_field_mut;
 use crate::spec::consts::{NON_ZIP64_MAX_NUM_FILES, NON_ZIP64_MAX_SIZE};
 use crc32fast::Hasher;
 use futures_util::io::{AsyncWrite, AsyncWriteExt};

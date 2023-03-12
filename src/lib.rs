@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 Harry [Majored] [hello@majored.pw]
+// Copyright (c) 2021-2023 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 //! An asynchronous ZIP archive reading/writing crate powered by [`tokio`].
@@ -30,8 +30,7 @@
 //! [Read more.](https://github.com/Majored/rs-async-zip)
 
 pub mod error;
-pub mod read;
-pub mod write;
+pub mod base;
 
 pub(crate) mod entry;
 pub(crate) mod file;

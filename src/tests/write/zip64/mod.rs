@@ -4,7 +4,7 @@ use crate::error::{Zip64ErrorCase, ZipError};
 use crate::spec::consts::NON_ZIP64_MAX_SIZE;
 use crate::tests::init_logger;
 use crate::tests::write::AsyncSink;
-use crate::write::ZipFileWriter;
+use crate::base::write::ZipFileWriter;
 use crate::{Compression, ZipEntryBuilder};
 use std::io::Read;
 
@@ -116,7 +116,7 @@ async fn test_write_large_zip64_file_self_read() {
     entry_writer.close().await.unwrap();
     writer.close().await.unwrap();
 
-    let reader = crate::read::mem::ZipFileReader::new(buffer).await.unwrap();
+    let reader = crate::base::read::mem::ZipFileReader::new(buffer).await.unwrap();
     assert!(reader.file().zip64);
     assert_eq!(reader.file().entries[0].entry.filename, "file");
     assert_eq!(reader.file().entries[0].entry.compressed_size, BATCHED_FILE_SIZE as u64);

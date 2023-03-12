@@ -1,7 +1,7 @@
 // Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::read::io::compressed::CompressedReader;
+use crate::base::read::io::compressed::CompressedReader;
 use crate::spec::Compression;
 
 compressed_test_helper!(stored_test, Compression::Stored, "foo bar", "foo bar");

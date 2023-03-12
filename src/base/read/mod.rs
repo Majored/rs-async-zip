@@ -13,7 +13,7 @@ pub mod fs;
 pub(crate) mod io;
 
 // Re-exported as part of the public API.
-pub use crate::read::io::entry::ZipEntryReader;
+pub use crate::base::read::io::entry::ZipEntryReader;
 
 use crate::entry::{StoredZipEntry, ZipEntry};
 use crate::error::{Result, ZipError};
@@ -27,7 +27,7 @@ use crate::spec::header::{
 };
 use crate::spec::Compression;
 
-use crate::read::io::CombinedCentralDirectoryRecord;
+use crate::base::read::io::CombinedCentralDirectoryRecord;
 use crate::spec::parse::parse_extra_fields;
 
 use futures_util::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, BufReader, SeekFrom};
@@ -41,13 +41,13 @@ where
 {
     // First find and parse the EOCDR.
     log::debug!("Locate EOCDR");
-    let eocdr_offset = crate::read::io::locator::eocdr(&mut reader).await?;
+    let eocdr_offset = crate::base::read::io::locator::eocdr(&mut reader).await?;
 
     reader.seek(SeekFrom::Start(eocdr_offset)).await?;
     let eocdr = EndOfCentralDirectoryHeader::from_reader(&mut reader).await?;
     log::debug!("EOCDR: {:?}", eocdr);
 
-    let comment = crate::read::io::read_string(&mut reader, eocdr.file_comm_length.into()).await?;
+    let comment = crate::base::read::io::read_string(&mut reader, eocdr.file_comm_length.into()).await?;
 
     // Check the 20 bytes before the EOCDR for the Zip64 EOCDL, plus an extra 4 bytes because the offset
     // does not include the signature. If the ECODL exists we are dealing with a Zip64 file.
@@ -82,7 +82,7 @@ where
     // Because `eocdr.offset_of_start_of_directory` is a u64, we use MAX_CD_BUFFER_SIZE to prevent very large buffer sizes.
     let buf =
         BufReader::with_capacity(std::cmp::min(eocdr.offset_of_start_of_directory as _, MAX_CD_BUFFER_SIZE), reader);
-    let entries = crate::read::cd(buf, eocdr.num_entries_in_directory, zip64).await?;
+    let entries = crate::base::read::cd(buf, eocdr.num_entries_in_directory, zip64).await?;
 
     Ok(ZipFile { entries, comment, zip64 })
 }
@@ -149,11 +149,11 @@ where
     crate::utils::assert_signature(&mut reader, CDH_SIGNATURE).await?;
 
     let header = CentralDirectoryRecord::from_reader(&mut reader).await?;
-    let filename = crate::read::io::read_string(&mut reader, header.file_name_length.into()).await?;
+    let filename = crate::base::read::io::read_string(&mut reader, header.file_name_length.into()).await?;
     let compression = Compression::try_from(header.compression)?;
-    let extra_field = crate::read::io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
+    let extra_field = crate::base::read::io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
     let extra_fields = parse_extra_fields(extra_field)?;
-    let comment = crate::read::io::read_string(reader, header.file_comment_length.into()).await?;
+    let comment = crate::base::read::io::read_string(reader, header.file_comment_length.into()).await?;
 
     let zip64_extra_field = get_zip64_extra_field(&extra_fields);
     let (uncompressed_size, compressed_size) =
@@ -207,9 +207,9 @@ where
     };
 
     let header = LocalFileHeader::from_reader(&mut reader).await?;
-    let filename = crate::read::io::read_string(&mut reader, header.file_name_length.into()).await?;
+    let filename = crate::base::read::io::read_string(&mut reader, header.file_name_length.into()).await?;
     let compression = Compression::try_from(header.compression)?;
-    let extra_field = crate::read::io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
+    let extra_field = crate::base::read::io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
     let extra_fields = parse_extra_fields(extra_field)?;
 
     let zip64_extra_field = get_zip64_extra_field(&extra_fields);

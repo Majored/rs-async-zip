@@ -11,7 +11,7 @@ use crate::spec::{
     },
     Compression,
 };
-use crate::write::{CentralDirectoryEntry, ZipFileWriter};
+use crate::base::write::{CentralDirectoryEntry, ZipFileWriter};
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use futures_util::io::Cursor;
