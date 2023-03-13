@@ -7,13 +7,16 @@ pub mod stream;
 #[cfg(feature = "tokio-fs")]
 pub mod fs;
 
-use std::{pin::Pin, task::{Context, Poll}};
+use std::{
+    pin::Pin,
+    task::{Context, Poll},
+};
 
-use crate::{base::read::io::entry::ZipEntryReader as BaseZipEntryReader, ZipEntry, error::Result};
+use crate::{base::read::io::entry::ZipEntryReader as BaseZipEntryReader, error::Result, ZipEntry};
+use futures_util::AsyncRead as FuturesAsyncRead;
 use pin_project::pin_project;
 use tokio::io::{AsyncRead, ReadBuf};
 use tokio_util::compat::Compat;
-use futures_util::AsyncRead as FuturesAsyncRead;
 
 /// A ZIP entry reader which may implement decompression.
 #[pin_project]

@@ -70,9 +70,9 @@
 #[cfg(doc)]
 use crate::base::read::seek;
 
+use crate::base::read::io::entry::ZipEntryReader;
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
-use crate::base::read::io::entry::ZipEntryReader;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;

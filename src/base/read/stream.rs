@@ -46,10 +46,10 @@
 //! # }
 //! ```
 
+use crate::base::read::io::entry::ZipEntryReader;
 use crate::entry::ZipEntry;
 use crate::error::Result;
 use crate::error::ZipError;
-use crate::base::read::io::entry::ZipEntryReader;
 
 use futures_util::io::AsyncReadExt;
 use futures_util::io::Take;

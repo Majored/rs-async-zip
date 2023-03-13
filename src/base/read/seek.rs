@@ -25,9 +25,9 @@
 //! }
 //! ```
 
+use crate::base::read::io::entry::ZipEntryReader;
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
-use crate::base::read::io::entry::ZipEntryReader;
 
 use futures_util::io::{AsyncRead, AsyncSeek, BufReader};
 

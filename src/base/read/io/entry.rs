@@ -1,9 +1,9 @@
 // Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use crate::base::read::io::{compressed::CompressedReader, hashed::HashedReader, owned::OwnedReader};
 use crate::entry::ZipEntry;
 use crate::error::{Result, ZipError};
-use crate::base::read::io::{compressed::CompressedReader, hashed::HashedReader, owned::OwnedReader};
 use crate::spec::Compression;
 
 use std::pin::Pin;

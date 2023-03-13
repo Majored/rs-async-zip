@@ -1,6 +1,10 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use crate::base::write::compressed_writer::CompressedAsyncWriter;
+use crate::base::write::io::offset::AsyncOffsetWriter;
+use crate::base::write::CentralDirectoryEntry;
+use crate::base::write::ZipFileWriter;
 use crate::entry::ZipEntry;
 use crate::error::{Result, Zip64ErrorCase, ZipError};
 use crate::spec::extra_field::ExtraFieldAsBytes;
@@ -8,10 +12,6 @@ use crate::spec::header::{
     CentralDirectoryRecord, ExtraField, GeneralPurposeFlag, HeaderId, LocalFileHeader,
     Zip64ExtendedInformationExtraField,
 };
-use crate::base::write::compressed_writer::CompressedAsyncWriter;
-use crate::base::write::io::offset::AsyncOffsetWriter;
-use crate::base::write::CentralDirectoryEntry;
-use crate::base::write::ZipFileWriter;
 
 use std::io::Error;
 use std::pin::Pin;

@@ -3,10 +3,10 @@
 
 //! A ZIP reader which acts over a seekable source.
 
+use crate::base::read::seek::ZipFileReader as BaseZipFileReader;
 use crate::error::Result;
 use crate::file::ZipFile;
 use crate::tokio::read::ZipEntryReader;
-use crate::base::read::seek::ZipFileReader as BaseZipFileReader;
 
 use tokio::io::{AsyncRead, AsyncSeek};
 use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};

@@ -29,8 +29,8 @@
 //!
 //! [Read more.](https://github.com/Majored/rs-async-zip)
 
-pub mod error;
 pub mod base;
+pub mod error;
 
 #[cfg(feature = "tokio")]
 pub mod tokio;

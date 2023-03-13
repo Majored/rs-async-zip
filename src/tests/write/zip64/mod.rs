@@ -1,10 +1,10 @@
 // Copyright Cognite AS, 2023
 
+use crate::base::write::ZipFileWriter;
 use crate::error::{Zip64ErrorCase, ZipError};
 use crate::spec::consts::NON_ZIP64_MAX_SIZE;
 use crate::tests::init_logger;
 use crate::tests::write::AsyncSink;
-use crate::base::write::ZipFileWriter;
 use crate::{Compression, ZipEntryBuilder};
 use std::io::Read;
 

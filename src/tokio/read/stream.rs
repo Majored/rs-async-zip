@@ -3,12 +3,12 @@
 
 //! A ZIP reader which acts over a non-seekable source.
 
+use crate::base::read::io::entry::ZipEntryReader;
 use crate::base::read::stream::Reading;
 use crate::base::read::stream::Ready;
+use crate::base::read::stream::ZipFileReader as BaseZipFileReader;
 use crate::entry::ZipEntry;
 use crate::error::Result;
-use crate::base::read::io::entry::ZipEntryReader;
-use crate::base::read::stream::ZipFileReader as BaseZipFileReader;
 
 use futures_util::io::Take;
 use tokio::io::AsyncRead;

@@ -1,6 +1,7 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use crate::base::write::{CentralDirectoryEntry, ZipFileWriter};
 use crate::entry::ZipEntry;
 use crate::error::{Result, Zip64ErrorCase, ZipError};
 use crate::spec::{
@@ -11,7 +12,6 @@ use crate::spec::{
     },
     Compression,
 };
-use crate::base::write::{CentralDirectoryEntry, ZipFileWriter};
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use futures_util::io::Cursor;

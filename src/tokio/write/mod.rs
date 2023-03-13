@@ -1,10 +1,14 @@
 // Copyright (c) 2023 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::{base::write::{ZipFileWriter as BaseZipFileWriter, EntryStreamWriter}, ZipEntry, error::Result};
+use crate::{
+    base::write::{EntryStreamWriter, ZipFileWriter as BaseZipFileWriter},
+    error::Result,
+    ZipEntry,
+};
 
 use tokio::io::AsyncWrite;
-use tokio_util::compat::{TokioAsyncWriteCompatExt, Compat};
+use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
 // TODO: Remove exposed Compat wrappers from public API.
 
@@ -36,7 +40,10 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
     /// Write an entry of unknown size and data via streaming (ie. using a data descriptor).
     /// The generated Local File Header will be invalid, with no compressed size, uncompressed size,
     /// and a null CRC. This might cause problems with the destination reader.
-    pub async fn write_entry_stream<E: Into<ZipEntry>>(&mut self, entry: E) -> Result<EntryStreamWriter<'_, Compat<W>>> {
+    pub async fn write_entry_stream<E: Into<ZipEntry>>(
+        &mut self,
+        entry: E,
+    ) -> Result<EntryStreamWriter<'_, Compat<W>>> {
         Ok(self.0.write_entry_stream(entry).await?)
     }
 
