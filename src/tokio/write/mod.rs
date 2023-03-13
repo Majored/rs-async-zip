@@ -44,7 +44,7 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
         &mut self,
         entry: E,
     ) -> Result<EntryStreamWriter<'_, Compat<W>>> {
-        Ok(self.0.write_entry_stream(entry).await?)
+        self.0.write_entry_stream(entry).await
     }
 
     /// Set the ZIP file comment.

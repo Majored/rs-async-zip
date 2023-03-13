@@ -74,7 +74,7 @@ async fn test_write_large_zip64_file() {
             assert_eq!(zip64.compressed_size, BATCHED_FILE_SIZE as u64);
             assert_eq!(zip64.uncompressed_size, BATCHED_FILE_SIZE as u64);
         }
-        e @ _ => panic!("Expected a Zip64 extended field, got {:?}", e),
+        e => panic!("Expected a Zip64 extended field, got {:?}", e),
     }
     assert_eq!(cd_entry.header.uncompressed_size, NON_ZIP64_MAX_SIZE);
     assert_eq!(cd_entry.header.compressed_size, NON_ZIP64_MAX_SIZE);
@@ -199,7 +199,7 @@ async fn test_force_no_zip64_errors_with_too_many_files_whole() {
         let entry = ZipEntryBuilder::new(format!("{i}"), Compression::Stored);
         writer.write_entry_whole(entry, &[]).await.unwrap()
     }
-    let entry = ZipEntryBuilder::new(format!("65537"), Compression::Stored);
+    let entry = ZipEntryBuilder::new("65537".to_string(), Compression::Stored);
     let result = writer.write_entry_whole(entry, &[]).await;
 
     assert!(matches!(result, Err(ZipError::Zip64Needed(Zip64ErrorCase::TooManyFiles))));
@@ -216,7 +216,7 @@ async fn test_force_no_zip64_errors_with_too_many_files_stream() {
         let entrywriter = writer.write_entry_stream(entry).await.unwrap();
         entrywriter.close().await.unwrap();
     }
-    let entry = ZipEntryBuilder::new(format!("65537"), Compression::Stored);
+    let entry = ZipEntryBuilder::new("65537".to_string(), Compression::Stored);
     let entrywriter = writer.write_entry_stream(entry).await.unwrap();
     let result = entrywriter.close().await;
 
@@ -230,7 +230,7 @@ async fn test_force_no_zip64_errors_with_too_large_file_stream() {
     let mut sink = AsyncSink;
     let mut writer = ZipFileWriter::new(&mut sink).force_no_zip64();
 
-    let entry = ZipEntryBuilder::new(format!("-"), Compression::Stored);
+    let entry = ZipEntryBuilder::new("-".to_string(), Compression::Stored);
     let mut entrywriter = writer.write_entry_stream(entry).await.unwrap();
 
     // Writing 4GB, 1kb at a time

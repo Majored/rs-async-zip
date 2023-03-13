@@ -40,7 +40,7 @@ where
             return Ok(Some(ZipFileReader(inner)));
         }
 
-        return Ok(None);
+        Ok(None)
     }
 
     /// Consumes the `ZipFileReader` returning the original `reader`
