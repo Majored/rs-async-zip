@@ -83,7 +83,7 @@ fn generate_zip64many_zip() -> std::path::PathBuf {
 }
 
 /// Test reading a generated zip64 archive that contains more than 2^16 entries.
-#[cfg(feature = "tokio")]
+#[cfg(feature = "tokio-fs")]
 #[tokio::test]
 async fn test_read_zip64_archive_many_entries() {
     use crate::tokio::read::fs::ZipFileReader;

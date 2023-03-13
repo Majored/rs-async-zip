@@ -23,8 +23,11 @@ jobs:
     - name: Test ['chrono' feature]
       run: cargo test --verbose --features chrono
 
-    - name: Test ['fs' feature]
-      run: cargo test --verbose --features fs
+    - name: Test ['tokio' feature]
+      run: cargo test --verbose --features tokio
+
+    - name: Test ['tokio-fs' feature]
+      run: cargo test --verbose --features tokio-fs
 
     - name: Test ['deflate' feature]
       run: cargo test --verbose --features deflate

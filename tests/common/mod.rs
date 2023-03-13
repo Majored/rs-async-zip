@@ -35,7 +35,7 @@ pub async fn compress_to_mem(compress: Compression) -> Vec<u8> {
     bytes
 }
 
-#[cfg(feature = "tokio")]
+#[cfg(feature = "tokio-fs")]
 pub async fn check_decompress_fs(fname: &str) {
     use async_zip::tokio::read::fs;
     let zip = fs::ZipFileReader::new(fname).await.unwrap();

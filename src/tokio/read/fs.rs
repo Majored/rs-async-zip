@@ -15,7 +15,7 @@
 //!
 //! ### Concurrent Example
 //! ```no_run
-//! # use async_zip::base::read::fs::ZipFileReader;
+//! # use async_zip::tokio::read::fs::ZipFileReader;
 //! # use async_zip::error::Result;
 //! # use futures_util::io::AsyncReadExt;
 //! #
@@ -41,7 +41,7 @@
 //!
 //! ### Parallel Example
 //! ```no_run
-//! # use async_zip::base::read::fs::ZipFileReader;
+//! # use async_zip::tokio::read::fs::ZipFileReader;
 //! # use async_zip::error::Result;
 //! # use futures_util::io::AsyncReadExt;
 //! #
