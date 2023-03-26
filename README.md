@@ -5,9 +5,11 @@
 [![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/Majored/rs-async-zip/ci-linux.yml?branch=main&style=flat-square)](https://github.com/Majored/rs-async-zip/actions?query=branch%3Amain)
 [![GitHub](https://img.shields.io/github/license/Majored/rs-async-zip?style=flat-square)](https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-An asynchronous ZIP archive reading/writing crate powered by [`tokio`](https://crates.io/crates/tokio).
+An asynchronous ZIP archive reading/writing crate.
 
 ## Features
+- A base implementation atop `futures`'s IO traits.
+- An extended implementation atop `tokio`'s IO traits.
 - Support for Stored, Deflate, bzip2, LZMA, zstd, and xz compression methods.
 - Various different reading approaches (seek, stream, filesystem, in-memory buffer, etc).
 - Support for writing complete data (u8 slices) or streams using data descriptors.
@@ -18,15 +20,17 @@ An asynchronous ZIP archive reading/writing crate powered by [`tokio`](https://c
 
 ```toml
 [dependencies]
-async_zip = { version = "0.0.12", features = ["full"] }
+async_zip = { version = "0.0.13", features = ["full"] }
 ```
 
 A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-zip/tree/main/examples) can be found under the `/examples` directory.
 
 ### Feature Flags
 - `full` - Enables all below features.
+- `full-wasm` - Enables all below features that are compatible with WASM.
 - `chrono` - Enables support for parsing dates via `chrono`.
-- `fs` - Enables support for the `fs` reading module.
+- `tokio` - Enables support for the `tokio` implementation module.
+- `tokio-fs` - Enables support for the `tokio::fs` reading module.
 - `deflate` - Enables support for the Deflate compression method.
 - `bzip2` - Enables support for the bzip2 compression method.
 - `lzma` - Enables support for the LZMA compression method.
@@ -36,7 +40,7 @@ A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-
 ### Reading
 ```rust
 use tokio::{io::AsyncReadExt, fs::File};
-use async_zip::read::seek::ZipFileReader;
+use async_zip::tokio::read::seek::ZipFileReader;
 ...
 
 let mut file = File::open("./Archive.zip").await.unwrap();
@@ -45,14 +49,14 @@ let mut zip = ZipFileReader::new(&mut file).await.unwrap();
 let entry = zip.file().entries().get(0).unwrap().clone();
 let mut string = String::new();
 let mut reader = zip.entry(0).await.unwrap();
-let txt = reader.read_to_string_checked(&mut string, entry.entry()).await.unwrap();
+reader.read_to_string_checked(&mut string, entry.entry()).await.unwrap();
 
-println!("{}", txt);
+println!("{}", string);
 ```
 
 ### Writing
 ```rust
-use async_zip::write::ZipFileWriter;
+use async_zip::tokio::write::ZipFileWriter;
 use async_zip::{Compression, ZipEntryBuilder};
 use tokio::fs::File;
 ...
