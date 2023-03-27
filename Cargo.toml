@@ -29,6 +29,8 @@ xz = ["async-compression/xz"]
 
 [package.metadata.docs.rs]
 all-features = true
+# defines the configuration attribute `docsrs`
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 crc32fast = "1"
