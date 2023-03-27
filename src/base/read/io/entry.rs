@@ -50,7 +50,7 @@ where
     /// Computes and returns the CRC32 hash of bytes read by this reader so far.
     ///
     /// This hash should only be computed once EOF has been reached.
-    pub(crate) fn compute_hash(&mut self) -> u32 {
+    pub fn compute_hash(&mut self) -> u32 {
         self.reader.swap_and_compute_hash()
     }
 
