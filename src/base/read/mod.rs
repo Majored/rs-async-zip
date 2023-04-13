@@ -48,20 +48,24 @@ where
 
     // Check the 20 bytes before the EOCDR for the Zip64 EOCDL, plus an extra 4 bytes because the offset
     // does not include the signature. If the ECODL exists we are dealing with a Zip64 file.
-    reader.seek(SeekFrom::Start(eocdr_offset - ZIP64_EOCDL_LENGTH - SIGNATURE_LENGTH as u64)).await?;
-    let zip64_locator = Zip64EndOfCentralDirectoryLocator::try_from_reader(&mut reader).await?;
-    log::debug!("Zip64EOCDL: {zip64_locator:?}");
-    let zip64 = zip64_locator.is_some();
-    let zip64_eocdr = if let Some(locator) = zip64_locator {
-        reader.seek(SeekFrom::Start(locator.relative_offset + SIGNATURE_LENGTH as u64)).await?;
-        Some(Zip64EndOfCentralDirectoryRecord::from_reader(&mut reader).await?)
-    } else {
-        None
-    };
-    log::debug!("Zip64EOCDR: {zip64_eocdr:?}");
+    let (eocdr, zip64) = match eocdr_offset.checked_sub(ZIP64_EOCDL_LENGTH + SIGNATURE_LENGTH as u64) {
+        None => (CombinedCentralDirectoryRecord::from(&eocdr), false),
+        Some(offset) => {
+            reader.seek(SeekFrom::Start(offset)).await?;
+            let zip64_locator = Zip64EndOfCentralDirectoryLocator::try_from_reader(&mut reader).await?;
+            log::debug!("Zip64EOCDL: {zip64_locator:?}");
 
-    // Combine the two EOCDRs.
-    let eocdr = CombinedCentralDirectoryRecord::combine(eocdr, zip64_eocdr);
+            match zip64_locator {
+                Some(locator) => {
+                    reader.seek(SeekFrom::Start(locator.relative_offset + SIGNATURE_LENGTH as u64)).await?;
+                    let zip64_eocdr = Zip64EndOfCentralDirectoryRecord::from_reader(&mut reader).await?;
+                    log::debug!("Zip64EOCDR: {zip64_eocdr:?}");
+                    (CombinedCentralDirectoryRecord::combine(eocdr, zip64_eocdr), true)
+                }
+                None => (CombinedCentralDirectoryRecord::from(&eocdr), false),
+            }
+        }
+    };
     log::debug!("Combined directory: {eocdr:?}");
 
     // Outdated feature so unlikely to ever make it into this crate.
