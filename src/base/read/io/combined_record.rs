@@ -23,30 +23,29 @@ impl CombinedCentralDirectoryRecord {
     ///
     /// Fields that are set to their max value in the EOCDR will be overwritten by the contents of
     /// the corresponding Zip64EOCDR field.
-    pub fn combine(eocdr: EndOfCentralDirectoryHeader, zip64eocdr: Option<Zip64EndOfCentralDirectoryRecord>) -> Self {
+    pub fn combine(eocdr: EndOfCentralDirectoryHeader, zip64eocdr: Zip64EndOfCentralDirectoryRecord) -> Self {
         let mut combined = Self::from(&eocdr);
-        if let Some(zip64eocdr) = zip64eocdr {
-            if eocdr.disk_num == u16::MAX {
-                combined.disk_number = zip64eocdr.disk_number;
-            }
-            if eocdr.start_cent_dir_disk == u16::MAX {
-                combined.disk_number_start_of_cd = zip64eocdr.disk_number_start_of_cd;
-            }
-            if eocdr.num_of_entries_disk == u16::MAX {
-                combined.num_entries_in_directory_on_disk = zip64eocdr.num_entries_in_directory_on_disk;
-            }
-            if eocdr.num_of_entries == u16::MAX {
-                combined.num_entries_in_directory = zip64eocdr.num_entries_in_directory;
-            }
-            if eocdr.size_cent_dir == u32::MAX {
-                combined.directory_size = zip64eocdr.directory_size;
-            }
-            if eocdr.cent_dir_offset == u32::MAX {
-                combined.offset_of_start_of_directory = zip64eocdr.offset_of_start_of_directory;
-            }
-            combined.version_made_by = Some(zip64eocdr.version_made_by);
-            combined.version_needed_to_extract = Some(zip64eocdr.version_needed_to_extract);
+        if eocdr.disk_num == u16::MAX {
+            combined.disk_number = zip64eocdr.disk_number;
         }
+        if eocdr.start_cent_dir_disk == u16::MAX {
+            combined.disk_number_start_of_cd = zip64eocdr.disk_number_start_of_cd;
+        }
+        if eocdr.num_of_entries_disk == u16::MAX {
+            combined.num_entries_in_directory_on_disk = zip64eocdr.num_entries_in_directory_on_disk;
+        }
+        if eocdr.num_of_entries == u16::MAX {
+            combined.num_entries_in_directory = zip64eocdr.num_entries_in_directory;
+        }
+        if eocdr.size_cent_dir == u32::MAX {
+            combined.directory_size = zip64eocdr.directory_size;
+        }
+        if eocdr.cent_dir_offset == u32::MAX {
+            combined.offset_of_start_of_directory = zip64eocdr.offset_of_start_of_directory;
+        }
+        combined.version_made_by = Some(zip64eocdr.version_made_by);
+        combined.version_needed_to_extract = Some(zip64eocdr.version_needed_to_extract);
+
         combined
     }
 }
