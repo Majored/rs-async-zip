@@ -13,7 +13,7 @@
 //!
 //! As a result of Rust's type inference, we are able to reuse the [`base`] implementation's types with considerable
 //! ease. There only exists one caveat with their use; the types returned by these constructors contain a wrapping
-//! compatability type provided by an external crate. These compatability types cannot be named unless you also pull in
+//! compatibility type provided by an external crate. These compatibility types cannot be named unless you also pull in
 //! the [`tokio_util`] dependency manually. This is why we've provided type aliases within this module so that they can
 //! be named without needing to pull in a separate dependency.
 
