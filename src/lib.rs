@@ -19,7 +19,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! async_zip = { version = "0.0.13", features = ["full"] }
+//! async_zip = { version = "0.0.14", features = ["full"] }
 //! ```
 //!
 //! ### Feature Flags
