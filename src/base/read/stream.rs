@@ -51,9 +51,15 @@ use crate::entry::ZipEntry;
 use crate::error::Result;
 use crate::error::ZipError;
 
+#[cfg(feature = "tokio")]
+use crate::tokio::read::stream::Ready as TokioReady;
+
 use futures_util::io::AsyncReadExt;
 use futures_util::io::Take;
 use futures_util::io::{AsyncRead, BufReader};
+
+#[cfg(feature = "tokio")]
+use tokio_util::compat::TokioAsyncReadCompatExt;
 
 /// A type which encodes that [`ZipFileReader`] is ready to open a new entry.
 pub struct Ready<R>(R);
@@ -92,6 +98,17 @@ where
     /// Consumes the `ZipFileReader` returning the original `reader`
     pub async fn into_inner(self) -> R {
         self.0 .0
+    }
+}
+
+#[cfg(feature = "tokio")]
+impl<R> ZipFileReader<TokioReady<R>>
+where
+    R: tokio::io::AsyncRead + Unpin,
+{
+    /// Construct a new ZIP file writer from a mutable reference to a writer.
+    pub fn with_tokio(reader: R) -> ZipFileReader<TokioReady<R>> {
+        Self(Ready(reader.compat()))
     }
 }
 

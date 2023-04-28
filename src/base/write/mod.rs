@@ -56,6 +56,9 @@ pub(crate) mod io;
 
 pub use entry_stream::EntryStreamWriter;
 
+#[cfg(feature = "tokio")]
+use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
+
 use crate::entry::ZipEntry;
 use crate::error::Result;
 use crate::spec::extra_field::ExtraFieldAsBytes;
@@ -63,6 +66,10 @@ use crate::spec::header::{
     CentralDirectoryRecord, EndOfCentralDirectoryHeader, Zip64EndOfCentralDirectoryLocator,
     Zip64EndOfCentralDirectoryRecord,
 };
+
+#[cfg(feature = "tokio")]
+use crate::tokio::write::ZipFileWriter as TokioZipFileWriter;
+
 use entry_whole::EntryWholeWriter;
 use io::offset::AsyncOffsetWriter;
 
@@ -78,7 +85,7 @@ pub(crate) struct CentralDirectoryEntry {
 ///
 /// # Note
 /// - [`ZipFileWriter::close()`] must be called before a stream writer goes out of scope.
-pub struct ZipFileWriter<W: AsyncWrite + Unpin> {
+pub struct ZipFileWriter<W> {
     pub(crate) writer: AsyncOffsetWriter<W>,
     pub(crate) cd_entries: Vec<CentralDirectoryEntry>,
     /// If true, will error if a Zip64 struct must be written.
@@ -216,5 +223,22 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
         }
 
         Ok(self.writer.into_inner())
+    }
+}
+
+#[cfg(feature = "tokio")]
+impl<W> ZipFileWriter<Compat<W>>
+where
+    W: tokio::io::AsyncWrite + Unpin,
+{
+    /// Construct a new ZIP file writer from a mutable reference to a writer.
+    pub fn with_tokio(writer: W) -> TokioZipFileWriter<W> {
+        Self {
+            writer: AsyncOffsetWriter::new(writer.compat_write()),
+            cd_entries: Vec::new(),
+            comment_opt: None,
+            is_zip64: false,
+            force_no_zip64: false,
+        }
     }
 }

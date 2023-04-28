@@ -29,7 +29,13 @@ use crate::base::read::io::entry::ZipEntryReader;
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 
+#[cfg(feature = "tokio")]
+use crate::tokio::read::seek::ZipFileReader as TokioZipFileReader;
+
 use futures_util::io::{AsyncRead, AsyncSeek, BufReader};
+
+#[cfg(feature = "tokio")]
+use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
 
 /// A ZIP reader which acts over a seekable source.
 #[derive(Clone)]
@@ -102,5 +108,18 @@ where
             stored_entry.entry.compression(),
             stored_entry.entry.compressed_size(),
         ))
+    }
+}
+
+#[cfg(feature = "tokio")]
+impl<R> ZipFileReader<Compat<R>>
+where
+    R: tokio::io::AsyncRead + tokio::io::AsyncSeek + Unpin,
+{
+    /// Construct a new ZIP file writer from a mutable reference to a writer.
+    pub async fn with_tokio(reader: R) -> Result<TokioZipFileReader<R>> {
+        let mut reader = reader.compat();
+        let file = crate::base::read::file(&mut reader).await?;
+        Ok(ZipFileReader::from_raw_parts(reader, file))
     }
 }

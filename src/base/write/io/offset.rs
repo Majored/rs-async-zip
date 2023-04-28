@@ -10,10 +10,7 @@ use pin_project::pin_project;
 
 /// A wrapper around an [`AsyncWrite`] implementation which tracks the current byte offset.
 #[pin_project(project = OffsetWriterProj)]
-pub struct AsyncOffsetWriter<W>
-where
-    W: AsyncWrite + Unpin,
-{
+pub struct AsyncOffsetWriter<W> {
     #[pin]
     inner: W,
     offset: usize,

@@ -7,4 +7,10 @@
 use tokio;
 
 pub mod read;
-pub mod write;
+
+pub mod write {
+    use tokio_util::compat::Compat;
+
+    pub type ZipFileWriter<W> = crate::base::write::ZipFileWriter<Compat<W>>;
+    pub type EntryStreamWriter<'a, W> = crate::base::write::EntryStreamWriter<'a, Compat<W>>;
+}
