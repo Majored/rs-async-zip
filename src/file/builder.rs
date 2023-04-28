@@ -29,12 +29,6 @@ impl ZipFileBuilder {
         self
     }
 
-    /// Sets
-    pub fn zip64(mut self, value: bool) -> Self {
-        self.0.zip64 = value;
-        self
-    }
-
     /// Consumes this builder and returns a final [`ZipFile`].
     ///
     /// This is equivalent to:
