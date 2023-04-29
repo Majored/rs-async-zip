@@ -111,9 +111,9 @@ enum OwnedEntry<'a> {
 }
 
 impl<'a> OwnedEntry<'a> {
-    pub fn entry<'b>(&'b self) -> &'b ZipEntry {
+    pub fn entry(&self) -> &'_ ZipEntry {
         match self {
-            OwnedEntry::Owned(entry) => &entry,
+            OwnedEntry::Owned(entry) => entry,
             OwnedEntry::Borrow(entry) => entry,
         }
     }
