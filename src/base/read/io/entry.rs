@@ -12,11 +12,6 @@ use std::task::{Context, Poll};
 use futures_util::io::{AsyncRead, AsyncReadExt, BufReader, Take};
 use pin_project::pin_project;
 
-enum OwnedEntry<'a> {
-    Owned(ZipEntry),
-    Borrow(&'a ZipEntry)
-}
-
 pub struct WithEntry<'a>(OwnedEntry<'a>);
 pub struct WithoutEntry;
 
@@ -53,7 +48,7 @@ where
     }
 }
 
-impl<'a, R> AsyncRead for ZipEntryReader<'a, R, WithoutEntry>
+impl<'a, R, E> AsyncRead for ZipEntryReader<'a, R, E>
 where
     R: AsyncRead + Unpin,
 {
@@ -62,7 +57,7 @@ where
     }
 }
 
-impl<'a, R> ZipEntryReader<'a, R, WithoutEntry>
+impl<'a, R, E> ZipEntryReader<'a, R, E>
 where
     R: AsyncRead + Unpin,
 {
@@ -73,13 +68,23 @@ where
         self.reader.swap_and_compute_hash()
     }
 
+    /// Consumes this reader and returns the inner value.
+    pub(crate) fn into_inner(self) -> R {
+        self.reader.into_inner().into_inner().into_inner().owned_into_inner()
+    }
+}
+
+impl<R> ZipEntryReader<'_, R, WithEntry<'_>>
+where
+    R: AsyncRead + Unpin,
+{
     /// Reads all bytes until EOF has been reached, appending them to buf, and verifies the CRC32 values.
     ///
     /// This is a helper function synonymous to [`AsyncReadExt::read_to_end()`].
-    pub async fn read_to_end_checked(&mut self, buf: &mut Vec<u8>, entry: &ZipEntry) -> Result<usize> {
+    pub async fn read_to_end_checked(&mut self, buf: &mut Vec<u8>) -> Result<usize> {
         let read = self.read_to_end(buf).await?;
 
-        if self.compute_hash() == entry.crc32() {
+        if self.compute_hash() == self.entry.0.entry().crc32() {
             Ok(read)
         } else {
             Err(ZipError::CRC32CheckError)
@@ -89,18 +94,27 @@ where
     /// Reads all bytes until EOF has been reached, placing them into buf, and verifies the CRC32 values.
     ///
     /// This is a helper function synonymous to [`AsyncReadExt::read_to_string()`].
-    pub async fn read_to_string_checked(&mut self, buf: &mut String, entry: &ZipEntry) -> Result<usize> {
+    pub async fn read_to_string_checked(&mut self, buf: &mut String) -> Result<usize> {
         let read = self.read_to_string(buf).await?;
 
-        if self.compute_hash() == entry.crc32() {
+        if self.compute_hash() == self.entry.0.entry().crc32() {
             Ok(read)
         } else {
             Err(ZipError::CRC32CheckError)
         }
     }
+}
 
-    /// Consumes this reader and returns the inner value.
-    pub(crate) fn into_inner(self) -> R {
-        self.reader.into_inner().into_inner().into_inner().owned_into_inner()
+enum OwnedEntry<'a> {
+    Owned(ZipEntry),
+    Borrow(&'a ZipEntry)
+}
+
+impl<'a> OwnedEntry<'a> {
+    pub fn entry<'b>(&'b self) -> &'b ZipEntry {
+        match self {
+            OwnedEntry::Owned(entry) => &entry,
+            OwnedEntry::Borrow(entry) => entry,
+        }
     }
 }
