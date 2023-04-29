@@ -46,8 +46,8 @@ pub async fn check_decompress_fs(fname: &str) {
         }
         let fname = entry.entry().filename();
         let mut output = String::new();
-        let mut reader = zip.entry(idx).await.unwrap();
-        let _ = reader.read_to_string_checked(&mut output, entry.entry()).await.unwrap();
+        let mut reader = zip.reader_with_entry(idx).await.unwrap();
+        let _ = reader.read_to_string_checked(&mut output).await.unwrap();
         let fs_file = format!("{FOLDER_PREFIX}/{fname}");
         let expected = tokio::fs::read_to_string(fs_file).await.unwrap();
         assert_eq!(output, expected, "for {fname}, expect zip data to match file data");
@@ -65,8 +65,8 @@ pub async fn check_decompress_seek(fname: &str) {
         }
         let fname = entry.entry().filename();
         let mut output = String::new();
-        let mut reader = zip.reader_without_entry(idx).await.unwrap();
-        let _ = reader.read_to_string_checked(&mut output, entry.entry()).await.unwrap();
+        let mut reader = zip.reader_with_entry(idx).await.unwrap();
+        let _ = reader.read_to_string_checked(&mut output).await.unwrap();
         let fs_file = format!("tests/test_inputs/{fname}");
         let expected = tokio::fs::read_to_string(fs_file).await.unwrap();
         assert_eq!(output, expected, "for {fname}, expect zip data to match file data");
@@ -82,8 +82,8 @@ pub async fn check_decompress_mem(zip_data: Vec<u8>) {
         }
         let fname = entry.entry().filename();
         let mut output = String::new();
-        let mut reader = zip.entry(idx).await.unwrap();
-        let _ = reader.read_to_string_checked(&mut output, entry.entry()).await.unwrap();
+        let mut reader = zip.reader_with_entry(idx).await.unwrap();
+        let _ = reader.read_to_string_checked(&mut output).await.unwrap();
         let fs_file = format!("{FOLDER_PREFIX}/{fname}");
         let expected = tokio::fs::read_to_string(fs_file).await.unwrap();
         assert_eq!(output, expected, "for {fname}, expect zip data to match file data");

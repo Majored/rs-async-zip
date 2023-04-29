@@ -70,7 +70,7 @@
 #[cfg(doc)]
 use crate::base::read::seek;
 
-use crate::base::read::io::entry::{WithoutEntry, ZipEntryReader};
+use crate::base::read::io::entry::{WithEntry, WithoutEntry, ZipEntryReader};
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 
@@ -123,7 +123,10 @@ impl ZipFileReader {
     }
 
     /// Returns a new entry reader if the provided index is valid.
-    pub async fn entry(&self, index: usize) -> Result<ZipEntryReader<'static, Compat<File>, WithoutEntry>> {
+    pub async fn reader_without_entry(
+        &self,
+        index: usize,
+    ) -> Result<ZipEntryReader<'static, Compat<File>, WithoutEntry>> {
         let stored_entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
         let mut fs_file = BufReader::new(File::open(&self.inner.path).await?.compat());
 
@@ -134,5 +137,21 @@ impl ZipFileReader {
             stored_entry.entry.compression(),
             stored_entry.entry.compressed_size(),
         ))
+    }
+
+    /// Returns a new entry reader if the provided index is valid.
+    pub async fn reader_with_entry(&self, index: usize) -> Result<ZipEntryReader<'_, Compat<File>, WithEntry<'_>>> {
+        let stored_entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
+        let mut fs_file = BufReader::new(File::open(&self.inner.path).await?.compat());
+
+        stored_entry.seek_to_data_offset(&mut fs_file).await?;
+
+        let reader = ZipEntryReader::new_with_owned(
+            fs_file,
+            stored_entry.entry.compression(),
+            stored_entry.entry.compressed_size(),
+        );
+
+        Ok(reader.into_with_entry(stored_entry.entry()))
     }
 }
