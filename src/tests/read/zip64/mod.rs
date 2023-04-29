@@ -43,7 +43,7 @@ async fn test_read_zip64_archive_stream() {
     let mut entry_reader = reader.next_without_entry().await.unwrap().unwrap();
 
     let mut read_data = String::new();
-    entry_reader.reader().read_to_string(&mut read_data).await.expect("read failed");
+    entry_reader.reader_mut().read_to_string(&mut read_data).await.expect("read failed");
 
     assert_eq!(
         read_data.chars().count(),

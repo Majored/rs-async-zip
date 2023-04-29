@@ -16,7 +16,7 @@
 //!     let mut reader = ZipFileReader::new(data.compat()).await?;
 //!
 //!     let mut data = Vec::new();
-//!     let mut entry = reader.entry(0).await?;
+//!     let mut entry = reader.reader_without_entry(0).await?;
 //!     entry.read_to_end(&mut data).await?;
 //!
 //!     // Use data within current scope.

@@ -78,6 +78,10 @@ impl<R> ZipEntryReader<'_, R, WithEntry<'_>>
 where
     R: AsyncRead + Unpin,
 {
+    pub fn entry(&self) -> &'_ ZipEntry {
+        self.entry.0.entry()
+    }
+
     /// Reads all bytes until EOF has been reached, appending them to buf, and verifies the CRC32 values.
     ///
     /// This is a helper function synonymous to [`AsyncReadExt::read_to_end()`].

@@ -32,7 +32,7 @@
 //! }
 //!
 //! async fn read(reader: &ZipFileReader, index: usize) -> Result<Vec<u8>> {
-//!     let mut entry = reader.entry(index).await?;
+//!     let mut entry = reader.reader_without_entry(index).await?;
 //!     let mut data = Vec::new();
 //!     entry.read_to_end(&mut data).await?;
 //!     Ok(data)
@@ -60,7 +60,7 @@
 //! }
 //!
 //! async fn read(reader: ZipFileReader, index: usize) -> Result<Vec<u8>> {
-//!     let mut entry = reader.entry(index).await?;
+//!     let mut entry = reader.reader_without_entry(index).await?;
 //!     let mut data = Vec::new();
 //!     entry.read_to_end(&mut data).await?;
 //!     Ok(data)

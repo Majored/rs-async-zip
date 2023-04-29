@@ -37,8 +37,8 @@
 //! let mut zip = ZipFileReader::new(Cursor::new([0; 0]));
 //!     
 //! // Print the name of every file in a ZIP archive.
-//! while let Some(entry) = zip.next_entry().await? {
-//!     println!("File: {}", entry.entry().filename());
+//! while let Some(entry) = zip.next_with_entry().await? {
+//!     println!("File: {}", entry.reader().entry().filename());
 //!     zip = entry.skip().await?;
 //! }
 //! #
@@ -127,12 +127,17 @@ where
     }
 }
 
-impl<'a, R> ZipFileReader<Reading<'a, Take<R>, WithoutEntry>>
+impl<'a, R, E> ZipFileReader<Reading<'a, Take<R>, E>>
 where
     R: AsyncRead + Unpin,
 {
+    /// Returns an immutable reference to the inner entry reader.
+    pub fn reader(&self) -> &ZipEntryReader<'a, Take<R>, E> {
+        &self.0 .0
+    }
+
     /// Returns a mutable reference to the inner entry reader.
-    pub fn reader(&mut self) -> &mut ZipEntryReader<'a, Take<R>, WithoutEntry> {
+    pub fn reader_mut(&mut self) -> &mut ZipEntryReader<'a, Take<R>, E> {
         &mut self.0 .0
     }
 
