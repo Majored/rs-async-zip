@@ -37,6 +37,8 @@ use futures_util::io::{AsyncRead, AsyncSeek, BufReader};
 #[cfg(feature = "tokio")]
 use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
 
+use super::io::entry::WithoutEntry;
+
 /// A ZIP reader which acts over a seekable source.
 #[derive(Clone)]
 pub struct ZipFileReader<R> {
@@ -79,7 +81,7 @@ where
     }
 
     /// Returns a new entry reader if the provided index is valid.
-    pub async fn entry(&mut self, index: usize) -> Result<ZipEntryReader<'_, R>> {
+    pub async fn entry(&mut self, index: usize) -> Result<ZipEntryReader<'_, R, WithoutEntry>> {
         let stored_entry = self.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
         let mut reader = BufReader::new(&mut self.reader);
 
@@ -94,7 +96,7 @@ where
 
     /// Returns a new entry reader if the provided index is valid.
     /// Consumes self
-    pub async fn into_entry<'a>(self, index: usize) -> Result<ZipEntryReader<'a, R>>
+    pub async fn into_entry<'a>(self, index: usize) -> Result<ZipEntryReader<'a, R, WithoutEntry>>
     where
         R: 'a,
     {

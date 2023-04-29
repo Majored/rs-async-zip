@@ -61,11 +61,13 @@ use futures_util::io::{AsyncRead, BufReader};
 #[cfg(feature = "tokio")]
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
+use super::io::entry::WithoutEntry;
+
 /// A type which encodes that [`ZipFileReader`] is ready to open a new entry.
 pub struct Ready<R>(R);
 
 /// A type which encodes that [`ZipFileReader`] is currently reading an entry.
-pub struct Reading<'a, R>(ZipEntryReader<'a, R>, ZipEntry);
+pub struct Reading<'a, R, E>(ZipEntryReader<'a, R, E>, ZipEntry);
 
 /// A ZIP reader which acts over a non-seekable source.
 ///
@@ -83,7 +85,7 @@ where
     }
 
     /// Opens the next entry for reading if the central directory hasn’t yet been reached.
-    pub async fn next_entry(mut self) -> Result<Option<ZipFileReader<Reading<'a, Take<R>>>>> {
+    pub async fn next_entry(mut self) -> Result<Option<ZipFileReader<Reading<'a, Take<R>, WithoutEntry>>>> {
         let entry = match crate::base::read::lfh(&mut self.0 .0).await? {
             Some(entry) => entry,
             None => return Ok(None),
@@ -112,7 +114,7 @@ where
     }
 }
 
-impl<'a, R> ZipFileReader<Reading<'a, Take<R>>>
+impl<'a, R> ZipFileReader<Reading<'a, Take<R>, WithoutEntry>>
 where
     R: AsyncRead + Unpin,
 {
@@ -122,7 +124,7 @@ where
     }
 
     /// Returns a mutable reference to the inner entry reader.
-    pub fn reader(&mut self) -> &mut ZipEntryReader<'a, Take<R>> {
+    pub fn reader(&mut self) -> &mut ZipEntryReader<'a, Take<R>, WithoutEntry> {
         &mut self.0 .0
     }
 

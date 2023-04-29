@@ -12,29 +12,35 @@ use std::task::{Context, Poll};
 use futures_util::io::{AsyncRead, AsyncReadExt, BufReader, Take};
 use pin_project::pin_project;
 
+pub struct WithEntry<'a>(&'a ZipEntry);
+pub struct WithoutEntry;
+
 /// A ZIP entry reader which may implement decompression.
 #[pin_project]
-pub struct ZipEntryReader<'a, R> {
+pub struct ZipEntryReader<'a, R, E> {
     #[pin]
     reader: HashedReader<CompressedReader<Take<OwnedReader<'a, R>>>>,
+    entry: E,
 }
 
-impl<'a, R> ZipEntryReader<'a, R>
+impl<'a, R> ZipEntryReader<'a, R, WithoutEntry>
 where
     R: AsyncRead + Unpin,
 {
     /// Constructs a new entry reader from its required parameters (incl. an owned R).
     pub(crate) fn new_with_owned(reader: BufReader<R>, compression: Compression, size: u64) -> Self {
-        Self { reader: HashedReader::new(CompressedReader::new(OwnedReader::Owned(reader).take(size), compression)) }
+        let reader = HashedReader::new(CompressedReader::new(OwnedReader::Owned(reader).take(size), compression));
+        Self { reader, entry: WithoutEntry }
     }
 
     /// Constructs a new entry reader from its required parameters (incl. a mutable borrow of an R).
     pub(crate) fn new_with_borrow(reader: BufReader<&'a mut R>, compression: Compression, size: u64) -> Self {
-        Self { reader: HashedReader::new(CompressedReader::new(OwnedReader::Borrow(reader).take(size), compression)) }
+        let reader = HashedReader::new(CompressedReader::new(OwnedReader::Borrow(reader).take(size), compression));
+        Self { reader, entry: WithoutEntry }
     }
 }
 
-impl<'a, R> AsyncRead for ZipEntryReader<'a, R>
+impl<'a, R> AsyncRead for ZipEntryReader<'a, R, WithoutEntry>
 where
     R: AsyncRead + Unpin,
 {
@@ -43,7 +49,7 @@ where
     }
 }
 
-impl<'a, R> ZipEntryReader<'a, R>
+impl<'a, R> ZipEntryReader<'a, R, WithoutEntry>
 where
     R: AsyncRead + Unpin,
 {

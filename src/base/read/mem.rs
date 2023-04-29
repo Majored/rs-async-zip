@@ -78,6 +78,8 @@ use std::sync::Arc;
 
 use futures_util::io::{BufReader, Cursor};
 
+use super::io::entry::WithoutEntry;
+
 struct Inner {
     data: Vec<u8>,
     file: ZipFile,
@@ -114,7 +116,7 @@ impl ZipFileReader {
     }
 
     /// Returns a new entry reader if the provided index is valid.
-    pub async fn entry(&self, index: usize) -> Result<ZipEntryReader<Cursor<&[u8]>>> {
+    pub async fn entry(&self, index: usize) -> Result<ZipEntryReader<Cursor<&[u8]>, WithoutEntry>> {
         let stored_entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
         let mut cursor = BufReader::new(Cursor::new(&self.inner.data[..]));
 

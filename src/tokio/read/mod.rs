@@ -13,7 +13,7 @@ use crate::base;
 use tokio;
 
 /// A [`tokio`]-specific type alias for [`base::read::ZipEntryReader`];
-pub type ZipEntryReader<'a, R> = crate::base::read::ZipEntryReader<'a, Compat<R>>;
+pub type ZipEntryReader<'a, R, E> = crate::base::read::ZipEntryReader<'a, Compat<R>, E>;
 
 pub mod seek {
     //! A ZIP reader which acts over a seekable source.
@@ -38,7 +38,7 @@ pub mod stream {
     use tokio_util::compat::Compat;
 
     /// A [`tokio`]-specific type alias for [`base::read::stream::Reading`];
-    pub type Reading<'a, R> = crate::base::read::stream::Reading<'a, Compat<R>>;
+    pub type Reading<'a, R, E> = crate::base::read::stream::Reading<'a, Compat<R>, E>;
     /// A [`tokio`]-specific type alias for [`base::read::stream::Ready`];
     pub type Ready<R> = crate::base::read::stream::Ready<Compat<R>>;
 }
