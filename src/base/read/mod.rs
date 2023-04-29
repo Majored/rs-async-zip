@@ -10,6 +10,8 @@ pub mod stream;
 pub(crate) mod io;
 
 // Re-exported as part of the public API.
+pub use crate::base::read::io::entry::WithEntry;
+pub use crate::base::read::io::entry::WithoutEntry;
 pub use crate::base::read::io::entry::ZipEntryReader;
 
 use crate::entry::{StoredZipEntry, ZipEntry};
