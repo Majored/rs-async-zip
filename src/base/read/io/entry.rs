@@ -107,7 +107,7 @@ where
 
 enum OwnedEntry<'a> {
     Owned(ZipEntry),
-    Borrow(&'a ZipEntry)
+    Borrow(&'a ZipEntry),
 }
 
 impl<'a> OwnedEntry<'a> {

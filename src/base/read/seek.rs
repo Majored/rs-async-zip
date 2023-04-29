@@ -37,7 +37,7 @@ use futures_util::io::{AsyncRead, AsyncSeek, BufReader};
 #[cfg(feature = "tokio")]
 use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
 
-use super::io::entry::{WithoutEntry, WithEntry};
+use super::io::entry::{WithEntry, WithoutEntry};
 
 /// A ZIP reader which acts over a seekable source.
 #[derive(Clone)]

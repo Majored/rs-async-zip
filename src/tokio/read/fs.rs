@@ -70,7 +70,7 @@
 #[cfg(doc)]
 use crate::base::read::seek;
 
-use crate::base::read::io::entry::{ZipEntryReader, WithoutEntry};
+use crate::base::read::io::entry::{WithoutEntry, ZipEntryReader};
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 

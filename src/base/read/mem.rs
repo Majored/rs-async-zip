@@ -78,7 +78,7 @@ use std::sync::Arc;
 
 use futures_util::io::{BufReader, Cursor};
 
-use super::io::entry::{WithoutEntry, WithEntry};
+use super::io::entry::{WithEntry, WithoutEntry};
 
 struct Inner {
     data: Vec<u8>,
@@ -136,7 +136,7 @@ impl ZipFileReader {
 
         stored_entry.seek_to_data_offset(&mut cursor).await?;
 
-        let reader =  ZipEntryReader::new_with_owned(
+        let reader = ZipEntryReader::new_with_owned(
             cursor,
             stored_entry.entry.compression(),
             stored_entry.entry.compressed_size(),
