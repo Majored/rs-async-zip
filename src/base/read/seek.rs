@@ -37,7 +37,7 @@ use futures_util::io::{AsyncRead, AsyncSeek, BufReader};
 #[cfg(feature = "tokio")]
 use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
 
-use super::io::entry::WithoutEntry;
+use super::io::entry::{WithoutEntry, WithEntry};
 
 /// A ZIP reader which acts over a seekable source.
 #[derive(Clone)]
@@ -81,7 +81,7 @@ where
     }
 
     /// Returns a new entry reader if the provided index is valid.
-    pub async fn entry(&mut self, index: usize) -> Result<ZipEntryReader<'_, R, WithoutEntry>> {
+    pub async fn reader_without_entry(&mut self, index: usize) -> Result<ZipEntryReader<'_, R, WithoutEntry>> {
         let stored_entry = self.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
         let mut reader = BufReader::new(&mut self.reader);
 
@@ -92,6 +92,22 @@ where
             stored_entry.entry.compression(),
             stored_entry.entry.compressed_size(),
         ))
+    }
+
+    /// Returns a new entry reader if the provided index is valid.
+    pub async fn reader_with_entry(&mut self, index: usize) -> Result<ZipEntryReader<'_, R, WithEntry<'_>>> {
+        let stored_entry = self.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
+        let mut reader = BufReader::new(&mut self.reader);
+
+        stored_entry.seek_to_data_offset(&mut reader).await?;
+
+        let reader = ZipEntryReader::new_with_borrow(
+            reader,
+            stored_entry.entry.compression(),
+            stored_entry.entry.compressed_size(),
+        );
+
+        Ok(reader.into_with_entry(stored_entry.entry()))
     }
 
     /// Returns a new entry reader if the provided index is valid.

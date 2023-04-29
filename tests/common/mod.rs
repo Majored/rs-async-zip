@@ -65,7 +65,7 @@ pub async fn check_decompress_seek(fname: &str) {
         }
         let fname = entry.entry().filename();
         let mut output = String::new();
-        let mut reader = zip.entry(idx).await.unwrap();
+        let mut reader = zip.reader_without_entry(idx).await.unwrap();
         let _ = reader.read_to_string_checked(&mut output, entry.entry()).await.unwrap();
         let fs_file = format!("tests/test_inputs/{fname}");
         let expected = tokio::fs::read_to_string(fs_file).await.unwrap();

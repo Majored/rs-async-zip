@@ -12,7 +12,12 @@ use std::task::{Context, Poll};
 use futures_util::io::{AsyncRead, AsyncReadExt, BufReader, Take};
 use pin_project::pin_project;
 
-pub struct WithEntry<'a>(&'a ZipEntry);
+enum OwnedEntry<'a> {
+    Owned(ZipEntry),
+    Borrow(&'a ZipEntry)
+}
+
+pub struct WithEntry<'a>(OwnedEntry<'a>);
 pub struct WithoutEntry;
 
 /// A ZIP entry reader which may implement decompression.
@@ -37,6 +42,14 @@ where
     pub(crate) fn new_with_borrow(reader: BufReader<&'a mut R>, compression: Compression, size: u64) -> Self {
         let reader = HashedReader::new(CompressedReader::new(OwnedReader::Borrow(reader).take(size), compression));
         Self { reader, entry: WithoutEntry }
+    }
+
+    pub(crate) fn into_with_entry(self, entry: &'a ZipEntry) -> ZipEntryReader<'a, R, WithEntry<'a>> {
+        ZipEntryReader { reader: self.reader, entry: WithEntry(OwnedEntry::Borrow(entry)) }
+    }
+
+    pub(crate) fn into_with_entry_owned(self, entry: ZipEntry) -> ZipEntryReader<'a, R, WithEntry<'a>> {
+        ZipEntryReader { reader: self.reader, entry: WithEntry(OwnedEntry::Owned(entry)) }
     }
 }
 

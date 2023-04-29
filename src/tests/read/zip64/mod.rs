@@ -18,7 +18,7 @@ async fn test_read_zip64_archive_mem() {
     let data = include_bytes!("zip64.zip").to_vec();
 
     let reader = ZipFileReader::new(data).await.unwrap();
-    let mut entry_reader = reader.entry(0).await.unwrap();
+    let mut entry_reader = reader.reader_without_entry(0).await.unwrap();
 
     let mut read_data = String::new();
     entry_reader.read_to_string(&mut read_data).await.expect("read failed");
@@ -40,7 +40,7 @@ async fn test_read_zip64_archive_stream() {
     let data = include_bytes!("zip64.zip").to_vec();
 
     let reader = ZipFileReader::new(data.as_slice());
-    let mut entry_reader = reader.next_entry().await.unwrap().unwrap();
+    let mut entry_reader = reader.next_without_entry().await.unwrap().unwrap();
 
     let mut read_data = String::new();
     entry_reader.reader().read_to_string(&mut read_data).await.expect("read failed");

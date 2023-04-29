@@ -78,7 +78,7 @@ use std::sync::Arc;
 
 use futures_util::io::{BufReader, Cursor};
 
-use super::io::entry::WithoutEntry;
+use super::io::entry::{WithoutEntry, WithEntry};
 
 struct Inner {
     data: Vec<u8>,
@@ -116,7 +116,7 @@ impl ZipFileReader {
     }
 
     /// Returns a new entry reader if the provided index is valid.
-    pub async fn entry(&self, index: usize) -> Result<ZipEntryReader<Cursor<&[u8]>, WithoutEntry>> {
+    pub async fn reader_without_entry(&self, index: usize) -> Result<ZipEntryReader<Cursor<&[u8]>, WithoutEntry>> {
         let stored_entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
         let mut cursor = BufReader::new(Cursor::new(&self.inner.data[..]));
 
@@ -127,5 +127,21 @@ impl ZipFileReader {
             stored_entry.entry.compression(),
             stored_entry.entry.compressed_size(),
         ))
+    }
+
+    /// Returns a new entry reader if the provided index is valid.
+    pub async fn reader_with_entry(&self, index: usize) -> Result<ZipEntryReader<Cursor<&[u8]>, WithEntry<'_>>> {
+        let stored_entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
+        let mut cursor = BufReader::new(Cursor::new(&self.inner.data[..]));
+
+        stored_entry.seek_to_data_offset(&mut cursor).await?;
+
+        let reader =  ZipEntryReader::new_with_owned(
+            cursor,
+            stored_entry.entry.compression(),
+            stored_entry.entry.compressed_size(),
+        );
+
+        Ok(reader.into_with_entry(stored_entry.entry()))
     }
 }

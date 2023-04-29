@@ -49,7 +49,7 @@ async fn unzip_file(archive: File, out_dir: &Path) {
         // https://github.com/python/cpython/blob/820ef62833bd2d84a141adedd9a05998595d6b6d/Lib/zipfile.py#L528
         let entry_is_dir = entry.filename().ends_with('/');
 
-        let mut entry_reader = reader.entry(index).await.expect("Failed to read ZipEntry");
+        let mut entry_reader = reader.reader_without_entry(index).await.expect("Failed to read ZipEntry");
 
         if entry_is_dir {
             // The directory may have been created if iteration is out of order.

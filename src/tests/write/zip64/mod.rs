@@ -120,7 +120,7 @@ async fn test_write_large_zip64_file_self_read() {
     assert!(reader.file().zip64);
     assert_eq!(reader.file().entries[0].entry.filename, "file");
     assert_eq!(reader.file().entries[0].entry.compressed_size, BATCHED_FILE_SIZE as u64);
-    let mut entry = reader.entry(0).await.unwrap();
+    let mut entry = reader.reader_without_entry(0).await.unwrap();
 
     let mut buffer = [0; 100_000];
     let mut bytes_total = 0;
