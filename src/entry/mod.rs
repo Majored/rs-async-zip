@@ -13,7 +13,7 @@ use crate::spec::{
     header::{ExtraField, LocalFileHeader},
     Compression,
 };
-use crate::ZipDateTime;
+use crate::{ZipDateTime, string::{ZipString, StringEncoding}};
 
 /// An immutable store of data about a ZIP entry.
 ///
@@ -22,7 +22,7 @@ use crate::ZipDateTime;
 /// non-allocating.
 #[derive(Clone, Debug)]
 pub struct ZipEntry {
-    pub(crate) filename: String,
+    pub(crate) filename: ZipString,
     pub(crate) compression: Compression,
     #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
     pub(crate) compression_level: async_compression::Level,
@@ -34,7 +34,7 @@ pub struct ZipEntry {
     pub(crate) internal_file_attribute: u16,
     pub(crate) external_file_attribute: u32,
     pub(crate) extra_fields: Vec<ExtraField>,
-    pub(crate) comment: String,
+    pub(crate) comment: ZipString,
 }
 
 impl From<ZipEntryBuilder> for ZipEntry {
@@ -44,7 +44,7 @@ impl From<ZipEntryBuilder> for ZipEntry {
 }
 
 impl ZipEntry {
-    pub(crate) fn new(filename: String, compression: Compression) -> Self {
+    pub(crate) fn new(filename: ZipString, compression: Compression) -> Self {
         ZipEntry {
             filename,
             compression,
@@ -58,7 +58,7 @@ impl ZipEntry {
             internal_file_attribute: 0,
             external_file_attribute: 0,
             extra_fields: Vec::new(),
-            comment: String::new(),
+            comment: String::new().into(),
         }
     }
 
@@ -68,7 +68,7 @@ impl ZipEntry {
     /// This will return the raw filename stored during ZIP creation. If calling this method on entries retrieved from
     /// untrusted ZIP files, the filename should be sanitised before being used as a path to prevent [directory
     /// traversal attacks](https://en.wikipedia.org/wiki/Directory_traversal_attack).
-    pub fn filename(&self) -> &str {
+    pub fn filename(&self) -> &ZipString {
         &self.filename
     }
 
@@ -118,7 +118,7 @@ impl ZipEntry {
     }
 
     /// Returns the entry's file comment.
-    pub fn comment(&self) -> &str {
+    pub fn comment(&self) -> &ZipString {
         &self.comment
     }
 
@@ -135,8 +135,8 @@ impl ZipEntry {
     }
 
     /// Returns whether or not the entry represents a directory.
-    pub fn dir(&self) -> bool {
-        self.filename.ends_with('/')
+    pub fn dir(&self) -> Result<bool> {
+        Ok(self.filename.as_str()?.ends_with('/'))
     }
 }
 
@@ -181,7 +181,11 @@ impl StoredZipEntry {
 
         // Skip the local file header and trailing data
         let header = LocalFileHeader::from_reader(&mut reader).await?;
-        let _filename = crate::base::read::io::read_string(&mut reader, header.file_name_length.into()).await?;
+        let _filename = crate::base::read::io::read_string(
+            &mut reader,
+            header.file_name_length.into(),
+            StringEncoding::Utf8,
+        ).await?;
         let _extra_field = crate::base::read::io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
 
         Ok(())

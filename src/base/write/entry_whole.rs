@@ -93,7 +93,8 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             flags: GeneralPurposeFlag {
                 data_descriptor: false,
                 encrypted: false,
-                filename_unicode: !self.entry.filename().is_ascii(),
+                // TODO: resolve unwrap usage
+                filename_unicode: !self.entry.filename().as_str().unwrap().is_ascii(),
             },
         };
 
@@ -106,7 +107,8 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             crc: lf_header.crc,
             extra_field_length: lf_header.extra_field_length,
             file_name_length: lf_header.file_name_length,
-            file_comment_length: self.entry.comment().len().try_into().map_err(|_| ZipError::CommentTooLarge)?,
+            // TODO: resolve unwarp usage
+            file_comment_length: self.entry.comment().as_str().unwrap().len().try_into().map_err(|_| ZipError::CommentTooLarge)?,
             mod_time: lf_header.mod_time,
             mod_date: lf_header.mod_date,
             flags: lf_header.flags,

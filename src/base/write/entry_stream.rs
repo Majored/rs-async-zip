@@ -113,7 +113,8 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             flags: GeneralPurposeFlag {
                 data_descriptor: true,
                 encrypted: false,
-                filename_unicode: !entry.filename().is_ascii(),
+                // TODO: resolve unwrap use
+                filename_unicode: !entry.filename().as_str().unwrap().is_ascii(),
             },
         };
 
@@ -188,7 +189,8 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             compression: self.lfh.compression,
             extra_field_length: self.lfh.extra_field_length,
             file_name_length: self.lfh.file_name_length,
-            file_comment_length: self.entry.comment().len().try_into().map_err(|_| ZipError::CommentTooLarge)?,
+            // TODO: resolve unwrap usage
+            file_comment_length: self.entry.comment().as_str().unwrap().len().try_into().map_err(|_| ZipError::CommentTooLarge)?,
             mod_time: self.lfh.mod_time,
             mod_date: self.lfh.mod_date,
             flags: self.lfh.flags,

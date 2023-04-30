@@ -25,9 +25,9 @@ async fn test_write_zip64_file() {
 
     let mut buffer = Vec::new();
     let mut writer = ZipFileWriter::new(&mut buffer).force_zip64();
-    let entry = ZipEntryBuilder::new("file1".to_string(), Compression::Stored);
+    let entry = ZipEntryBuilder::new("file1".to_string().into(), Compression::Stored);
     writer.write_entry_whole(entry, &[0, 0, 0, 0]).await.unwrap();
-    let entry = ZipEntryBuilder::new("file2".to_string(), Compression::Stored);
+    let entry = ZipEntryBuilder::new("file2".to_string().into(), Compression::Stored);
     let mut entry_writer = writer.write_entry_stream(entry).await.unwrap();
     entry_writer.write_all(&[0, 0, 0, 0]).await.unwrap();
     entry_writer.close().await.unwrap();
@@ -59,7 +59,7 @@ async fn test_write_large_zip64_file() {
 
     // Stream-written zip files are dubiously spec-conformant. We need to specify a valid file size
     // in order for rs-zip (and unzip) to correctly read these files.
-    let entry = ZipEntryBuilder::new("file".to_string(), Compression::Stored)
+    let entry = ZipEntryBuilder::new("file".to_string().into(), Compression::Stored)
         .size(BATCHED_FILE_SIZE as u64, BATCHED_FILE_SIZE as u64);
     let mut entry_writer = writer.write_entry_stream(entry).await.unwrap();
     for _ in 0..NUM_BATCHES {
@@ -108,7 +108,7 @@ async fn test_write_large_zip64_file_self_read() {
     let mut buffer = Vec::with_capacity(BATCHED_FILE_SIZE + 100_000);
     let mut writer = ZipFileWriter::new(&mut buffer);
 
-    let entry = ZipEntryBuilder::new("file".to_string(), Compression::Stored);
+    let entry = ZipEntryBuilder::new("file".to_string().into(), Compression::Stored);
     let mut entry_writer = writer.write_entry_stream(entry).await.unwrap();
     for _ in 0..NUM_BATCHES {
         entry_writer.write_all(&[0; BATCH_SIZE]).await.unwrap();
@@ -118,7 +118,8 @@ async fn test_write_large_zip64_file_self_read() {
 
     let reader = crate::base::read::mem::ZipFileReader::new(buffer).await.unwrap();
     assert!(reader.file().zip64);
-    assert_eq!(reader.file().entries[0].entry.filename, "file");
+    // TODO: resolve unwrap usage
+    assert_eq!(reader.file().entries[0].entry.filename().as_str().unwrap(), "file");
     assert_eq!(reader.file().entries[0].entry.compressed_size, BATCHED_FILE_SIZE as u64);
     let mut entry = reader.reader_without_entry(0).await.unwrap();
 
@@ -144,7 +145,7 @@ async fn test_write_zip64_file_many_entries() {
 
     let mut writer = ZipFileWriter::new(&mut buffer);
     for i in 0..=u16::MAX as u32 + 1 {
-        let entry = ZipEntryBuilder::new(i.to_string(), Compression::Stored);
+        let entry = ZipEntryBuilder::new(i.to_string().into(), Compression::Stored);
         writer.write_entry_whole(entry, &[]).await.unwrap();
     }
     assert!(writer.is_zip64);
@@ -167,7 +168,7 @@ async fn test_zip64_when_many_files_whole() {
     let mut sink = AsyncSink;
     let mut writer = ZipFileWriter::new(&mut sink);
     for i in 0..=u16::MAX as u32 + 1 {
-        let entry = ZipEntryBuilder::new(format!("{i}"), Compression::Stored);
+        let entry = ZipEntryBuilder::new(format!("{i}").into(), Compression::Stored);
         writer.write_entry_whole(entry, &[]).await.unwrap()
     }
     assert!(writer.is_zip64);
@@ -180,7 +181,7 @@ async fn test_zip64_when_many_files_stream() {
     let mut sink = AsyncSink;
     let mut writer = ZipFileWriter::new(&mut sink);
     for i in 0..=u16::MAX as u32 + 1 {
-        let entry = ZipEntryBuilder::new(format!("{i}"), Compression::Stored);
+        let entry = ZipEntryBuilder::new(format!("{i}").into(), Compression::Stored);
         let entrywriter = writer.write_entry_stream(entry).await.unwrap();
         entrywriter.close().await.unwrap();
     }
@@ -196,10 +197,10 @@ async fn test_force_no_zip64_errors_with_too_many_files_whole() {
     let mut sink = AsyncSink;
     let mut writer = ZipFileWriter::new(&mut sink).force_no_zip64();
     for i in 0..u16::MAX {
-        let entry = ZipEntryBuilder::new(format!("{i}"), Compression::Stored);
+        let entry = ZipEntryBuilder::new(format!("{i}").into(), Compression::Stored);
         writer.write_entry_whole(entry, &[]).await.unwrap()
     }
-    let entry = ZipEntryBuilder::new("65537".to_string(), Compression::Stored);
+    let entry = ZipEntryBuilder::new("65537".to_string().into(), Compression::Stored);
     let result = writer.write_entry_whole(entry, &[]).await;
 
     assert!(matches!(result, Err(ZipError::Zip64Needed(Zip64ErrorCase::TooManyFiles))));
@@ -212,11 +213,11 @@ async fn test_force_no_zip64_errors_with_too_many_files_stream() {
     let mut sink = AsyncSink;
     let mut writer = ZipFileWriter::new(&mut sink).force_no_zip64();
     for i in 0..u16::MAX {
-        let entry = ZipEntryBuilder::new(format!("{i}"), Compression::Stored);
+        let entry = ZipEntryBuilder::new(format!("{i}").into(), Compression::Stored);
         let entrywriter = writer.write_entry_stream(entry).await.unwrap();
         entrywriter.close().await.unwrap();
     }
-    let entry = ZipEntryBuilder::new("65537".to_string(), Compression::Stored);
+    let entry = ZipEntryBuilder::new("65537".to_string().into(), Compression::Stored);
     let entrywriter = writer.write_entry_stream(entry).await.unwrap();
     let result = entrywriter.close().await;
 
@@ -230,7 +231,7 @@ async fn test_force_no_zip64_errors_with_too_large_file_stream() {
     let mut sink = AsyncSink;
     let mut writer = ZipFileWriter::new(&mut sink).force_no_zip64();
 
-    let entry = ZipEntryBuilder::new("-".to_string(), Compression::Stored);
+    let entry = ZipEntryBuilder::new("-".to_string().into(), Compression::Stored);
     let mut entrywriter = writer.write_entry_stream(entry).await.unwrap();
 
     // Writing 4GB, 1kb at a time

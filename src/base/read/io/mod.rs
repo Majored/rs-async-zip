@@ -10,14 +10,15 @@ pub(crate) mod owned;
 
 pub use combined_record::CombinedCentralDirectoryRecord;
 
+use crate::string::{ZipString, StringEncoding};
 use futures_util::io::{AsyncRead, AsyncReadExt};
 
 /// Read and return a dynamic length string from a reader which impls AsyncRead.
-pub(crate) async fn read_string<R>(reader: R, length: usize) -> std::io::Result<String> where R: AsyncRead + Unpin {
-    let mut buffer = String::with_capacity(length);
-    reader.take(length as u64).read_to_string(&mut buffer).await?;
-
-    Ok(buffer)
+pub(crate) async fn read_string<R>(reader: R, length: usize, encoding: StringEncoding) -> std::io::Result<ZipString>
+where
+    R: AsyncRead + Unpin
+{
+    Ok(ZipString::new(read_bytes(reader, length).await?, encoding))
 }
 
 /// Read and return a dynamic length vector of bytes from a reader which impls AsyncRead.

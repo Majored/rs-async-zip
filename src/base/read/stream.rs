@@ -38,7 +38,7 @@
 //!     
 //! // Print the name of every file in a ZIP archive.
 //! while let Some(entry) = zip.next_with_entry().await? {
-//!     println!("File: {}", entry.reader().entry().filename());
+//!     println!("File: {}", entry.reader().entry().filename().as_str().unwrap());
 //!     zip = entry.skip().await?;
 //! }
 //! #

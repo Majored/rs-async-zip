@@ -15,6 +15,7 @@ pub use crate::base::read::io::entry::WithoutEntry;
 pub use crate::base::read::io::entry::ZipEntryReader;
 
 use crate::date::ZipDateTime;
+use crate::string::StringEncoding;
 use crate::entry::{StoredZipEntry, ZipEntry};
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
@@ -46,7 +47,10 @@ where
     let eocdr = EndOfCentralDirectoryHeader::from_reader(&mut reader).await?;
     log::debug!("EOCDR: {:?}", eocdr);
 
-    let comment = crate::base::read::io::read_string(&mut reader, eocdr.file_comm_length.into()).await?;
+    let comment = crate::base::read::io::read_string(
+        &mut reader, eocdr.file_comm_length.into(),
+        crate::StringEncoding::Utf8
+    ).await?;
 
     // Check the 20 bytes before the EOCDR for the Zip64 EOCDL, plus an extra 4 bytes because the offset
     // does not include the signature. If the ECODL exists we are dealing with a Zip64 file.
@@ -152,11 +156,19 @@ where
     crate::utils::assert_signature(&mut reader, CDH_SIGNATURE).await?;
 
     let header = CentralDirectoryRecord::from_reader(&mut reader).await?;
-    let filename = crate::base::read::io::read_string(&mut reader, header.file_name_length.into()).await?;
+    let filename = crate::base::read::io::read_string(
+        &mut reader,
+        header.file_name_length.into(),
+        StringEncoding::Utf8
+    ).await?;
     let compression = Compression::try_from(header.compression)?;
     let extra_field = crate::base::read::io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
     let extra_fields = parse_extra_fields(extra_field)?;
-    let comment = crate::base::read::io::read_string(reader, header.file_comment_length.into()).await?;
+    let comment = crate::base::read::io::read_string(
+        reader,
+        header.file_comment_length.into(),
+        StringEncoding::Utf8
+    ).await?;
 
     let zip64_extra_field = get_zip64_extra_field(&extra_fields);
     let (uncompressed_size, compressed_size) =
@@ -210,7 +222,11 @@ where
     };
 
     let header = LocalFileHeader::from_reader(&mut reader).await?;
-    let filename = crate::base::read::io::read_string(&mut reader, header.file_name_length.into()).await?;
+    let filename = crate::base::read::io::read_string(
+        &mut reader,
+        header.file_name_length.into(),
+        StringEncoding::Utf8,
+    ).await?;
     let compression = Compression::try_from(header.compression)?;
     let extra_field = crate::base::read::io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
     let extra_fields = parse_extra_fields(extra_field)?;
@@ -242,7 +258,7 @@ where
         internal_file_attribute: 0,
         external_file_attribute: 0,
         extra_fields,
-        comment: String::new(),
+        comment: String::new().into(),
     };
 
     Ok(Some(entry))

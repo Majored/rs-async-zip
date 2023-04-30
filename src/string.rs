@@ -25,7 +25,7 @@ impl ZipString {
     /// `std::str::from_utf8()` fails), the encoding is defaulted back to [`StringEncoding::Raw`].
     pub fn new(raw: Vec<u8>, mut encoding: StringEncoding) -> Self {
         if let StringEncoding::Utf8 = encoding {
-            if std::str::from_utf8(&raw).is_ok() {
+            if std::str::from_utf8(&raw).is_err() {
                 encoding = StringEncoding::Raw;
             }
         }

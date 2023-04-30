@@ -25,7 +25,7 @@ pub async fn compress_to_mem(compress: Compression) -> Vec<u8> {
 
     for fname in FILE_LIST {
         let content = tokio::fs::read(format!("{FOLDER_PREFIX}/{fname}")).await.unwrap();
-        let opts = ZipEntryBuilder::new(fname.to_string(), compress);
+        let opts = ZipEntryBuilder::new(fname.to_string().into(), compress);
 
         let mut entry_writer = writer.write_entry_stream(opts).await.unwrap();
         entry_writer.write_all(&content).await.unwrap();
@@ -41,10 +41,12 @@ pub async fn check_decompress_fs(fname: &str) {
     let zip = fs::ZipFileReader::new(fname).await.unwrap();
     let zip_entries: Vec<_> = zip.file().entries().to_vec();
     for (idx, entry) in zip_entries.into_iter().enumerate() {
-        if entry.entry().dir() {
+        // TODO: resolve unwrap usage
+        if entry.entry().dir().unwrap() {
             continue;
         }
-        let fname = entry.entry().filename();
+        // TODO: resolve unwrap usage
+        let fname = entry.entry().filename().as_str().unwrap();
         let mut output = String::new();
         let mut reader = zip.reader_with_entry(idx).await.unwrap();
         let _ = reader.read_to_string_checked(&mut output).await.unwrap();
@@ -60,10 +62,12 @@ pub async fn check_decompress_seek(fname: &str) {
     let mut zip = seek::ZipFileReader::new(&mut file_compat).await.unwrap();
     let zip_entries: Vec<_> = zip.file().entries().to_vec();
     for (idx, entry) in zip_entries.into_iter().enumerate() {
-        if entry.entry().dir() {
+        // TODO: resolve unwrap usage
+        if entry.entry().dir().unwrap() {
             continue;
         }
-        let fname = entry.entry().filename();
+        // TODO: resolve unwrap usage
+        let fname = entry.entry().filename().as_str().unwrap();
         let mut output = String::new();
         let mut reader = zip.reader_with_entry(idx).await.unwrap();
         let _ = reader.read_to_string_checked(&mut output).await.unwrap();
@@ -77,10 +81,12 @@ pub async fn check_decompress_mem(zip_data: Vec<u8>) {
     let zip = mem::ZipFileReader::new(zip_data).await.unwrap();
     let zip_entries: Vec<_> = zip.file().entries().to_vec();
     for (idx, entry) in zip_entries.into_iter().enumerate() {
-        if entry.entry().dir() {
+        // TODO: resolve unwrap usage
+        if entry.entry().dir().unwrap() {
             continue;
         }
-        let fname = entry.entry().filename();
+        // TODO: resolve unwrap usage
+        let fname = entry.entry().filename().as_str().unwrap();
         let mut output = String::new();
         let mut reader = zip.reader_with_entry(idx).await.unwrap();
         let _ = reader.read_to_string_checked(&mut output).await.unwrap();

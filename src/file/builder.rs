@@ -1,7 +1,7 @@
 // Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::file::ZipFile;
+use crate::{file::ZipFile, string::ZipString};
 
 /// A builder for [`ZipFile`].
 pub struct ZipFileBuilder(pub(crate) ZipFile);
@@ -14,7 +14,7 @@ impl From<ZipFile> for ZipFileBuilder {
 
 impl Default for ZipFileBuilder {
     fn default() -> Self {
-        ZipFileBuilder(ZipFile { entries: Vec::new(), zip64: false, comment: String::new() })
+        ZipFileBuilder(ZipFile { entries: Vec::new(), zip64: false, comment: String::new().into() })
     }
 }
 
@@ -24,7 +24,7 @@ impl ZipFileBuilder {
     }
 
     /// Sets the file's comment.
-    pub fn comment(mut self, comment: String) -> Self {
+    pub fn comment(mut self, comment: ZipString) -> Self {
         self.0.comment = comment;
         self
     }

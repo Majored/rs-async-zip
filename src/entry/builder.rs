@@ -3,7 +3,7 @@
 
 use crate::entry::ZipEntry;
 use crate::spec::{attribute::AttributeCompatibility, header::ExtraField, Compression};
-use crate::ZipDateTime;
+use crate::{date::ZipDateTime, string::ZipString};
 
 /// A builder for [`ZipEntry`].
 pub struct ZipEntryBuilder(pub(crate) ZipEntry);
@@ -18,12 +18,12 @@ impl ZipEntryBuilder {
     /// Constructs a new builder which defines the raw underlying data of a ZIP entry.
     ///
     /// A filename and compression method are needed to construct the builder as minimal parameters.
-    pub fn new(filename: String, compression: Compression) -> Self {
+    pub fn new(filename: ZipString, compression: Compression) -> Self {
         Self(ZipEntry::new(filename, compression))
     }
 
     /// Sets the entry's filename.
-    pub fn filename(mut self, filename: String) -> Self {
+    pub fn filename(mut self, filename: ZipString) -> Self {
         self.0.filename = filename;
         self
     }
@@ -83,7 +83,7 @@ impl ZipEntryBuilder {
     }
 
     /// Sets the entry's file comment.
-    pub fn comment(mut self, comment: String) -> Self {
+    pub fn comment(mut self, comment: ZipString) -> Self {
         self.0.comment = comment;
         self
     }
@@ -104,7 +104,7 @@ impl ZipEntryBuilder {
     /// ```
     /// # use async_zip::{ZipEntry, ZipEntryBuilder, Compression};
     /// #
-    /// # let builder = ZipEntryBuilder::new(String::from("foo.bar"), Compression::Stored);
+    /// # let builder = ZipEntryBuilder::new(String::from("foo.bar").into(), Compression::Stored);
     /// let entry: ZipEntry = builder.into();
     /// ```
     pub fn build(self) -> ZipEntry {

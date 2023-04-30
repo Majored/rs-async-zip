@@ -15,7 +15,7 @@
 //! let mut writer = ZipFileWriter::new(Vec::<u8>::new());
 //!
 //! let data = b"This is an example file.";
-//! let opts = ZipEntryBuilder::new(String::from("foo.txt"), Compression::Deflate);
+//! let opts = ZipEntryBuilder::new(String::from("foo.txt").into(), Compression::Deflate);
 //!
 //! writer.write_entry_whole(opts, data).await?;
 //! writer.close().await?;
@@ -37,7 +37,7 @@
 //! let mut writer = ZipFileWriter::new(Vec::<u8>::new());
 //!
 //! let data = b"This is an example file.";
-//! let opts = ZipEntryBuilder::new(String::from("bar.txt"), Compression::Deflate);
+//! let opts = ZipEntryBuilder::new(String::from("bar.txt").into(), Compression::Deflate);
 //!
 //! let mut entry_writer = writer.write_entry_stream(opts).await?;
 //! entry_writer.write_all(data).await.unwrap();
