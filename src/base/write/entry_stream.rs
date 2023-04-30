@@ -190,7 +190,14 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             extra_field_length: self.lfh.extra_field_length,
             file_name_length: self.lfh.file_name_length,
             // TODO: resolve unwrap usage
-            file_comment_length: self.entry.comment().as_str().unwrap().len().try_into().map_err(|_| ZipError::CommentTooLarge)?,
+            file_comment_length: self
+                .entry
+                .comment()
+                .as_str()
+                .unwrap()
+                .len()
+                .try_into()
+                .map_err(|_| ZipError::CommentTooLarge)?,
             mod_time: self.lfh.mod_time,
             mod_date: self.lfh.mod_date,
             flags: self.lfh.flags,

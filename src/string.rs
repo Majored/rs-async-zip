@@ -52,7 +52,7 @@ impl ZipString {
             return Err(ZipError::StringNotUtf8);
         }
 
-        // SAFTEY:
+        // SAFETY:
         // "The bytes passed in must be valid UTF-8.'
         //
         // This function will error if self.encoding is not StringEncoding::Utf8.
@@ -73,7 +73,7 @@ impl ZipString {
             return Err(ZipError::StringNotUtf8);
         }
 
-        // SAFTEY: See above.
+        // SAFETY: See above.
         Ok(unsafe { String::from_utf8_unchecked(self.raw) })
     }
 }

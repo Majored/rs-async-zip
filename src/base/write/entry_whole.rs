@@ -108,7 +108,14 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             extra_field_length: lf_header.extra_field_length,
             file_name_length: lf_header.file_name_length,
             // TODO: resolve unwarp usage
-            file_comment_length: self.entry.comment().as_str().unwrap().len().try_into().map_err(|_| ZipError::CommentTooLarge)?,
+            file_comment_length: self
+                .entry
+                .comment()
+                .as_str()
+                .unwrap()
+                .len()
+                .try_into()
+                .map_err(|_| ZipError::CommentTooLarge)?,
             mod_time: lf_header.mod_time,
             mod_date: lf_header.mod_date,
             flags: lf_header.flags,
