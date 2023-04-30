@@ -42,9 +42,11 @@ pub mod error;
 #[cfg(feature = "tokio")]
 pub mod tokio;
 
+pub(crate) mod date;
 pub(crate) mod entry;
 pub(crate) mod file;
 pub(crate) mod spec;
+pub(crate) mod string;
 pub(crate) mod utils;
 
 #[cfg(test)]
@@ -52,7 +54,9 @@ pub(crate) mod tests;
 
 pub use crate::spec::attribute::AttributeCompatibility;
 pub use crate::spec::compression::{Compression, DeflateOption};
-pub use crate::spec::date::ZipDateTime;
 
 pub use crate::entry::{builder::ZipEntryBuilder, StoredZipEntry, ZipEntry};
 pub use crate::file::{builder::ZipFileBuilder, ZipFile};
+
+pub use crate::date::ZipDateTime;
+pub use crate::string::{StringEncoding, ZipString};

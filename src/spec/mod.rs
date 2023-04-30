@@ -4,7 +4,6 @@
 pub(crate) mod attribute;
 pub(crate) mod compression;
 pub(crate) mod consts;
-pub(crate) mod date;
 pub(crate) mod extra_field;
 pub(crate) mod header;
 pub(crate) mod parse;

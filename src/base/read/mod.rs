@@ -14,12 +14,12 @@ pub use crate::base::read::io::entry::WithEntry;
 pub use crate::base::read::io::entry::WithoutEntry;
 pub use crate::base::read::io::entry::ZipEntryReader;
 
+use crate::date::ZipDateTime;
 use crate::entry::{StoredZipEntry, ZipEntry};
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::consts::{CDH_SIGNATURE, LFH_SIGNATURE, NON_ZIP64_MAX_SIZE, SIGNATURE_LENGTH, ZIP64_EOCDL_LENGTH};
-use crate::spec::date::ZipDateTime;
 use crate::spec::header::{
     CentralDirectoryRecord, EndOfCentralDirectoryHeader, ExtraField, LocalFileHeader,
     Zip64EndOfCentralDirectoryLocator, Zip64EndOfCentralDirectoryRecord, Zip64ExtendedInformationExtraField,

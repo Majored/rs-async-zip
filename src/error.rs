@@ -46,6 +46,8 @@ pub enum ZipError {
     CommentTooLarge,
     #[error("filename exceeded maximum size")]
     FileNameTooLarge,
+    #[error("attempted to convert non-UTF8 bytes to a string/str")]
+    StringNotUtf8,
 
     #[error("unable to locate the end of central directory record")]
     UnableToLocateEOCDR,

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
+// Copyright (c) 2021-2023 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 #[cfg(feature = "chrono")]

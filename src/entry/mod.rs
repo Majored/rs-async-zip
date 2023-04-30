@@ -10,10 +10,10 @@ use crate::error::{Result, ZipError};
 use crate::spec::{
     attribute::AttributeCompatibility,
     consts::LFH_SIGNATURE,
-    date::ZipDateTime,
     header::{ExtraField, LocalFileHeader},
     Compression,
 };
+use crate::ZipDateTime;
 
 /// An immutable store of data about a ZIP entry.
 ///
