@@ -13,7 +13,7 @@ pub use combined_record::CombinedCentralDirectoryRecord;
 use futures_util::io::{AsyncRead, AsyncReadExt};
 
 /// Read and return a dynamic length string from a reader which impls AsyncRead.
-pub(crate) async fn read_string<R: AsyncRead + Unpin>(reader: R, length: usize) -> std::io::Result<String> {
+pub(crate) async fn read_string<R>(reader: R, length: usize) -> std::io::Result<String> where R: AsyncRead + Unpin {
     let mut buffer = String::with_capacity(length);
     reader.take(length as u64).read_to_string(&mut buffer).await?;
 
@@ -21,7 +21,7 @@ pub(crate) async fn read_string<R: AsyncRead + Unpin>(reader: R, length: usize) 
 }
 
 /// Read and return a dynamic length vector of bytes from a reader which impls AsyncRead.
-pub(crate) async fn read_bytes<R: AsyncRead + Unpin>(reader: R, length: usize) -> std::io::Result<Vec<u8>> {
+pub(crate) async fn read_bytes<R>(reader: R, length: usize) -> std::io::Result<Vec<u8>> where R: AsyncRead + Unpin {
     let mut buffer = Vec::with_capacity(length);
     reader.take(length as u64).read_to_end(&mut buffer).await?;
 
