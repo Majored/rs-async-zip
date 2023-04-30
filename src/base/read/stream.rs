@@ -121,7 +121,7 @@ impl<R> ZipFileReader<TokioReady<R>>
 where
     R: tokio::io::AsyncRead + Unpin,
 {
-    /// Construct a new ZIP file writer from a mutable reference to a writer.
+    /// Constructs a new tokio-specific ZIP reader from a non-seekable source.
     pub fn with_tokio(reader: R) -> ZipFileReader<TokioReady<R>> {
         Self(Ready(reader.compat()))
     }

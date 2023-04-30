@@ -43,13 +43,12 @@ use tokio::{io::AsyncReadExt, fs::File};
 use async_zip::tokio::read::seek::ZipFileReader;
 ...
 
-let mut file = File::open("./Archive.zip").await.unwrap();
-let mut zip = ZipFileReader::new(&mut file).await.unwrap();
+let mut file = File::open("./Archive.zip").await?;
+let mut zip = ZipFileReader::with_tokio(&mut file).await?;
 
-let entry = zip.file().entries().get(0).unwrap().clone();
 let mut string = String::new();
-let mut reader = zip.entry(0).await.unwrap();
-reader.read_to_string_checked(&mut string, entry.entry()).await.unwrap();
+let mut reader = zip.reader_with_entry(0).await?;
+reader.read_to_string_checked(&mut string).await?;
 
 println!("{}", string);
 ```
@@ -61,14 +60,14 @@ use async_zip::{Compression, ZipEntryBuilder};
 use tokio::fs::File;
 ...
 
-let mut file = File::create("foo.zip").await.unwrap();
-let mut writer = ZipFileWriter::new(&mut file);
+let mut file = File::create("foo.zip").await?;
+let mut writer = ZipFileWriter::with_tokio(&mut file);
 
 let data = b"This is an example file.";
-let builder = ZipEntryBuilder::new(String::from("bar.txt"), Compression::Deflate);
+let builder = ZipEntryBuilder::new("bar.txt".into(), Compression::Deflate);
 
-writer.write_entry_whole(builder, data).await.unwrap();
-writer.close().await.unwrap();
+writer.write_entry_whole(builder, data).await?;
+writer.close().await?;
 ```
 
 ## Contributions

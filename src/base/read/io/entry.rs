@@ -12,7 +12,10 @@ use std::task::{Context, Poll};
 use futures_util::io::{AsyncRead, AsyncReadExt, BufReader, Take};
 use pin_project::pin_project;
 
+/// A type which encodes that [`ZipEntryReader`] has associated entry data.
 pub struct WithEntry<'a>(OwnedEntry<'a>);
+
+/// A type which encodes that [`ZipEntryReader`] has no associated entry data.
 pub struct WithoutEntry;
 
 /// A ZIP entry reader which may implement decompression.
@@ -78,6 +81,7 @@ impl<R> ZipEntryReader<'_, R, WithEntry<'_>>
 where
     R: AsyncRead + Unpin,
 {
+    /// Returns an immutable reference to the associated entry data.
     pub fn entry(&self) -> &'_ ZipEntry {
         self.entry.0.entry()
     }
