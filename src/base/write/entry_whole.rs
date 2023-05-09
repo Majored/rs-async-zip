@@ -12,6 +12,7 @@ use crate::spec::{
     },
     Compression,
 };
+use crate::string::StringEncoding;
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use futures_util::io::Cursor;
@@ -94,7 +95,8 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
                 data_descriptor: false,
                 encrypted: false,
                 // TODO: resolve unwrap usage
-                filename_unicode: !self.entry.filename().as_str().unwrap().is_ascii(),
+                filename_unicode: matches!(self.entry.filename().encoding(), StringEncoding::Utf8)
+                    && matches!(self.entry.comment().encoding(), StringEncoding::Utf8),
             },
         };
 
@@ -107,12 +109,10 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             crc: lf_header.crc,
             extra_field_length: lf_header.extra_field_length,
             file_name_length: lf_header.file_name_length,
-            // TODO: resolve unwarp usage
             file_comment_length: self
                 .entry
                 .comment()
-                .as_str()
-                .unwrap()
+                .as_bytes()
                 .len()
                 .try_into()
                 .map_err(|_| ZipError::CommentTooLarge)?,

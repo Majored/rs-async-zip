@@ -12,6 +12,7 @@ use crate::spec::header::{
     CentralDirectoryRecord, ExtraField, GeneralPurposeFlag, HeaderId, LocalFileHeader,
     Zip64ExtendedInformationExtraField,
 };
+use crate::string::StringEncoding;
 
 use std::io::Error;
 use std::pin::Pin;
@@ -114,7 +115,8 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
                 data_descriptor: true,
                 encrypted: false,
                 // TODO: resolve unwrap use
-                filename_unicode: !entry.filename().as_str().unwrap().is_ascii(),
+                filename_unicode: matches!(entry.filename().encoding(), StringEncoding::Utf8)
+                    && matches!(entry.comment().encoding(), StringEncoding::Utf8),
             },
         };
 
@@ -189,12 +191,10 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             compression: self.lfh.compression,
             extra_field_length: self.lfh.extra_field_length,
             file_name_length: self.lfh.file_name_length,
-            // TODO: resolve unwrap usage
             file_comment_length: self
                 .entry
                 .comment()
-                .as_str()
-                .unwrap()
+                .as_bytes()
                 .len()
                 .try_into()
                 .map_err(|_| ZipError::CommentTooLarge)?,
