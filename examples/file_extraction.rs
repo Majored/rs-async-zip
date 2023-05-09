@@ -41,7 +41,7 @@ async fn unzip_file(archive: File, out_dir: &Path) {
     let archive = archive.compat();
     let mut reader = ZipFileReader::new(archive).await.expect("Failed to read zip file");
     for index in 0..reader.file().entries().len() {
-        let entry = &reader.file().entries().get(index).unwrap().entry();
+        let entry = reader.file().entries().get(index).unwrap();
         let path = out_dir.join(sanitize_file_path(entry.filename().as_str().unwrap()));
         // If the filename of the entry ends with '/', it is treated as a directory.
         // This is implemented by previous versions of this crate and the Python Standard Library.

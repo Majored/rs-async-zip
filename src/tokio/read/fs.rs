@@ -152,6 +152,6 @@ impl ZipFileReader {
             stored_entry.entry.compressed_size(),
         );
 
-        Ok(reader.into_with_entry(stored_entry.entry()))
+        Ok(reader.into_with_entry(stored_entry))
     }
 }

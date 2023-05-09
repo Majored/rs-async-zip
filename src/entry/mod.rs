@@ -3,6 +3,8 @@
 
 pub mod builder;
 
+use std::ops::Deref;
+
 use futures_util::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
 
 use crate::entry::builder::ZipEntryBuilder;
@@ -155,11 +157,6 @@ pub struct StoredZipEntry {
 }
 
 impl StoredZipEntry {
-    /// Returns a reference to the inner ZIP entry.
-    pub fn entry(&self) -> &ZipEntry {
-        &self.entry
-    }
-
     /// Returns the offset in bytes to where the header of the entry starts.
     pub fn header_offset(&self) -> u64 {
         self.file_offset
@@ -190,5 +187,13 @@ impl StoredZipEntry {
         let _extra_field = crate::base::read::io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
 
         Ok(())
+    }
+}
+
+impl Deref for StoredZipEntry {
+    type Target = ZipEntry;
+
+    fn deref(&self) -> &Self::Target {
+        &self.entry
     }
 }

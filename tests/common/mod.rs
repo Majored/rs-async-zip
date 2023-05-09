@@ -42,11 +42,11 @@ pub async fn check_decompress_fs(fname: &str) {
     let zip_entries: Vec<_> = zip.file().entries().to_vec();
     for (idx, entry) in zip_entries.into_iter().enumerate() {
         // TODO: resolve unwrap usage
-        if entry.entry().dir().unwrap() {
+        if entry.dir().unwrap() {
             continue;
         }
         // TODO: resolve unwrap usage
-        let fname = entry.entry().filename().as_str().unwrap();
+        let fname = entry.filename().as_str().unwrap();
         let mut output = String::new();
         let mut reader = zip.reader_with_entry(idx).await.unwrap();
         let _ = reader.read_to_string_checked(&mut output).await.unwrap();
@@ -63,11 +63,11 @@ pub async fn check_decompress_seek(fname: &str) {
     let zip_entries: Vec<_> = zip.file().entries().to_vec();
     for (idx, entry) in zip_entries.into_iter().enumerate() {
         // TODO: resolve unwrap usage
-        if entry.entry().dir().unwrap() {
+        if entry.dir().unwrap() {
             continue;
         }
         // TODO: resolve unwrap usage
-        let fname = entry.entry().filename().as_str().unwrap();
+        let fname = entry.filename().as_str().unwrap();
         let mut output = String::new();
         let mut reader = zip.reader_with_entry(idx).await.unwrap();
         let _ = reader.read_to_string_checked(&mut output).await.unwrap();
@@ -82,11 +82,11 @@ pub async fn check_decompress_mem(zip_data: Vec<u8>) {
     let zip_entries: Vec<_> = zip.file().entries().to_vec();
     for (idx, entry) in zip_entries.into_iter().enumerate() {
         // TODO: resolve unwrap usage
-        if entry.entry().dir().unwrap() {
+        if entry.dir().unwrap() {
             continue;
         }
         // TODO: resolve unwrap usage
-        let fname = entry.entry().filename().as_str().unwrap();
+        let fname = entry.filename().as_str().unwrap();
         let mut output = String::new();
         let mut reader = zip.reader_with_entry(idx).await.unwrap();
         let _ = reader.read_to_string_checked(&mut output).await.unwrap();
