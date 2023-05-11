@@ -39,7 +39,7 @@ log = "0.4.17"
 pin-project = "1"
 thiserror = "1"
 
-async-compression = { version = "0.3", default-features = false, features = ["futures-io"], optional = true }
+async-compression = { version = "0.4", default-features = false, features = ["futures-io"], optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock"], optional = true }
 tokio = { version = "1", default-features = false, optional = true }
 tokio-util = { version = "0.7", features = ["compat"], optional = true }
