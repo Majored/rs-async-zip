@@ -88,7 +88,7 @@ pub enum DeflateOption {
     Super,
 
     /// Other implementation defined level.
-    Other(u32),
+    Other(i32),
 }
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
