@@ -94,7 +94,6 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             flags: GeneralPurposeFlag {
                 data_descriptor: false,
                 encrypted: false,
-                // TODO: resolve unwrap usage
                 filename_unicode: matches!(self.entry.filename().encoding(), StringEncoding::Utf8)
                     && matches!(self.entry.comment().encoding(), StringEncoding::Utf8),
             },

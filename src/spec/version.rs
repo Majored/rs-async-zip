@@ -19,8 +19,7 @@ pub fn as_needed_to_extract(entry: &ZipEntry) -> u16 {
         _ => 10,
     };
 
-    // TODO: resolve unwrap use.
-    if entry.dir().unwrap() {
+    if let Ok(true) = entry.dir() {
         version = std::cmp::max(version, 20);
     }
 

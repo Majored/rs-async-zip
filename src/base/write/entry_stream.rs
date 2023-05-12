@@ -114,7 +114,6 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             flags: GeneralPurposeFlag {
                 data_descriptor: true,
                 encrypted: false,
-                // TODO: resolve unwrap use
                 filename_unicode: matches!(entry.filename().encoding(), StringEncoding::Utf8)
                     && matches!(entry.comment().encoding(), StringEncoding::Utf8),
             },
