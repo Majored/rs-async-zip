@@ -40,12 +40,10 @@ where
     R: AsyncRead + AsyncSeek + Unpin,
 {
     // First find and parse the EOCDR.
-    log::debug!("Locate EOCDR");
     let eocdr_offset = crate::base::read::io::locator::eocdr(&mut reader).await?;
 
     reader.seek(SeekFrom::Start(eocdr_offset)).await?;
     let eocdr = EndOfCentralDirectoryHeader::from_reader(&mut reader).await?;
-    log::debug!("EOCDR: {:?}", eocdr);
 
     let comment = io::read_string(&mut reader, eocdr.file_comm_length.into(), crate::StringEncoding::Utf8).await?;
 
@@ -56,20 +54,17 @@ where
         Some(offset) => {
             reader.seek(SeekFrom::Start(offset)).await?;
             let zip64_locator = Zip64EndOfCentralDirectoryLocator::try_from_reader(&mut reader).await?;
-            log::debug!("Zip64EOCDL: {zip64_locator:?}");
 
             match zip64_locator {
                 Some(locator) => {
                     reader.seek(SeekFrom::Start(locator.relative_offset + SIGNATURE_LENGTH as u64)).await?;
                     let zip64_eocdr = Zip64EndOfCentralDirectoryRecord::from_reader(&mut reader).await?;
-                    log::debug!("Zip64EOCDR: {zip64_eocdr:?}");
                     (CombinedCentralDirectoryRecord::combine(eocdr, zip64_eocdr), true)
                 }
                 None => (CombinedCentralDirectoryRecord::from(&eocdr), false),
             }
         }
     };
-    log::debug!("Combined directory: {eocdr:?}");
 
     // Outdated feature so unlikely to ever make it into this crate.
     if eocdr.disk_number != eocdr.disk_number_start_of_cd
@@ -79,7 +74,6 @@ where
     }
 
     // Find and parse the central directory.
-    log::debug!("Read central directory");
     reader.seek(SeekFrom::Start(eocdr.offset_of_start_of_directory)).await?;
 
     // To avoid lots of small reads to `reader` when parsing the central directory, we use a BufReader that can read the whole central directory at once.
@@ -188,8 +182,6 @@ where
         extra_fields,
         comment,
     };
-
-    log::debug!("Entry: {entry:?}, offset {file_offset}");
 
     // general_purpose_flag: header.flags,
     Ok(StoredZipEntry { entry, file_offset })
