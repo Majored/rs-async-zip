@@ -34,6 +34,8 @@ impl<'b, W: AsyncWrite + Unpin> CompressedAsyncWriter<'b, W> {
             Compression::Deflate => {
                 CompressedAsyncWriter::Deflate(write::DeflateEncoder::new(ShutdownIgnoredWriter(writer)))
             }
+            #[cfg(feature = "deflate64")]
+            Compression::Deflate64 => panic!("writing deflate64 is not supported"),
             #[cfg(feature = "bzip2")]
             Compression::Bz => CompressedAsyncWriter::Bz(write::BzEncoder::new(ShutdownIgnoredWriter(writer))),
             #[cfg(feature = "lzma")]

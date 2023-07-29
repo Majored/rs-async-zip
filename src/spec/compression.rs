@@ -13,6 +13,8 @@ pub enum Compression {
     Stored,
     #[cfg(feature = "deflate")]
     Deflate,
+    #[cfg(feature = "deflate64")]
+    Deflate64,
     #[cfg(feature = "bzip2")]
     Bz,
     #[cfg(feature = "lzma")]
@@ -33,6 +35,8 @@ impl TryFrom<u16> for Compression {
             0 => Ok(Compression::Stored),
             #[cfg(feature = "deflate")]
             8 => Ok(Compression::Deflate),
+            #[cfg(feature = "deflate64")]
+            9 => Ok(Compression::Deflate64),
             #[cfg(feature = "bzip2")]
             12 => Ok(Compression::Bz),
             #[cfg(feature = "lzma")]
@@ -54,6 +58,8 @@ impl From<&Compression> for u16 {
             Compression::Stored => 0,
             #[cfg(feature = "deflate")]
             Compression::Deflate => 8,
+            #[cfg(feature = "deflate64")]
+            Compression::Deflate64 => 9,
             #[cfg(feature = "bzip2")]
             Compression::Bz => 12,
             #[cfg(feature = "lzma")]

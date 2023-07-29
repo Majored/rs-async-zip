@@ -12,6 +12,8 @@ pub fn as_needed_to_extract(entry: &ZipEntry) -> u16 {
     let mut version = match entry.compression() {
         #[cfg(feature = "deflate")]
         Compression::Deflate => 20,
+        #[cfg(feature = "deflate64")]
+        Compression::Deflate64 => 21,
         #[cfg(feature = "bzip2")]
         Compression::Bz => 46,
         #[cfg(feature = "lzma")]

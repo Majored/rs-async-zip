@@ -13,7 +13,7 @@ keywords = ["async", "zip", "archive", "tokio"]
 categories = ["asynchronous", "compression"]
 
 [features]
-full = ["chrono", "tokio-fs", "deflate", "bzip2", "lzma", "zstd", "xz"]
+full = ["chrono", "tokio-fs", "deflate", "bzip2", "lzma", "zstd", "xz", "deflate64"]
 
 # All features that are compatible with WASM
 full-wasm = ["chrono", "deflate", "zstd"]
@@ -26,6 +26,7 @@ bzip2 = ["async-compression/bzip2"]
 lzma = ["async-compression/lzma"]
 zstd = ["async-compression/zstd"]
 xz = ["async-compression/xz"]
+deflate64 = ["async-compression/deflate64"]
 
 [package.metadata.docs.rs]
 all-features = true

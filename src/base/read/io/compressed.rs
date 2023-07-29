@@ -17,6 +17,8 @@ pub(crate) enum CompressedReader<R> {
     Stored(#[pin] R),
     #[cfg(feature = "deflate")]
     Deflate(#[pin] bufread::DeflateDecoder<R>),
+    #[cfg(feature = "deflate64")]
+    Deflate64(#[pin] bufread::Deflate64Decoder<R>),
     #[cfg(feature = "bzip2")]
     Bz(#[pin] bufread::BzDecoder<R>),
     #[cfg(feature = "lzma")]
@@ -37,6 +39,8 @@ where
             Compression::Stored => CompressedReader::Stored(reader),
             #[cfg(feature = "deflate")]
             Compression::Deflate => CompressedReader::Deflate(bufread::DeflateDecoder::new(reader)),
+            #[cfg(feature = "deflate64")]
+            Compression::Deflate64 => CompressedReader::Deflate64(bufread::Deflate64Decoder::new(reader)),
             #[cfg(feature = "bzip2")]
             Compression::Bz => CompressedReader::Bz(bufread::BzDecoder::new(reader)),
             #[cfg(feature = "lzma")]
@@ -54,6 +58,8 @@ where
             CompressedReader::Stored(inner) => inner,
             #[cfg(feature = "deflate")]
             CompressedReader::Deflate(inner) => inner.into_inner(),
+            #[cfg(feature = "deflate64")]
+            CompressedReader::Deflate64(inner) => inner.into_inner(),
             #[cfg(feature = "bzip2")]
             CompressedReader::Bz(inner) => inner.into_inner(),
             #[cfg(feature = "lzma")]
@@ -75,6 +81,8 @@ where
             CompressedReaderProj::Stored(inner) => inner.poll_read(c, b),
             #[cfg(feature = "deflate")]
             CompressedReaderProj::Deflate(inner) => inner.poll_read(c, b),
+            #[cfg(feature = "deflate64")]
+            CompressedReaderProj::Deflate64(inner) => inner.poll_read(c, b),
             #[cfg(feature = "bzip2")]
             CompressedReaderProj::Bz(inner) => inner.poll_read(c, b),
             #[cfg(feature = "lzma")]

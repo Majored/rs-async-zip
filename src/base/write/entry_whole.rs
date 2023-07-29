@@ -157,6 +157,8 @@ async fn compress(compression: Compression, data: &[u8], level: async_compressio
             writer.close().await.unwrap();
             writer.into_inner().into_inner()
         }
+        #[cfg(feature = "deflate64")]
+        Compression::Deflate64 => panic!("compressing deflate64 is not supported"),
         #[cfg(feature = "bzip2")]
         Compression::Bz => {
             let mut writer = write::BzEncoder::with_quality(Cursor::new(Vec::new()), level);
