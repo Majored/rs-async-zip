@@ -52,7 +52,7 @@ zip = "0.6.3"
 
 # shared across multiple examples
 anyhow = "1"
-sanitize-filename = "0.4"
+sanitize-filename = "0.5"
 
 # actix_multipart
 actix-web = "4"
