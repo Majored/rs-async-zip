@@ -49,6 +49,7 @@ impl From<HeaderId> for u16 {
 /// Represents each extra field.
 /// Not strictly part of the spec, but is the most useful way to represent the data.
 #[derive(Clone, Debug)]
+#[non_exhaustive]
 pub enum ExtraField {
     Zip64ExtendedInformationExtraField(Zip64ExtendedInformationExtraField),
     InfoZipUnicodeCommentExtraField(InfoZipUnicodeCommentExtraField),
