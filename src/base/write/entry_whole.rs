@@ -108,7 +108,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
         if !utf8_without_alternative {
             if matches!(self.entry.filename().encoding(), StringEncoding::Utf8) {
                 let u_file_name = self.entry.filename().as_bytes().to_vec();
-                if u_file_name.len() != 0 {
+                if !u_file_name.is_empty() {
                     let basic_crc32 = crc32fast::hash(
                         self.entry.filename().alternative().unwrap_or_else(|| self.entry.filename().as_bytes()),
                     );
@@ -122,7 +122,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             }
             if matches!(self.entry.comment().encoding(), StringEncoding::Utf8) {
                 let u_comment = self.entry.comment().as_bytes().to_vec();
-                if u_comment.len() != 0 {
+                if !u_comment.is_empty() {
                     let basic_crc32 = crc32fast::hash(
                         self.entry.comment().alternative().unwrap_or_else(|| self.entry.comment().as_bytes()),
                     );

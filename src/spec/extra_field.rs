@@ -215,7 +215,7 @@ fn info_zip_unicode_comment_extra_field_from_bytes(
     data_size: u16,
     data: &[u8],
 ) -> ZipResult<InfoZipUnicodeCommentExtraField> {
-    if data.len() < 1 {
+    if data.is_empty() {
         return Err(ZipError::InfoZipUnicodeCommentFieldIncomplete);
     }
     let version = data[0];
@@ -237,7 +237,7 @@ fn info_zip_unicode_path_extra_field_from_bytes(
     data_size: u16,
     data: &[u8],
 ) -> ZipResult<InfoZipUnicodePathExtraField> {
-    if data.len() < 1 {
+    if data.is_empty() {
         return Err(ZipError::InfoZipUnicodePathFieldIncomplete);
     }
     let version = data[0];
@@ -277,9 +277,7 @@ pub(crate) fn extra_field_from_bytes(
         HeaderId::INFO_ZIP_UNICODE_PATH_EXTRA_FIELD => Ok(ExtraField::InfoZipUnicodePathExtraField(
             info_zip_unicode_path_extra_field_from_bytes(header_id, data_size, data)?,
         )),
-        header_id @ _ => {
-            Ok(ExtraField::UnknownExtraField(UnknownExtraField { header_id, data_size, content: data.to_vec() }))
-        }
+        _ => Ok(ExtraField::UnknownExtraField(UnknownExtraField { header_id, data_size, content: data.to_vec() })),
     }
 }
 
