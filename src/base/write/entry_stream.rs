@@ -106,7 +106,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         if !utf8_without_alternative {
             if matches!(entry.filename().encoding(), StringEncoding::Utf8) {
                 let u_file_name = entry.filename().as_bytes().to_vec();
-                if u_file_name.len() != 0 {
+                if !u_file_name.is_empty() {
                     let basic_crc32 =
                         crc32fast::hash(entry.filename().alternative().unwrap_or_else(|| entry.filename().as_bytes()));
                     let upath_field = get_or_put_info_zip_unicode_path_extra_field_mut(entry.extra_fields.as_mut());
@@ -118,7 +118,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             }
             if matches!(entry.comment().encoding(), StringEncoding::Utf8) {
                 let u_comment = entry.comment().as_bytes().to_vec();
-                if u_comment.len() != 0 {
+                if !u_comment.is_empty() {
                     let basic_crc32 =
                         crc32fast::hash(entry.comment().alternative().unwrap_or_else(|| entry.comment().as_bytes()));
                     let ucom_field = get_or_put_info_zip_unicode_comment_extra_field_mut(entry.extra_fields.as_mut());

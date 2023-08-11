@@ -282,7 +282,7 @@ fn detect_comment(basic: Vec<u8>, basic_is_utf8: bool, extra_fields: &[ExtraFiel
         } else {
             // Do not treat as UTF-8 if UTF-8 flags are not set,
             // some string in MBCS may be valid UTF-8 in form, but they are not in truth.
-            if basic.iter().all(|c| u8::is_ascii(&c)) {
+            if basic.is_ascii() {
                 // SAFETY:
                 // a valid ASCII string is always a valid UTF-8 string
                 unsafe { std::string::String::from_utf8_unchecked(basic).into() }
@@ -312,7 +312,7 @@ fn detect_filename(basic: Vec<u8>, basic_is_utf8: bool, extra_fields: &[ExtraFie
         } else {
             // Do not treat as UTF-8 if UTF-8 flags are not set,
             // some string in MBCS may be valid UTF-8 in form, but they are not in truth.
-            if basic.iter().all(|c| u8::is_ascii(&c)) {
+            if basic.is_ascii() {
                 // SAFETY:
                 // a valid ASCII string is always a valid UTF-8 string
                 unsafe { std::string::String::from_utf8_unchecked(basic).into() }
