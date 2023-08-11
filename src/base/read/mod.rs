@@ -9,6 +9,7 @@ pub mod stream;
 
 pub(crate) mod io;
 
+use crate::ZipString;
 // Re-exported as part of the public API.
 pub use crate::base::read::io::entry::WithEntry;
 pub use crate::base::read::io::entry::WithoutEntry;
@@ -20,6 +21,8 @@ use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 use crate::spec::attribute::AttributeCompatibility;
 use crate::spec::consts::{CDH_SIGNATURE, LFH_SIGNATURE, NON_ZIP64_MAX_SIZE, SIGNATURE_LENGTH, ZIP64_EOCDL_LENGTH};
+use crate::spec::header::InfoZipUnicodeCommentExtraField;
+use crate::spec::header::InfoZipUnicodePathExtraField;
 use crate::spec::header::{
     CentralDirectoryRecord, EndOfCentralDirectoryHeader, ExtraField, LocalFileHeader,
     Zip64EndOfCentralDirectoryLocator, Zip64EndOfCentralDirectoryRecord, Zip64ExtendedInformationExtraField,
@@ -147,11 +150,11 @@ where
     crate::utils::assert_signature(&mut reader, CDH_SIGNATURE).await?;
 
     let header = CentralDirectoryRecord::from_reader(&mut reader).await?;
-    let filename = io::read_string(&mut reader, header.file_name_length.into(), StringEncoding::Utf8).await?;
+    let filename_basic = io::read_bytes(&mut reader, header.file_name_length.into()).await?;
     let compression = Compression::try_from(header.compression)?;
     let extra_field = io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
     let extra_fields = parse_extra_fields(extra_field, header.uncompressed_size, header.compressed_size)?;
-    let comment = io::read_string(reader, header.file_comment_length.into(), StringEncoding::Utf8).await?;
+    let comment_basic = io::read_bytes(reader, header.file_comment_length.into()).await?;
 
     let zip64_extra_field = get_zip64_extra_field(&extra_fields);
     let (uncompressed_size, compressed_size) =
@@ -165,6 +168,9 @@ where
             }
         }
     }
+
+    let filename = detect_filename(filename_basic, header.flags.filename_unicode, extra_fields.as_ref());
+    let comment = detect_comment(comment_basic, header.flags.filename_unicode, extra_fields.as_ref());
 
     let entry = ZipEntry {
         filename,
@@ -210,7 +216,7 @@ where
     };
 
     let header = LocalFileHeader::from_reader(&mut reader).await?;
-    let filename = io::read_string(&mut reader, header.file_name_length.into(), StringEncoding::Utf8).await?;
+    let filename_basic = io::read_bytes(&mut reader, header.file_name_length.into()).await?;
     let compression = Compression::try_from(header.compression)?;
     let extra_field = io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
     let extra_fields = parse_extra_fields(extra_field, header.uncompressed_size, header.compressed_size)?;
@@ -227,6 +233,8 @@ where
     if header.flags.encrypted {
         return Err(ZipError::FeatureNotSupported("encryption"));
     }
+
+    let filename = detect_filename(filename_basic, header.flags.filename_unicode, extra_fields.as_ref());
 
     let entry = ZipEntry {
         filename,
@@ -253,4 +261,64 @@ where
     };
 
     Ok(Some(entry))
+}
+
+fn detect_comment(basic: Vec<u8>, basic_is_utf8: bool, extra_fields: &[ExtraField]) -> ZipString {
+    if basic_is_utf8 {
+        ZipString::new(basic, StringEncoding::Utf8)
+    } else {
+        let unicode_extra = extra_fields.iter().find_map(|field| match field {
+            ExtraField::InfoZipUnicodeCommentExtraField(InfoZipUnicodeCommentExtraField::V1 { crc32, unicode }) => {
+                if *crc32 == crc32fast::hash(&basic) {
+                    Some(std::string::String::from_utf8(unicode.clone()))
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        });
+        if let Some(Ok(s)) = unicode_extra {
+            ZipString::new_with_alternative(s, basic)
+        } else {
+            // Do not treat as UTF-8 if UTF-8 flags are not set,
+            // some string in MBCS may be valid UTF-8 in form, but they are not in truth.
+            if basic.iter().all(|c| u8::is_ascii(&c)) {
+                // SAFETY:
+                // a valid ASCII string is always a valid UTF-8 string
+                unsafe { std::string::String::from_utf8_unchecked(basic).into() }
+            } else {
+                ZipString::new(basic, StringEncoding::Raw)
+            }
+        }
+    }
+}
+
+fn detect_filename(basic: Vec<u8>, basic_is_utf8: bool, extra_fields: &[ExtraField]) -> ZipString {
+    if basic_is_utf8 {
+        ZipString::new(basic, StringEncoding::Utf8)
+    } else {
+        let unicode_extra = extra_fields.iter().find_map(|field| match field {
+            ExtraField::InfoZipUnicodePathExtraField(InfoZipUnicodePathExtraField::V1 { crc32, unicode }) => {
+                if *crc32 == crc32fast::hash(&basic) {
+                    Some(std::string::String::from_utf8(unicode.clone()))
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        });
+        if let Some(Ok(s)) = unicode_extra {
+            ZipString::new_with_alternative(s, basic)
+        } else {
+            // Do not treat as UTF-8 if UTF-8 flags are not set,
+            // some string in MBCS may be valid UTF-8 in form, but they are not in truth.
+            if basic.iter().all(|c| u8::is_ascii(&c)) {
+                // SAFETY:
+                // a valid ASCII string is always a valid UTF-8 string
+                unsafe { std::string::String::from_utf8_unchecked(basic).into() }
+            } else {
+                ZipString::new(basic, StringEncoding::Raw)
+            }
+        }
+    }
 }
