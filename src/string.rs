@@ -92,6 +92,11 @@ impl ZipString {
     pub fn into_alternative(self) -> Option<Vec<u8>> {
         self.alternative
     }
+
+    /// Returns whether this string is encoded as utf-8 without an alternative.
+    pub fn is_utf8_without_alternative(&self) -> bool {
+        matches!(self.encoding, StringEncoding::Utf8) && self.alternative.is_none()
+    }
 }
 
 impl From<String> for ZipString {

@@ -1,10 +1,13 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use crate::base::write::get_or_put_info_zip_unicode_comment_extra_field_mut;
+use crate::base::write::get_or_put_info_zip_unicode_path_extra_field_mut;
 use crate::base::write::{CentralDirectoryEntry, ZipFileWriter};
 use crate::entry::ZipEntry;
 use crate::error::{Result, Zip64ErrorCase, ZipError};
 use crate::spec::extra_field::Zip64ExtendedInformationExtraFieldBuilder;
+use crate::spec::header::{InfoZipUnicodeCommentExtraField, InfoZipUnicodePathExtraField};
 use crate::spec::{
     extra_field::ExtraFieldAsBytes,
     header::{CentralDirectoryRecord, ExtraField, GeneralPurposeFlag, LocalFileHeader},
@@ -17,7 +20,6 @@ use futures_util::io::Cursor;
 use crate::spec::consts::{NON_ZIP64_MAX_NUM_FILES, NON_ZIP64_MAX_SIZE};
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use async_compression::futures::write;
-use crc32fast::Hasher;
 use futures_util::io::{AsyncWrite, AsyncWriteExt};
 
 pub struct EntryWholeWriter<'b, 'c, W: AsyncWrite + Unpin> {
@@ -101,32 +103,61 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             }
         }
 
+        let utf8_without_alternative =
+            self.entry.filename().is_utf8_without_alternative() && self.entry.comment().is_utf8_without_alternative();
+        if !utf8_without_alternative {
+            if matches!(self.entry.filename().encoding(), StringEncoding::Utf8) {
+                let u_file_name = self.entry.filename().as_bytes().to_vec();
+                if u_file_name.len() != 0 {
+                    let basic_crc32 = crc32fast::hash(
+                        self.entry.filename().alternative().unwrap_or_else(|| self.entry.filename().as_bytes()),
+                    );
+                    let upath_field =
+                        get_or_put_info_zip_unicode_path_extra_field_mut(self.entry.extra_fields.as_mut());
+                    if let InfoZipUnicodePathExtraField::V1 { crc32, unicode } = upath_field {
+                        *crc32 = basic_crc32;
+                        *unicode = u_file_name;
+                    }
+                }
+            }
+            if matches!(self.entry.comment().encoding(), StringEncoding::Utf8) {
+                let u_comment = self.entry.comment().as_bytes().to_vec();
+                if u_comment.len() != 0 {
+                    let basic_crc32 = crc32fast::hash(
+                        self.entry.comment().alternative().unwrap_or_else(|| self.entry.comment().as_bytes()),
+                    );
+                    let ucom_field =
+                        get_or_put_info_zip_unicode_comment_extra_field_mut(self.entry.extra_fields.as_mut());
+                    if let InfoZipUnicodeCommentExtraField::V1 { crc32, unicode } = ucom_field {
+                        *crc32 = basic_crc32;
+                        *unicode = u_comment;
+                    }
+                }
+            }
+        }
+
+        let filename_basic = self.entry.filename().alternative().unwrap_or_else(|| self.entry.filename().as_bytes());
+        let comment_basic = self.entry.comment().alternative().unwrap_or_else(|| self.entry.comment().as_bytes());
+
         let lf_header = LocalFileHeader {
             compressed_size: lfh_compressed_size,
             uncompressed_size: lfh_uncompressed_size,
             compression: self.entry.compression().into(),
-            crc: compute_crc(self.data),
+            crc: crc32fast::hash(self.data),
             extra_field_length: self
                 .entry
                 .extra_fields()
                 .count_bytes()
                 .try_into()
                 .map_err(|_| ZipError::ExtraFieldTooLarge)?,
-            file_name_length: self
-                .entry
-                .filename()
-                .as_bytes()
-                .len()
-                .try_into()
-                .map_err(|_| ZipError::FileNameTooLarge)?,
+            file_name_length: filename_basic.len().try_into().map_err(|_| ZipError::FileNameTooLarge)?,
             mod_time: self.entry.last_modification_date().time,
             mod_date: self.entry.last_modification_date().date,
             version: crate::spec::version::as_needed_to_extract(&self.entry),
             flags: GeneralPurposeFlag {
                 data_descriptor: false,
                 encrypted: false,
-                filename_unicode: matches!(self.entry.filename().encoding(), StringEncoding::Utf8)
-                    && matches!(self.entry.comment().encoding(), StringEncoding::Utf8),
+                filename_unicode: utf8_without_alternative,
             },
         };
 
@@ -139,13 +170,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             crc: lf_header.crc,
             extra_field_length: lf_header.extra_field_length,
             file_name_length: lf_header.file_name_length,
-            file_comment_length: self
-                .entry
-                .comment()
-                .as_bytes()
-                .len()
-                .try_into()
-                .map_err(|_| ZipError::CommentTooLarge)?,
+            file_comment_length: comment_basic.len().try_into().map_err(|_| ZipError::CommentTooLarge)?,
             mod_time: lf_header.mod_time,
             mod_date: lf_header.mod_date,
             flags: lf_header.flags,
@@ -157,7 +182,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
 
         self.writer.writer.write_all(&crate::spec::consts::LFH_SIGNATURE.to_le_bytes()).await?;
         self.writer.writer.write_all(&lf_header.as_slice()).await?;
-        self.writer.writer.write_all(self.entry.filename().as_bytes()).await?;
+        self.writer.writer.write_all(filename_basic).await?;
         self.writer.writer.write_all(&self.entry.extra_fields().as_bytes()).await?;
         self.writer.writer.write_all(compressed_data).await?;
 
@@ -232,10 +257,4 @@ async fn compress(compression: Compression, data: &[u8], level: async_compressio
         }
         _ => unreachable!(),
     }
-}
-
-fn compute_crc(data: &[u8]) -> u32 {
-    let mut hasher = Hasher::new();
-    hasher.update(data);
-    hasher.finalize()
 }
