@@ -25,10 +25,23 @@ pub struct GeneralPurposeFlag {
 
 /// 2 byte header ids
 /// Ref https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#452
-#[derive(Clone, Copy, Debug)]
-pub enum HeaderId {
-    Zip64ExtendedInformationExtraField,
-    Other(u16),
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct HeaderId(pub u16);
+
+impl HeaderId {
+    pub const ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD: HeaderId = HeaderId(0x0001);
+}
+
+impl From<u16> for HeaderId {
+    fn from(value: u16) -> Self {
+        HeaderId(value)
+    }
+}
+
+impl From<HeaderId> for u16 {
+    fn from(value: HeaderId) -> Self {
+        value.0
+    }
 }
 
 /// Represents each extra field.

@@ -78,7 +78,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             }
             entry.extra_fields.push(ExtraField::Zip64ExtendedInformationExtraField(
                 Zip64ExtendedInformationExtraField {
-                    header_id: HeaderId::Zip64ExtendedInformationExtraField,
+                    header_id: HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD,
                     data_size: 16,
                     uncompressed_size: Some(entry.uncompressed_size),
                     compressed_size: Some(entry.compressed_size),
@@ -156,7 +156,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
                 None => {
                     self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformationExtraField(
                         Zip64ExtendedInformationExtraField {
-                            header_id: HeaderId::Zip64ExtendedInformationExtraField,
+                            header_id: HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD,
                             data_size: 16,
                             uncompressed_size: Some(uncompressed_size),
                             compressed_size: Some(compressed_size),

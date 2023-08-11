@@ -5,24 +5,6 @@ use crate::spec::header::{ExtraField, HeaderId, UnknownExtraField, Zip64Extended
 
 use super::consts::NON_ZIP64_MAX_SIZE;
 
-impl From<u16> for HeaderId {
-    fn from(value: u16) -> Self {
-        match value {
-            0x0001 => Self::Zip64ExtendedInformationExtraField,
-            other => Self::Other(other),
-        }
-    }
-}
-
-impl From<HeaderId> for u16 {
-    fn from(value: HeaderId) -> Self {
-        match value {
-            HeaderId::Zip64ExtendedInformationExtraField => 0x0001,
-            HeaderId::Other(other) => other,
-        }
-    }
-}
-
 pub(crate) trait ExtraFieldAsBytes {
     fn as_bytes(&self) -> Vec<u8>;
 
@@ -167,7 +149,7 @@ pub(crate) fn extra_field_from_bytes(
     compressed_size: u32,
 ) -> ZipResult<ExtraField> {
     match header_id {
-        HeaderId::Zip64ExtendedInformationExtraField => {
+        HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD => {
             Ok(ExtraField::Zip64ExtendedInformationExtraField(zip64_extended_information_field_from_bytes(
                 header_id,
                 data_size,
@@ -176,7 +158,7 @@ pub(crate) fn extra_field_from_bytes(
                 compressed_size,
             )?))
         }
-        header_id @ HeaderId::Other(_) => {
+        header_id @ _ => {
             Ok(ExtraField::UnknownExtraField(UnknownExtraField { header_id, data_size, content: data.to_vec() }))
         }
     }
@@ -190,7 +172,7 @@ impl Zip64ExtendedInformationExtraFieldBuilder {
     pub fn new() -> Self {
         Self {
             field: Zip64ExtendedInformationExtraField {
-                header_id: HeaderId::Zip64ExtendedInformationExtraField,
+                header_id: HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD,
                 data_size: 0,
                 uncompressed_size: None,
                 compressed_size: None,
