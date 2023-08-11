@@ -15,6 +15,7 @@ pub enum StringEncoding {
 pub struct ZipString {
     encoding: StringEncoding,
     raw: Vec<u8>,
+    alternative: Option<Vec<u8>>,
 }
 
 impl ZipString {
@@ -30,7 +31,12 @@ impl ZipString {
             }
         }
 
-        Self { encoding, raw }
+        Self { encoding, raw, alternative: None }
+    }
+
+    /// Constructs a new encoded string from utf-8 data, with an alternative in native MBCS encoding.
+    pub fn new_with_alternative(utf8: String, alternative: Vec<u8>) -> Self {
+        Self { encoding: StringEncoding::Utf8, raw: utf8.into_bytes(), alternative: Some(alternative) }
     }
 
     /// Returns the raw bytes for this string.
@@ -41,6 +47,11 @@ impl ZipString {
     /// Returns the encoding type for this string.
     pub fn encoding(&self) -> StringEncoding {
         self.encoding
+    }
+
+    /// Returns the alternative bytes (in native MBCS encoding) for this string.
+    pub fn alternative(&self) -> Option<&[u8]> {
+        self.alternative.as_deref()
     }
 
     /// Returns the raw bytes converted into a string slice.
@@ -76,16 +87,21 @@ impl ZipString {
         // SAFETY: See above.
         Ok(unsafe { String::from_utf8_unchecked(self.raw) })
     }
+
+    /// Returns the alternative bytes (in native MBCS encoding) converted to the owned.
+    pub fn into_alternative(self) -> Option<Vec<u8>> {
+        self.alternative
+    }
 }
 
 impl From<String> for ZipString {
     fn from(value: String) -> Self {
-        Self { encoding: StringEncoding::Utf8, raw: value.into_bytes() }
+        Self { encoding: StringEncoding::Utf8, raw: value.into_bytes(), alternative: None }
     }
 }
 
 impl From<&str> for ZipString {
     fn from(value: &str) -> Self {
-        Self { encoding: StringEncoding::Utf8, raw: value.as_bytes().to_vec() }
+        Self { encoding: StringEncoding::Utf8, raw: value.as_bytes().to_vec(), alternative: None }
     }
 }

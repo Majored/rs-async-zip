@@ -1,11 +1,14 @@
 // Copyright (c) 2023 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use tokio_util::compat::TokioAsyncReadCompatExt;
+
 mod common;
 
 const ZSTD_ZIP_FILE: &str = "tests/test_inputs/sample_data.zstd.zip";
 const DEFLATE_ZIP_FILE: &str = "tests/test_inputs/sample_data.deflate.zip";
 const STORE_ZIP_FILE: &str = "tests/test_inputs/sample_data.store.zip";
+const UTF8_EXTRA_ZIP_FILE: &str = "tests/test_inputs/sample_data_utf8_extra.zip";
 
 #[cfg(feature = "zstd")]
 #[tokio::test]
@@ -69,4 +72,15 @@ async fn decompress_deflate_zip_fs() {
 #[tokio::test]
 async fn decompress_store_zip_fs() {
     common::check_decompress_fs(STORE_ZIP_FILE).await
+}
+
+#[tokio::test]
+async fn decompress_zip_with_utf8_extra() {
+    let file = tokio::fs::File::open(UTF8_EXTRA_ZIP_FILE).await.unwrap();
+    let mut file_compat = file.compat();
+    let zip = async_zip::base::read::seek::ZipFileReader::new(&mut file_compat).await.unwrap();
+    let zip_entries: Vec<_> = zip.file().entries().to_vec();
+    assert_eq!(zip_entries.len(), 1);
+    assert_eq!(zip_entries[0].filename().as_str().unwrap(), "\u{4E2D}\u{6587}.txt");
+    assert_eq!(zip_entries[0].filename().alternative(), Some(b"\xD6\xD0\xCe\xC4.txt".as_ref()));
 }
