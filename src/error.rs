@@ -64,4 +64,9 @@ pub enum ZipError {
     EntryIndexOutOfBounds,
     #[error("Encountered an unexpected header (actual: {0:#x}, expected: {1:#x}).")]
     UnexpectedHeaderError(u32, u32),
+
+    #[error("Info-ZIP Unicode Comment Extra Field was incomplete")]
+    InfoZipUnicodeCommentFieldIncomplete,
+    #[error("Info-ZIP Unicode Path Extra Field was incomplete")]
+    InfoZipUnicodePathFieldIncomplete,
 }

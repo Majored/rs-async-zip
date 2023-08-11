@@ -1,7 +1,10 @@
 // Copyright Cognite AS, 2023
 
 use crate::error::{Result as ZipResult, ZipError};
-use crate::spec::header::{ExtraField, HeaderId, UnknownExtraField, Zip64ExtendedInformationExtraField};
+use crate::spec::header::{
+    ExtraField, HeaderId, InfoZipUnicodeCommentExtraField, InfoZipUnicodePathExtraField, UnknownExtraField,
+    Zip64ExtendedInformationExtraField,
+};
 
 use super::consts::NON_ZIP64_MAX_SIZE;
 
@@ -29,6 +32,8 @@ impl ExtraFieldAsBytes for ExtraField {
     fn as_bytes(&self) -> Vec<u8> {
         match self {
             ExtraField::Zip64ExtendedInformationExtraField(field) => field.as_bytes(),
+            ExtraField::InfoZipUnicodeCommentExtraField(field) => field.as_bytes(),
+            ExtraField::InfoZipUnicodePathExtraField(field) => field.as_bytes(),
             ExtraField::UnknownExtraField(field) => field.as_bytes(),
         }
     }
@@ -36,6 +41,8 @@ impl ExtraFieldAsBytes for ExtraField {
     fn count_bytes(&self) -> usize {
         match self {
             ExtraField::Zip64ExtendedInformationExtraField(field) => field.count_bytes(),
+            ExtraField::InfoZipUnicodeCommentExtraField(field) => field.count_bytes(),
+            ExtraField::InfoZipUnicodePathExtraField(field) => field.count_bytes(),
             ExtraField::UnknownExtraField(field) => field.count_bytes(),
         }
     }
@@ -84,6 +91,68 @@ impl ExtraFieldAsBytes for Zip64ExtendedInformationExtraField {
             + self.compressed_size.map(|_| 8).unwrap_or_default()
             + self.relative_header_offset.map(|_| 8).unwrap_or_default()
             + self.disk_start_number.map(|_| 8).unwrap_or_default()
+    }
+}
+
+impl ExtraFieldAsBytes for InfoZipUnicodeCommentExtraField {
+    fn as_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        let header_id: u16 = HeaderId::INFO_ZIP_UNICODE_COMMENT_EXTRA_FIELD.into();
+        bytes.append(&mut header_id.to_le_bytes().to_vec());
+        match self {
+            InfoZipUnicodeCommentExtraField::V1 { crc32, unicode } => {
+                let data_size: u16 = (5 + unicode.len()).try_into().unwrap();
+                bytes.append(&mut data_size.to_le_bytes().to_vec());
+                bytes.push(1);
+                bytes.append(&mut crc32.to_le_bytes().to_vec());
+                bytes.append(&mut unicode.clone());
+            }
+            InfoZipUnicodeCommentExtraField::Unknown { version, data } => {
+                let data_size: u16 = (1 + data.len()).try_into().unwrap();
+                bytes.append(&mut data_size.to_le_bytes().to_vec());
+                bytes.push(*version);
+                bytes.append(&mut data.clone());
+            }
+        }
+        bytes
+    }
+
+    fn count_bytes(&self) -> usize {
+        match self {
+            InfoZipUnicodeCommentExtraField::V1 { unicode, .. } => 9 + unicode.len(),
+            InfoZipUnicodeCommentExtraField::Unknown { data, .. } => 5 + data.len(),
+        }
+    }
+}
+
+impl ExtraFieldAsBytes for InfoZipUnicodePathExtraField {
+    fn as_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        let header_id: u16 = HeaderId::INFO_ZIP_UNICODE_PATH_EXTRA_FIELD.into();
+        bytes.append(&mut header_id.to_le_bytes().to_vec());
+        match self {
+            InfoZipUnicodePathExtraField::V1 { crc32, unicode } => {
+                let data_size: u16 = (5 + unicode.len()).try_into().unwrap();
+                bytes.append(&mut data_size.to_le_bytes().to_vec());
+                bytes.push(1);
+                bytes.append(&mut crc32.to_le_bytes().to_vec());
+                bytes.append(&mut unicode.clone());
+            }
+            InfoZipUnicodePathExtraField::Unknown { version, data } => {
+                let data_size: u16 = (1 + data.len()).try_into().unwrap();
+                bytes.append(&mut data_size.to_le_bytes().to_vec());
+                bytes.push(*version);
+                bytes.append(&mut data.clone());
+            }
+        }
+        bytes
+    }
+
+    fn count_bytes(&self) -> usize {
+        match self {
+            InfoZipUnicodePathExtraField::V1 { unicode, .. } => 9 + unicode.len(),
+            InfoZipUnicodePathExtraField::Unknown { data, .. } => 5 + data.len(),
+        }
     }
 }
 
@@ -141,6 +210,50 @@ fn zip64_extended_information_field_from_bytes(
     })
 }
 
+fn info_zip_unicode_comment_extra_field_from_bytes(
+    _header_id: HeaderId,
+    data_size: u16,
+    data: &[u8],
+) -> ZipResult<InfoZipUnicodeCommentExtraField> {
+    if data.len() < 1 {
+        return Err(ZipError::InfoZipUnicodeCommentFieldIncomplete);
+    }
+    let version = data[0];
+    match version {
+        1 => {
+            if data.len() < 5 {
+                return Err(ZipError::InfoZipUnicodeCommentFieldIncomplete);
+            }
+            let crc32 = u32::from_le_bytes(data[1..5].try_into().unwrap());
+            let unicode = data[5..(data_size as usize)].to_vec();
+            Ok(InfoZipUnicodeCommentExtraField::V1 { crc32, unicode })
+        }
+        _ => Ok(InfoZipUnicodeCommentExtraField::Unknown { version, data: data[1..(data_size as usize)].to_vec() }),
+    }
+}
+
+fn info_zip_unicode_path_extra_field_from_bytes(
+    _header_id: HeaderId,
+    data_size: u16,
+    data: &[u8],
+) -> ZipResult<InfoZipUnicodePathExtraField> {
+    if data.len() < 1 {
+        return Err(ZipError::InfoZipUnicodePathFieldIncomplete);
+    }
+    let version = data[0];
+    match version {
+        1 => {
+            if data.len() < 5 {
+                return Err(ZipError::InfoZipUnicodePathFieldIncomplete);
+            }
+            let crc32 = u32::from_le_bytes(data[1..5].try_into().unwrap());
+            let unicode = data[5..(data_size as usize)].to_vec();
+            Ok(InfoZipUnicodePathExtraField::V1 { crc32, unicode })
+        }
+        _ => Ok(InfoZipUnicodePathExtraField::Unknown { version, data: data[1..(data_size as usize)].to_vec() }),
+    }
+}
+
 pub(crate) fn extra_field_from_bytes(
     header_id: HeaderId,
     data_size: u16,
@@ -158,6 +271,12 @@ pub(crate) fn extra_field_from_bytes(
                 compressed_size,
             )?))
         }
+        HeaderId::INFO_ZIP_UNICODE_COMMENT_EXTRA_FIELD => Ok(ExtraField::InfoZipUnicodeCommentExtraField(
+            info_zip_unicode_comment_extra_field_from_bytes(header_id, data_size, data)?,
+        )),
+        HeaderId::INFO_ZIP_UNICODE_PATH_EXTRA_FIELD => Ok(ExtraField::InfoZipUnicodePathExtraField(
+            info_zip_unicode_path_extra_field_from_bytes(header_id, data_size, data)?,
+        )),
         header_id @ _ => {
             Ok(ExtraField::UnknownExtraField(UnknownExtraField { header_id, data_size, content: data.to_vec() }))
         }

@@ -30,6 +30,8 @@ pub struct HeaderId(pub u16);
 
 impl HeaderId {
     pub const ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD: HeaderId = HeaderId(0x0001);
+    pub const INFO_ZIP_UNICODE_COMMENT_EXTRA_FIELD: HeaderId = HeaderId(0x6375);
+    pub const INFO_ZIP_UNICODE_PATH_EXTRA_FIELD: HeaderId = HeaderId(0x7075);
 }
 
 impl From<u16> for HeaderId {
@@ -49,6 +51,8 @@ impl From<HeaderId> for u16 {
 #[derive(Clone, Debug)]
 pub enum ExtraField {
     Zip64ExtendedInformationExtraField(Zip64ExtendedInformationExtraField),
+    InfoZipUnicodeCommentExtraField(InfoZipUnicodeCommentExtraField),
+    InfoZipUnicodePathExtraField(InfoZipUnicodePathExtraField),
     UnknownExtraField(UnknownExtraField),
 }
 
@@ -64,6 +68,22 @@ pub struct Zip64ExtendedInformationExtraField {
     // While not specified in the spec, these two fields are often left out in practice.
     pub relative_header_offset: Option<u64>,
     pub disk_start_number: Option<u32>,
+}
+
+/// Stores the UTF-8 version of the file comment as stored in the central directory header.
+/// https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#468
+#[derive(Clone, Debug)]
+pub enum InfoZipUnicodeCommentExtraField {
+    V1 { crc32: u32, unicode: Vec<u8> },
+    Unknown { version: u8, data: Vec<u8> },
+}
+
+/// Stores the UTF-8 version of the file name field as stored in the local header and central directory header.
+/// https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#469
+#[derive(Clone, Debug)]
+pub enum InfoZipUnicodePathExtraField {
+    V1 { crc32: u32, unicode: Vec<u8> },
+    Unknown { version: u8, data: Vec<u8> },
 }
 
 /// Represents any unparsed extra field.
