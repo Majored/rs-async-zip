@@ -2,12 +2,16 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::base::write::compressed_writer::CompressedAsyncWriter;
+use crate::base::write::get_or_put_info_zip_unicode_comment_extra_field_mut;
+use crate::base::write::get_or_put_info_zip_unicode_path_extra_field_mut;
 use crate::base::write::io::offset::AsyncOffsetWriter;
 use crate::base::write::CentralDirectoryEntry;
 use crate::base::write::ZipFileWriter;
 use crate::entry::ZipEntry;
 use crate::error::{Result, Zip64ErrorCase, ZipError};
 use crate::spec::extra_field::ExtraFieldAsBytes;
+use crate::spec::header::InfoZipUnicodeCommentExtraField;
+use crate::spec::header::InfoZipUnicodePathExtraField;
 use crate::spec::header::{
     CentralDirectoryRecord, ExtraField, GeneralPurposeFlag, HeaderId, LocalFileHeader,
     Zip64ExtendedInformationExtraField,
@@ -97,6 +101,37 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             (entry.compressed_size as u32, entry.uncompressed_size as u32)
         };
 
+        let utf8_without_alternative =
+            entry.filename().is_utf8_without_alternative() && entry.comment().is_utf8_without_alternative();
+        if !utf8_without_alternative {
+            if matches!(entry.filename().encoding(), StringEncoding::Utf8) {
+                let u_file_name = entry.filename().as_bytes().to_vec();
+                if u_file_name.len() != 0 {
+                    let basic_crc32 =
+                        crc32fast::hash(entry.filename().alternative().unwrap_or_else(|| entry.filename().as_bytes()));
+                    let upath_field = get_or_put_info_zip_unicode_path_extra_field_mut(entry.extra_fields.as_mut());
+                    if let InfoZipUnicodePathExtraField::V1 { crc32, unicode } = upath_field {
+                        *crc32 = basic_crc32;
+                        *unicode = u_file_name;
+                    }
+                }
+            }
+            if matches!(entry.comment().encoding(), StringEncoding::Utf8) {
+                let u_comment = entry.comment().as_bytes().to_vec();
+                if u_comment.len() != 0 {
+                    let basic_crc32 =
+                        crc32fast::hash(entry.comment().alternative().unwrap_or_else(|| entry.comment().as_bytes()));
+                    let ucom_field = get_or_put_info_zip_unicode_comment_extra_field_mut(entry.extra_fields.as_mut());
+                    if let InfoZipUnicodeCommentExtraField::V1 { crc32, unicode } = ucom_field {
+                        *crc32 = basic_crc32;
+                        *unicode = u_comment;
+                    }
+                }
+            }
+        }
+
+        let filename_basic = entry.filename().alternative().unwrap_or_else(|| entry.filename().as_bytes());
+
         let lfh = LocalFileHeader {
             compressed_size: lfh_compressed,
             uncompressed_size: lfh_uncompressed,
@@ -107,21 +142,20 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
                 .count_bytes()
                 .try_into()
                 .map_err(|_| ZipError::ExtraFieldTooLarge)?,
-            file_name_length: entry.filename().as_bytes().len().try_into().map_err(|_| ZipError::FileNameTooLarge)?,
+            file_name_length: filename_basic.len().try_into().map_err(|_| ZipError::FileNameTooLarge)?,
             mod_time: entry.last_modification_date().time,
             mod_date: entry.last_modification_date().date,
             version: crate::spec::version::as_needed_to_extract(entry),
             flags: GeneralPurposeFlag {
                 data_descriptor: true,
                 encrypted: false,
-                filename_unicode: matches!(entry.filename().encoding(), StringEncoding::Utf8)
-                    && matches!(entry.comment().encoding(), StringEncoding::Utf8),
+                filename_unicode: utf8_without_alternative,
             },
         };
 
         writer.writer.write_all(&crate::spec::consts::LFH_SIGNATURE.to_le_bytes()).await?;
         writer.writer.write_all(&lfh.as_slice()).await?;
-        writer.writer.write_all(entry.filename().as_bytes()).await?;
+        writer.writer.write_all(filename_basic).await?;
         writer.writer.write_all(&entry.extra_fields().as_bytes()).await?;
 
         Ok(lfh)
@@ -181,6 +215,8 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         inner_writer.write_all(&cdr_compressed_size.to_le_bytes()).await?;
         inner_writer.write_all(&cdr_uncompressed_size.to_le_bytes()).await?;
 
+        let comment_basic = self.entry.comment().alternative().unwrap_or_else(|| self.entry.comment().as_bytes());
+
         let cdh = CentralDirectoryRecord {
             compressed_size: cdr_compressed_size,
             uncompressed_size: cdr_uncompressed_size,
@@ -190,13 +226,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             compression: self.lfh.compression,
             extra_field_length: self.lfh.extra_field_length,
             file_name_length: self.lfh.file_name_length,
-            file_comment_length: self
-                .entry
-                .comment()
-                .as_bytes()
-                .len()
-                .try_into()
-                .map_err(|_| ZipError::CommentTooLarge)?,
+            file_comment_length: comment_basic.len().try_into().map_err(|_| ZipError::CommentTooLarge)?,
             mod_time: self.lfh.mod_time,
             mod_date: self.lfh.mod_date,
             flags: self.lfh.flags,

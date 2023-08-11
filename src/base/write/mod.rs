@@ -63,8 +63,8 @@ use crate::entry::ZipEntry;
 use crate::error::Result;
 use crate::spec::extra_field::ExtraFieldAsBytes;
 use crate::spec::header::{
-    CentralDirectoryRecord, EndOfCentralDirectoryHeader, Zip64EndOfCentralDirectoryLocator,
-    Zip64EndOfCentralDirectoryRecord,
+    CentralDirectoryRecord, EndOfCentralDirectoryHeader, ExtraField, InfoZipUnicodeCommentExtraField,
+    InfoZipUnicodePathExtraField, Zip64EndOfCentralDirectoryLocator, Zip64EndOfCentralDirectoryRecord,
 };
 
 #[cfg(feature = "tokio")]
@@ -157,11 +157,15 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
         let cd_offset = self.writer.offset();
 
         for entry in &self.cd_entries {
+            let filename_basic =
+                entry.entry.filename().alternative().unwrap_or_else(|| entry.entry.filename().as_bytes());
+            let comment_basic = entry.entry.comment().alternative().unwrap_or_else(|| entry.entry.comment().as_bytes());
+
             self.writer.write_all(&crate::spec::consts::CDH_SIGNATURE.to_le_bytes()).await?;
             self.writer.write_all(&entry.header.as_slice()).await?;
-            self.writer.write_all(entry.entry.filename().as_bytes()).await?;
+            self.writer.write_all(filename_basic).await?;
             self.writer.write_all(&entry.entry.extra_fields().as_bytes()).await?;
-            self.writer.write_all(entry.entry.comment().as_bytes()).await?;
+            self.writer.write_all(comment_basic).await?;
         }
 
         let central_directory_size = (self.writer.offset() - cd_offset) as u64;
@@ -250,4 +254,42 @@ where
             force_no_zip64: false,
         }
     }
+}
+
+pub(crate) fn get_or_put_info_zip_unicode_path_extra_field_mut(
+    extra_fields: &mut Vec<ExtraField>,
+) -> &mut InfoZipUnicodePathExtraField {
+    if !extra_fields.iter().any(|field| matches!(field, ExtraField::InfoZipUnicodePathExtraField(_))) {
+        extra_fields.push(ExtraField::InfoZipUnicodePathExtraField(InfoZipUnicodePathExtraField::V1 {
+            crc32: 0,
+            unicode: vec![],
+        }));
+    }
+
+    for field in extra_fields.iter_mut() {
+        if let ExtraField::InfoZipUnicodePathExtraField(extra_field) = field {
+            return extra_field;
+        }
+    }
+
+    panic!("InfoZipUnicodePathExtraField not found after insertion")
+}
+
+pub(crate) fn get_or_put_info_zip_unicode_comment_extra_field_mut(
+    extra_fields: &mut Vec<ExtraField>,
+) -> &mut InfoZipUnicodeCommentExtraField {
+    if !extra_fields.iter().any(|field| matches!(field, ExtraField::InfoZipUnicodeCommentExtraField(_))) {
+        extra_fields.push(ExtraField::InfoZipUnicodeCommentExtraField(InfoZipUnicodeCommentExtraField::V1 {
+            crc32: 0,
+            unicode: vec![],
+        }));
+    }
+
+    for field in extra_fields.iter_mut() {
+        if let ExtraField::InfoZipUnicodeCommentExtraField(extra_field) = field {
+            return extra_field;
+        }
+    }
+
+    panic!("InfoZipUnicodeCommentExtraField not found after insertion")
 }
