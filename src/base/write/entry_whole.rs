@@ -52,7 +52,9 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
 
         let mut zip64_extra_field_builder = None;
 
-        let (lfh_uncompressed_size, lfh_compressed_size) = if self.data.len() as u64 > NON_ZIP64_MAX_SIZE as u64 {
+        let (lfh_uncompressed_size, lfh_compressed_size) = if self.data.len() as u64 > NON_ZIP64_MAX_SIZE as u64
+            || compressed_data.len() as u64 > NON_ZIP64_MAX_SIZE as u64
+        {
             if self.writer.force_no_zip64 {
                 return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
             }
