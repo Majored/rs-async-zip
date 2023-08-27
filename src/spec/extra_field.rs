@@ -79,8 +79,12 @@ impl ExtraFieldAsBytes for Zip64ExtendedInformationExtraField {
         let header_id: u16 = self.header_id.into();
         bytes.append(&mut header_id.to_le_bytes().to_vec());
         bytes.append(&mut self.data_size.to_le_bytes().to_vec());
-        bytes.append(&mut self.uncompressed_size.to_le_bytes().to_vec());
-        bytes.append(&mut self.compressed_size.to_le_bytes().to_vec());
+        if let Some(uncompressed_size) = &self.uncompressed_size {
+            bytes.append(&mut uncompressed_size.to_le_bytes().to_vec());
+        }
+        if let Some(compressed_size) = &self.compressed_size {
+            bytes.append(&mut compressed_size.to_le_bytes().to_vec());
+        }
         if let Some(relative_header_offset) = &self.relative_header_offset {
             bytes.append(&mut relative_header_offset.to_le_bytes().to_vec());
         }
@@ -92,7 +96,9 @@ impl ExtraFieldAsBytes for Zip64ExtendedInformationExtraField {
     }
 
     fn count_bytes(&self) -> usize {
-        20 + self.relative_header_offset.map(|_| 8).unwrap_or_default()
+        4 + self.uncompressed_size.map(|_| 8).unwrap_or_default()
+            + self.compressed_size.map(|_| 8).unwrap_or_default()
+            + self.relative_header_offset.map(|_| 8).unwrap_or_default()
             + self.disk_start_number.map(|_| 8).unwrap_or_default()
     }
 }
@@ -113,13 +119,13 @@ fn zip64_extended_information_field_from_bytes(
     let relative_header_offset =
         if data.len() >= 24 { Some(u64::from_le_bytes(data[16..24].try_into().unwrap())) } else { None };
     let disk_start_number =
-        if data.len() >= 32 { Some(u64::from_le_bytes(data[24..32].try_into().unwrap())) } else { None };
+        if data.len() >= 32 { Some(u32::from_le_bytes(data[24..32].try_into().unwrap())) } else { None };
 
     Ok(Zip64ExtendedInformationExtraField {
         header_id,
         data_size,
-        uncompressed_size,
-        compressed_size,
+        uncompressed_size: Some(uncompressed_size),
+        compressed_size: Some(compressed_size),
         relative_header_offset,
         disk_start_number,
     })
@@ -133,5 +139,64 @@ pub(crate) fn extra_field_from_bytes(header_id: HeaderId, data_size: u16, data: 
         header_id @ HeaderId::Other(_) => {
             Ok(ExtraField::UnknownExtraField(UnknownExtraField { header_id, data_size, content: data.to_vec() }))
         }
+    }
+}
+
+pub struct Zip64ExtendedInformationExtraFieldBuilder {
+    field: Zip64ExtendedInformationExtraField,
+}
+
+impl Zip64ExtendedInformationExtraFieldBuilder {
+    pub fn new() -> Self {
+        Self {
+            field: Zip64ExtendedInformationExtraField {
+                header_id: HeaderId::Zip64ExtendedInformationExtraField,
+                data_size: 0,
+                uncompressed_size: None,
+                compressed_size: None,
+                relative_header_offset: None,
+                disk_start_number: None,
+            },
+        }
+    }
+
+    pub fn uncompressed_size(mut self, uncompressed_size: u64) -> Self {
+        self.field.uncompressed_size = Some(uncompressed_size);
+        self
+    }
+
+    pub fn compressed_size(mut self, compressed_size: u64) -> Self {
+        self.field.compressed_size = Some(compressed_size);
+        self
+    }
+
+    pub fn relative_header_offset(mut self, relative_header_offset: u64) -> Self {
+        self.field.relative_header_offset = Some(relative_header_offset);
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn disk_start_number(mut self, disk_start_number: u32) -> Self {
+        self.field.disk_start_number = Some(disk_start_number);
+        self
+    }
+
+    pub fn eof_only(&self) -> bool {
+        (self.field.uncompressed_size.is_none() && self.field.compressed_size.is_none())
+            && (self.field.relative_header_offset.is_some() || self.field.disk_start_number.is_some())
+    }
+
+    pub fn build(self) -> ZipResult<Zip64ExtendedInformationExtraField> {
+        let mut field = self.field;
+
+        field.data_size = field.uncompressed_size.map(|_| 8).unwrap_or_default()
+            + field.compressed_size.map(|_| 8).unwrap_or_default()
+            + field.relative_header_offset.map(|_| 8).unwrap_or_default()
+            + field.disk_start_number.map(|_| 8).unwrap_or_default();
+
+        if field.data_size == 0 {
+            return Err(ZipError::Zip64ExtendedFieldIncomplete);
+        }
+        Ok(field)
     }
 }
