@@ -80,8 +80,8 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
                 Zip64ExtendedInformationExtraField {
                     header_id: HeaderId::Zip64ExtendedInformationExtraField,
                     data_size: 16,
-                    uncompressed_size: entry.uncompressed_size,
-                    compressed_size: entry.compressed_size,
+                    uncompressed_size: Some(entry.uncompressed_size),
+                    compressed_size: Some(entry.compressed_size),
                     relative_header_offset: None,
                     disk_start_number: None,
                 },
@@ -158,8 +158,8 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
                         Zip64ExtendedInformationExtraField {
                             header_id: HeaderId::Zip64ExtendedInformationExtraField,
                             data_size: 16,
-                            uncompressed_size,
-                            compressed_size,
+                            uncompressed_size: Some(compressed_size),
+                            compressed_size: Some(compressed_size),
                             relative_header_offset: None,
                             disk_start_number: None,
                         },
@@ -168,8 +168,8 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
                         self.entry.extra_fields().count_bytes().try_into().map_err(|_| ZipError::ExtraFieldTooLarge)?;
                 }
                 Some(zip64) => {
-                    zip64.uncompressed_size = uncompressed_size;
-                    zip64.compressed_size = compressed_size;
+                    zip64.uncompressed_size = Some(uncompressed_size);
+                    zip64.compressed_size = Some(compressed_size);
                 }
             }
 

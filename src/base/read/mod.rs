@@ -124,20 +124,20 @@ fn get_combined_sizes(
     uncompressed_size: u32,
     compressed_size: u32,
     extra_field: &Option<&Zip64ExtendedInformationExtraField>,
-) -> (u64, u64) {
+) -> Result<(u64, u64)> {
     let mut uncompressed_size = uncompressed_size as u64;
     let mut compressed_size = compressed_size as u64;
 
     if let Some(extra_field) = extra_field {
         if uncompressed_size == NON_ZIP64_MAX_SIZE as u64 {
-            uncompressed_size = extra_field.uncompressed_size;
+            uncompressed_size = extra_field.uncompressed_size.ok_or_else(|| ZipError::Zip64ExtendedFieldIncomplete)?
         }
         if compressed_size == NON_ZIP64_MAX_SIZE as u64 {
-            compressed_size = extra_field.compressed_size;
+            compressed_size = extra_field.compressed_size.ok_or_else(|| ZipError::Zip64ExtendedFieldIncomplete)?;
         }
     }
 
-    (uncompressed_size, compressed_size)
+    Ok((uncompressed_size, compressed_size))
 }
 
 pub(crate) async fn cd_record<R>(mut reader: R, _zip64: bool) -> Result<StoredZipEntry>
@@ -155,7 +155,7 @@ where
 
     let zip64_extra_field = get_zip64_extra_field(&extra_fields);
     let (uncompressed_size, compressed_size) =
-        get_combined_sizes(header.uncompressed_size, header.compressed_size, &zip64_extra_field);
+        get_combined_sizes(header.uncompressed_size, header.compressed_size, &zip64_extra_field)?;
 
     let mut file_offset = header.lh_offset as u64;
     if let Some(zip64_extra_field) = zip64_extra_field {
@@ -217,7 +217,7 @@ where
 
     let zip64_extra_field = get_zip64_extra_field(&extra_fields);
     let (uncompressed_size, compressed_size) =
-        get_combined_sizes(header.uncompressed_size, header.compressed_size, &zip64_extra_field);
+        get_combined_sizes(header.uncompressed_size, header.compressed_size, &zip64_extra_field)?;
 
     if header.flags.data_descriptor {
         return Err(ZipError::FeatureNotSupported(

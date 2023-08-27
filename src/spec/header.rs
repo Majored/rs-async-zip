@@ -46,11 +46,11 @@ pub enum ExtraField {
 pub struct Zip64ExtendedInformationExtraField {
     pub header_id: HeaderId,
     pub data_size: u16,
-    pub uncompressed_size: u64,
-    pub compressed_size: u64,
+    pub uncompressed_size: Option<u64>,
+    pub compressed_size: Option<u64>,
     // While not specified in the spec, these two fields are often left out in practice.
     pub relative_header_offset: Option<u64>,
-    pub disk_start_number: Option<u64>,
+    pub disk_start_number: Option<u32>,
 }
 
 /// Represents any unparsed extra field.

@@ -71,8 +71,8 @@ async fn test_write_large_zip64_file() {
     let cd_entry = writer.cd_entries.last().unwrap();
     match &cd_entry.entry.extra_fields.last().unwrap() {
         ExtraField::Zip64ExtendedInformationExtraField(zip64) => {
-            assert_eq!(zip64.compressed_size, BATCHED_FILE_SIZE as u64);
-            assert_eq!(zip64.uncompressed_size, BATCHED_FILE_SIZE as u64);
+            assert_eq!(zip64.compressed_size.unwrap(), BATCHED_FILE_SIZE as u64);
+            assert_eq!(zip64.uncompressed_size.unwrap(), BATCHED_FILE_SIZE as u64);
         }
         e => panic!("Expected a Zip64 extended field, got {:?}", e),
     }
