@@ -45,38 +45,20 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
 
         let mut zip64_extra_field_builder = None;
 
-        let lfh_uncompressed_size = if self.data.len() as u64 > NON_ZIP64_MAX_SIZE as u64 {
+        let (lfh_uncompressed_size, lfh_compressed_size) = if self.data.len() as u64 > NON_ZIP64_MAX_SIZE as u64 {
             if self.writer.force_no_zip64 {
                 return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
             }
             if !self.writer.is_zip64 {
                 self.writer.is_zip64 = true;
             }
-            zip64_extra_field_builder =
-                Some(Zip64ExtendedInformationExtraFieldBuilder::new().uncompressed_size(self.data.len() as u64));
-            NON_ZIP64_MAX_SIZE
+            zip64_extra_field_builder = Some(
+                Zip64ExtendedInformationExtraFieldBuilder::new()
+                    .sizes(compressed_data.len() as u64, self.data.len() as u64),
+            );
+            (NON_ZIP64_MAX_SIZE, NON_ZIP64_MAX_SIZE)
         } else {
-            self.data.len() as u32
-        };
-
-        let lfh_compressed_size = if compressed_data.len() as u64 >= NON_ZIP64_MAX_SIZE as u64 {
-            if self.writer.force_no_zip64 {
-                return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
-            }
-            if !self.writer.is_zip64 {
-                self.writer.is_zip64 = true;
-            }
-
-            if let Some(zip64_extra_field) = zip64_extra_field_builder {
-                zip64_extra_field_builder = Some(zip64_extra_field.compressed_size(compressed_data.len() as u64));
-            } else {
-                zip64_extra_field_builder = Some(
-                    Zip64ExtendedInformationExtraFieldBuilder::new().compressed_size(compressed_data.len() as u64),
-                );
-            }
-            NON_ZIP64_MAX_SIZE
-        } else {
-            compressed_data.len() as u32
+            (self.data.len() as u32, compressed_data.len() as u32)
         };
 
         let lh_offset = if self.writer.writer.offset() > NON_ZIP64_MAX_SIZE as usize {

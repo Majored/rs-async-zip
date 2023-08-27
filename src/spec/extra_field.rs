@@ -160,13 +160,9 @@ impl Zip64ExtendedInformationExtraFieldBuilder {
         }
     }
 
-    pub fn uncompressed_size(mut self, uncompressed_size: u64) -> Self {
-        self.field.uncompressed_size = Some(uncompressed_size);
-        self
-    }
-
-    pub fn compressed_size(mut self, compressed_size: u64) -> Self {
+    pub fn sizes(mut self, compressed_size: u64, uncompressed_size: u64) -> Self {
         self.field.compressed_size = Some(compressed_size);
+        self.field.uncompressed_size = Some(uncompressed_size);
         self
     }
 
