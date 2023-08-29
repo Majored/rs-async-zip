@@ -6,7 +6,7 @@ use crate::spec::Compression;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-#[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
+#[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz", feature = "deflate64"))]
 use async_compression::futures::bufread;
 use futures_util::io::{AsyncBufRead, AsyncRead};
 use pin_project::pin_project;
