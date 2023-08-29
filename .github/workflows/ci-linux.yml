@@ -44,5 +44,8 @@ jobs:
     - name: Test ['xz' feature]
       run: cargo test --verbose --features xz
 
+    - name: Test ['deflate64' feature]
+      run: cargo test --verbose --features deflate64
+
     - name: Test ['full' feature]
       run: cargo test --verbose --features full
