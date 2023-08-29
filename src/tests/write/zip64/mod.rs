@@ -36,7 +36,7 @@ async fn test_write_zip64_file() {
     let cursor = std::io::Cursor::new(buffer);
     let mut zip = zip::read::ZipArchive::new(cursor).unwrap();
     let mut file1 = zip.by_name("file1").unwrap();
-    assert_eq!(file1.extra_data(), vec![]);
+    assert_eq!(file1.extra_data(), &[]);
     let mut buffer = Vec::new();
     file1.read_to_end(&mut buffer).unwrap();
     assert_eq!(buffer.as_slice(), &[0, 0, 0, 0]);
