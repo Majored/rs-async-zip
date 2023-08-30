@@ -169,7 +169,14 @@ where
     let entry = ZipEntry {
         filename,
         compression,
-        #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
+        #[cfg(any(
+            feature = "deflate",
+            feature = "bzip2",
+            feature = "zstd",
+            feature = "lzma",
+            feature = "xz",
+            feature = "deflate64"
+        ))]
         compression_level: async_compression::Level::Default,
         attribute_compatibility: AttributeCompatibility::Unix,
         /// FIXME: Default to Unix for the moment
@@ -224,7 +231,14 @@ where
     let entry = ZipEntry {
         filename,
         compression,
-        #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
+        #[cfg(any(
+            feature = "deflate",
+            feature = "bzip2",
+            feature = "zstd",
+            feature = "lzma",
+            feature = "xz",
+            feature = "deflate64"
+        ))]
         compression_level: async_compression::Level::Default,
         attribute_compatibility: AttributeCompatibility::Unix,
         /// FIXME: Default to Unix for the moment

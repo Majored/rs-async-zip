@@ -29,7 +29,14 @@ use crate::{
 pub struct ZipEntry {
     pub(crate) filename: ZipString,
     pub(crate) compression: Compression,
-    #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
+    #[cfg(any(
+        feature = "deflate",
+        feature = "bzip2",
+        feature = "zstd",
+        feature = "lzma",
+        feature = "xz",
+        feature = "deflate64"
+    ))]
     pub(crate) compression_level: async_compression::Level,
     pub(crate) crc32: u32,
     pub(crate) uncompressed_size: u64,
@@ -53,7 +60,14 @@ impl ZipEntry {
         ZipEntry {
             filename,
             compression,
-            #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
+            #[cfg(any(
+                feature = "deflate",
+                feature = "bzip2",
+                feature = "zstd",
+                feature = "lzma",
+                feature = "xz",
+                feature = "deflate64"
+            ))]
             compression_level: async_compression::Level::Default,
             crc32: 0,
             uncompressed_size: 0,
