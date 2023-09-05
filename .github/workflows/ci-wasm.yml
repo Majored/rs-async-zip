@@ -19,6 +19,6 @@ jobs:
           - wasm32-wasi
           - wasm32-unknown-unknown
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - run: rustup target add ${{ matrix.target }}
     - run: cargo build --verbose --target ${{ matrix.target }} --features full-wasm
