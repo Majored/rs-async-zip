@@ -158,7 +158,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
                         Zip64ExtendedInformationExtraField {
                             header_id: HeaderId::Zip64ExtendedInformationExtraField,
                             data_size: 16,
-                            uncompressed_size: Some(compressed_size),
+                            uncompressed_size: Some(uncompressed_size),
                             compressed_size: Some(compressed_size),
                             relative_header_offset: None,
                             disk_start_number: None,
