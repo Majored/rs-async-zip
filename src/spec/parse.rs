@@ -264,7 +264,7 @@ impl Zip64EndOfCentralDirectoryLocator {
 }
 
 /// Parse the extra fields.
-pub fn parse_extra_fields(data: Vec<u8>) -> Result<Vec<ExtraField>> {
+pub fn parse_extra_fields(data: Vec<u8>, uncompressed_size: u32, compressed_size: u32) -> Result<Vec<ExtraField>> {
     let mut cursor = 0;
     let mut extra_fields = Vec::new();
     while cursor + 4 < data.len() {
@@ -274,7 +274,7 @@ pub fn parse_extra_fields(data: Vec<u8>) -> Result<Vec<ExtraField>> {
             return Err(ZipError::InvalidExtraFieldHeader(field_size, data.len() - cursor - 8 - field_size as usize));
         }
         let data = &data[cursor + 4..cursor + 4 + field_size as usize];
-        extra_fields.push(extra_field_from_bytes(header_id, field_size, data)?);
+        extra_fields.push(extra_field_from_bytes(header_id, field_size, data, uncompressed_size, compressed_size)?);
         cursor += 4 + field_size as usize;
     }
     Ok(extra_fields)

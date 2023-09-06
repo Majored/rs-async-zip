@@ -3,6 +3,8 @@
 use crate::error::{Result as ZipResult, ZipError};
 use crate::spec::header::{ExtraField, HeaderId, UnknownExtraField, Zip64ExtendedInformationExtraField};
 
+use super::consts::NON_ZIP64_MAX_SIZE;
+
 impl From<u16> for HeaderId {
     fn from(value: u16) -> Self {
         match value {
@@ -109,33 +111,71 @@ fn zip64_extended_information_field_from_bytes(
     header_id: HeaderId,
     data_size: u16,
     data: &[u8],
+    uncompressed_size: u32,
+    compressed_size: u32,
 ) -> ZipResult<Zip64ExtendedInformationExtraField> {
-    // First ensure that the data is sufficient to populate compressed & uncompressed size.
-    if data.len() < 16 {
-        return Err(ZipError::Zip64ExtendedFieldIncomplete);
-    }
-    let uncompressed_size = u64::from_le_bytes(data[0..8].try_into().unwrap());
-    let compressed_size = u64::from_le_bytes(data[8..16].try_into().unwrap());
-    let relative_header_offset =
-        if data.len() >= 24 { Some(u64::from_le_bytes(data[16..24].try_into().unwrap())) } else { None };
-    let disk_start_number =
-        if data.len() >= 32 { Some(u32::from_le_bytes(data[24..32].try_into().unwrap())) } else { None };
+    // slice.take is nightly-only so we'll just use an index to track the current position
+    let mut current_idx = 0;
+    let uncompressed_size = if uncompressed_size == NON_ZIP64_MAX_SIZE && data.len() >= current_idx + 8 {
+        let val = Some(u64::from_le_bytes(data[current_idx..current_idx + 8].try_into().unwrap()));
+        current_idx += 8;
+        val
+    } else {
+        None
+    };
+
+    let compressed_size = if compressed_size == NON_ZIP64_MAX_SIZE && data.len() >= current_idx + 8 {
+        let val = Some(u64::from_le_bytes(data[current_idx..current_idx + 8].try_into().unwrap()));
+        current_idx += 8;
+        val
+    } else {
+        None
+    };
+
+    let relative_header_offset = if data.len() >= current_idx + 8 {
+        let val = Some(u64::from_le_bytes(data[current_idx..current_idx + 8].try_into().unwrap()));
+        current_idx += 8;
+        val
+    } else {
+        None
+    };
+
+    #[allow(unused_assignments)]
+    let disk_start_number = if data.len() >= current_idx + 4 {
+        let val = Some(u32::from_le_bytes(data[current_idx..current_idx + 4].try_into().unwrap()));
+        current_idx += 4;
+        val
+    } else {
+        None
+    };
 
     Ok(Zip64ExtendedInformationExtraField {
         header_id,
         data_size,
-        uncompressed_size: Some(uncompressed_size),
-        compressed_size: Some(compressed_size),
+        uncompressed_size,
+        compressed_size,
         relative_header_offset,
         disk_start_number,
     })
 }
 
-pub(crate) fn extra_field_from_bytes(header_id: HeaderId, data_size: u16, data: &[u8]) -> ZipResult<ExtraField> {
+pub(crate) fn extra_field_from_bytes(
+    header_id: HeaderId,
+    data_size: u16,
+    data: &[u8],
+    uncompressed_size: u32,
+    compressed_size: u32,
+) -> ZipResult<ExtraField> {
     match header_id {
-        HeaderId::Zip64ExtendedInformationExtraField => Ok(ExtraField::Zip64ExtendedInformationExtraField(
-            zip64_extended_information_field_from_bytes(header_id, data_size, data)?,
-        )),
+        HeaderId::Zip64ExtendedInformationExtraField => {
+            Ok(ExtraField::Zip64ExtendedInformationExtraField(zip64_extended_information_field_from_bytes(
+                header_id,
+                data_size,
+                data,
+                uncompressed_size,
+                compressed_size,
+            )?))
+        }
         header_id @ HeaderId::Other(_) => {
             Ok(ExtraField::UnknownExtraField(UnknownExtraField { header_id, data_size, content: data.to_vec() }))
         }

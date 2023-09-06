@@ -129,11 +129,11 @@ fn get_combined_sizes(
     let mut compressed_size = compressed_size as u64;
 
     if let Some(extra_field) = extra_field {
-        if uncompressed_size == NON_ZIP64_MAX_SIZE as u64 {
-            uncompressed_size = extra_field.uncompressed_size.ok_or_else(|| ZipError::Zip64ExtendedFieldIncomplete)?
+        if let Some(s) = extra_field.uncompressed_size {
+            uncompressed_size = s;
         }
-        if compressed_size == NON_ZIP64_MAX_SIZE as u64 {
-            compressed_size = extra_field.compressed_size.ok_or_else(|| ZipError::Zip64ExtendedFieldIncomplete)?;
+        if let Some(s) = extra_field.compressed_size {
+            compressed_size = s;
         }
     }
 
@@ -150,7 +150,7 @@ where
     let filename = io::read_string(&mut reader, header.file_name_length.into(), StringEncoding::Utf8).await?;
     let compression = Compression::try_from(header.compression)?;
     let extra_field = io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
-    let extra_fields = parse_extra_fields(extra_field)?;
+    let extra_fields = parse_extra_fields(extra_field, header.uncompressed_size, header.compressed_size)?;
     let comment = io::read_string(reader, header.file_comment_length.into(), StringEncoding::Utf8).await?;
 
     let zip64_extra_field = get_zip64_extra_field(&extra_fields);
@@ -213,7 +213,7 @@ where
     let filename = io::read_string(&mut reader, header.file_name_length.into(), StringEncoding::Utf8).await?;
     let compression = Compression::try_from(header.compression)?;
     let extra_field = io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
-    let extra_fields = parse_extra_fields(extra_field)?;
+    let extra_fields = parse_extra_fields(extra_field, header.uncompressed_size, header.compressed_size)?;
 
     let zip64_extra_field = get_zip64_extra_field(&extra_fields);
     let (uncompressed_size, compressed_size) =
