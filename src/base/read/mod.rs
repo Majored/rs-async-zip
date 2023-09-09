@@ -105,7 +105,7 @@ where
 
 pub(crate) fn get_zip64_extra_field(extra_fields: &[ExtraField]) -> Option<&Zip64ExtendedInformationExtraField> {
     for field in extra_fields {
-        if let ExtraField::Zip64ExtendedInformationExtraField(zip64field) = field {
+        if let ExtraField::Zip64ExtendedInformation(zip64field) = field {
             return Some(zip64field);
         }
     }
@@ -116,7 +116,7 @@ pub(crate) fn get_zip64_extra_field_mut(
     extra_fields: &mut [ExtraField],
 ) -> Option<&mut Zip64ExtendedInformationExtraField> {
     for field in extra_fields {
-        if let ExtraField::Zip64ExtendedInformationExtraField(zip64field) = field {
+        if let ExtraField::Zip64ExtendedInformation(zip64field) = field {
             return Some(zip64field);
         }
     }
@@ -268,7 +268,7 @@ fn detect_comment(basic: Vec<u8>, basic_is_utf8: bool, extra_fields: &[ExtraFiel
         ZipString::new(basic, StringEncoding::Utf8)
     } else {
         let unicode_extra = extra_fields.iter().find_map(|field| match field {
-            ExtraField::InfoZipUnicodeCommentExtraField(InfoZipUnicodeCommentExtraField::V1 { crc32, unicode }) => {
+            ExtraField::InfoZipUnicodeComment(InfoZipUnicodeCommentExtraField::V1 { crc32, unicode }) => {
                 if *crc32 == crc32fast::hash(&basic) {
                     Some(std::string::String::from_utf8(unicode.clone()))
                 } else {
@@ -298,7 +298,7 @@ fn detect_filename(basic: Vec<u8>, basic_is_utf8: bool, extra_fields: &[ExtraFie
         ZipString::new(basic, StringEncoding::Utf8)
     } else {
         let unicode_extra = extra_fields.iter().find_map(|field| match field {
-            ExtraField::InfoZipUnicodePathExtraField(InfoZipUnicodePathExtraField::V1 { crc32, unicode }) => {
+            ExtraField::InfoZipUnicodePath(InfoZipUnicodePathExtraField::V1 { crc32, unicode }) => {
                 if *crc32 == crc32fast::hash(&basic) {
                     Some(std::string::String::from_utf8(unicode.clone()))
                 } else {

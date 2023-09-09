@@ -96,7 +96,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
 
         if let Some(builder) = zip64_extra_field_builder {
             if !builder.eof_only() {
-                self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformationExtraField(builder.build()?));
+                self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformation(builder.build()?));
                 zip64_extra_field_builder = None;
             } else {
                 zip64_extra_field_builder = Some(builder);
@@ -187,7 +187,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
         self.writer.writer.write_all(compressed_data).await?;
 
         if let Some(builder) = zip64_extra_field_builder {
-            self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformationExtraField(builder.build()?));
+            self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformation(builder.build()?));
             header.extra_field_length =
                 self.entry.extra_fields().count_bytes().try_into().map_err(|_| ZipError::ExtraFieldTooLarge)?;
         }

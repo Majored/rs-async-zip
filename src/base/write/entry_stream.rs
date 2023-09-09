@@ -80,16 +80,14 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             if !writer.is_zip64 {
                 writer.is_zip64 = true;
             }
-            entry.extra_fields.push(ExtraField::Zip64ExtendedInformationExtraField(
-                Zip64ExtendedInformationExtraField {
-                    header_id: HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD,
-                    data_size: 16,
-                    uncompressed_size: Some(entry.uncompressed_size),
-                    compressed_size: Some(entry.compressed_size),
-                    relative_header_offset: None,
-                    disk_start_number: None,
-                },
-            ));
+            entry.extra_fields.push(ExtraField::Zip64ExtendedInformation(Zip64ExtendedInformationExtraField {
+                header_id: HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD,
+                data_size: 16,
+                uncompressed_size: Some(entry.uncompressed_size),
+                compressed_size: Some(entry.compressed_size),
+                relative_header_offset: None,
+                disk_start_number: None,
+            }));
 
             (NON_ZIP64_MAX_SIZE, NON_ZIP64_MAX_SIZE)
         } else {
@@ -188,7 +186,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             match get_zip64_extra_field_mut(&mut self.entry.extra_fields) {
                 // This case shouldn't be necessary but is included for completeness.
                 None => {
-                    self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformationExtraField(
+                    self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformation(
                         Zip64ExtendedInformationExtraField {
                             header_id: HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD,
                             data_size: 16,
