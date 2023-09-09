@@ -51,10 +51,10 @@ impl From<HeaderId> for u16 {
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum ExtraField {
-    Zip64ExtendedInformationExtraField(Zip64ExtendedInformationExtraField),
-    InfoZipUnicodeCommentExtraField(InfoZipUnicodeCommentExtraField),
-    InfoZipUnicodePathExtraField(InfoZipUnicodePathExtraField),
-    UnknownExtraField(UnknownExtraField),
+    Zip64ExtendedInformation(Zip64ExtendedInformationExtraField),
+    InfoZipUnicodeComment(InfoZipUnicodeCommentExtraField),
+    InfoZipUnicodePath(InfoZipUnicodePathExtraField),
+    Unknown(UnknownExtraField),
 }
 
 /// An extended information header for Zip64.

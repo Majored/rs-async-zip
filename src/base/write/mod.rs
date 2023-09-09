@@ -259,15 +259,13 @@ where
 pub(crate) fn get_or_put_info_zip_unicode_path_extra_field_mut(
     extra_fields: &mut Vec<ExtraField>,
 ) -> &mut InfoZipUnicodePathExtraField {
-    if !extra_fields.iter().any(|field| matches!(field, ExtraField::InfoZipUnicodePathExtraField(_))) {
-        extra_fields.push(ExtraField::InfoZipUnicodePathExtraField(InfoZipUnicodePathExtraField::V1 {
-            crc32: 0,
-            unicode: vec![],
-        }));
+    if !extra_fields.iter().any(|field| matches!(field, ExtraField::InfoZipUnicodePath(_))) {
+        extra_fields
+            .push(ExtraField::InfoZipUnicodePath(InfoZipUnicodePathExtraField::V1 { crc32: 0, unicode: vec![] }));
     }
 
     for field in extra_fields.iter_mut() {
-        if let ExtraField::InfoZipUnicodePathExtraField(extra_field) = field {
+        if let ExtraField::InfoZipUnicodePath(extra_field) = field {
             return extra_field;
         }
     }
@@ -278,15 +276,13 @@ pub(crate) fn get_or_put_info_zip_unicode_path_extra_field_mut(
 pub(crate) fn get_or_put_info_zip_unicode_comment_extra_field_mut(
     extra_fields: &mut Vec<ExtraField>,
 ) -> &mut InfoZipUnicodeCommentExtraField {
-    if !extra_fields.iter().any(|field| matches!(field, ExtraField::InfoZipUnicodeCommentExtraField(_))) {
-        extra_fields.push(ExtraField::InfoZipUnicodeCommentExtraField(InfoZipUnicodeCommentExtraField::V1 {
-            crc32: 0,
-            unicode: vec![],
-        }));
+    if !extra_fields.iter().any(|field| matches!(field, ExtraField::InfoZipUnicodeComment(_))) {
+        extra_fields
+            .push(ExtraField::InfoZipUnicodeComment(InfoZipUnicodeCommentExtraField::V1 { crc32: 0, unicode: vec![] }));
     }
 
     for field in extra_fields.iter_mut() {
-        if let ExtraField::InfoZipUnicodeCommentExtraField(extra_field) = field {
+        if let ExtraField::InfoZipUnicodeComment(extra_field) = field {
             return extra_field;
         }
     }

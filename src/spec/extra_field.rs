@@ -31,19 +31,19 @@ impl ExtraFieldAsBytes for &[ExtraField] {
 impl ExtraFieldAsBytes for ExtraField {
     fn as_bytes(&self) -> Vec<u8> {
         match self {
-            ExtraField::Zip64ExtendedInformationExtraField(field) => field.as_bytes(),
-            ExtraField::InfoZipUnicodeCommentExtraField(field) => field.as_bytes(),
-            ExtraField::InfoZipUnicodePathExtraField(field) => field.as_bytes(),
-            ExtraField::UnknownExtraField(field) => field.as_bytes(),
+            ExtraField::Zip64ExtendedInformation(field) => field.as_bytes(),
+            ExtraField::InfoZipUnicodeComment(field) => field.as_bytes(),
+            ExtraField::InfoZipUnicodePath(field) => field.as_bytes(),
+            ExtraField::Unknown(field) => field.as_bytes(),
         }
     }
 
     fn count_bytes(&self) -> usize {
         match self {
-            ExtraField::Zip64ExtendedInformationExtraField(field) => field.count_bytes(),
-            ExtraField::InfoZipUnicodeCommentExtraField(field) => field.count_bytes(),
-            ExtraField::InfoZipUnicodePathExtraField(field) => field.count_bytes(),
-            ExtraField::UnknownExtraField(field) => field.count_bytes(),
+            ExtraField::Zip64ExtendedInformation(field) => field.count_bytes(),
+            ExtraField::InfoZipUnicodeComment(field) => field.count_bytes(),
+            ExtraField::InfoZipUnicodePath(field) => field.count_bytes(),
+            ExtraField::Unknown(field) => field.count_bytes(),
         }
     }
 }
@@ -263,7 +263,7 @@ pub(crate) fn extra_field_from_bytes(
 ) -> ZipResult<ExtraField> {
     match header_id {
         HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD => {
-            Ok(ExtraField::Zip64ExtendedInformationExtraField(zip64_extended_information_field_from_bytes(
+            Ok(ExtraField::Zip64ExtendedInformation(zip64_extended_information_field_from_bytes(
                 header_id,
                 data_size,
                 data,
@@ -271,13 +271,13 @@ pub(crate) fn extra_field_from_bytes(
                 compressed_size,
             )?))
         }
-        HeaderId::INFO_ZIP_UNICODE_COMMENT_EXTRA_FIELD => Ok(ExtraField::InfoZipUnicodeCommentExtraField(
+        HeaderId::INFO_ZIP_UNICODE_COMMENT_EXTRA_FIELD => Ok(ExtraField::InfoZipUnicodeComment(
             info_zip_unicode_comment_extra_field_from_bytes(header_id, data_size, data)?,
         )),
-        HeaderId::INFO_ZIP_UNICODE_PATH_EXTRA_FIELD => Ok(ExtraField::InfoZipUnicodePathExtraField(
+        HeaderId::INFO_ZIP_UNICODE_PATH_EXTRA_FIELD => Ok(ExtraField::InfoZipUnicodePath(
             info_zip_unicode_path_extra_field_from_bytes(header_id, data_size, data)?,
         )),
-        _ => Ok(ExtraField::UnknownExtraField(UnknownExtraField { header_id, data_size, content: data.to_vec() })),
+        _ => Ok(ExtraField::Unknown(UnknownExtraField { header_id, data_size, content: data.to_vec() })),
     }
 }
 
