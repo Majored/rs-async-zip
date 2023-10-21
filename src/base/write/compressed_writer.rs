@@ -10,7 +10,7 @@ use std::task::{Context, Poll};
 
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use async_compression::futures::write;
-use futures_util::io::AsyncWrite;
+use futures_lite::io::AsyncWrite;
 
 pub enum CompressedAsyncWriter<'b, W: AsyncWrite + Unpin> {
     Stored(ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>),

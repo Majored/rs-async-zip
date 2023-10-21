@@ -5,7 +5,7 @@ use std::io::{Error, IoSlice};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use futures_util::io::AsyncWrite;
+use futures_lite::io::AsyncWrite;
 use pin_project::pin_project;
 
 /// A wrapper around an [`AsyncWrite`] implementation which tracks the current byte offset.

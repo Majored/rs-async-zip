@@ -5,7 +5,7 @@ pub mod builder;
 
 use std::ops::Deref;
 
-use futures_util::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
+use futures_lite::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
 
 use crate::entry::builder::ZipEntryBuilder;
 use crate::error::{Result, ZipError};

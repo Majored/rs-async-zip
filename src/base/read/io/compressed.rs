@@ -15,7 +15,7 @@ use std::task::{Context, Poll};
     feature = "deflate64"
 ))]
 use async_compression::futures::bufread;
-use futures_util::io::{AsyncBufRead, AsyncRead};
+use futures_lite::io::{AsyncBufRead, AsyncRead};
 use pin_project::pin_project;
 
 /// A wrapping reader which holds concrete types for all respective compression method readers.

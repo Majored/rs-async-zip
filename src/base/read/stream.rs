@@ -53,9 +53,9 @@ use crate::error::ZipError;
 #[cfg(feature = "tokio")]
 use crate::tokio::read::stream::Ready as TokioReady;
 
-use futures_util::io::AsyncReadExt;
-use futures_util::io::Take;
-use futures_util::io::{AsyncRead, BufReader};
+use futures_lite::io::AsyncReadExt;
+use futures_lite::io::Take;
+use futures_lite::io::{AsyncRead, BufReader};
 
 #[cfg(feature = "tokio")]
 use tokio_util::compat::TokioAsyncReadCompatExt;

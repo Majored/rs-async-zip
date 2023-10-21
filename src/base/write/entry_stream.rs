@@ -25,7 +25,7 @@ use std::task::{Context, Poll};
 use crate::base::read::get_zip64_extra_field_mut;
 use crate::spec::consts::{NON_ZIP64_MAX_NUM_FILES, NON_ZIP64_MAX_SIZE};
 use crc32fast::Hasher;
-use futures_util::io::{AsyncWrite, AsyncWriteExt};
+use futures_lite::io::{AsyncWrite, AsyncWriteExt};
 
 /// An entry writer which supports the streaming of data (ie. the writing of unknown size or data at runtime).
 ///

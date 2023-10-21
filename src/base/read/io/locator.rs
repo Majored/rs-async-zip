@@ -23,7 +23,7 @@ use futures_util::io::BufReader;
 use crate::error::{Result as ZipResult, ZipError};
 use crate::spec::consts::{EOCDR_LENGTH, EOCDR_SIGNATURE, SIGNATURE_LENGTH};
 
-use futures_util::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
+use futures_lite::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
 
 /// The buffer size used when locating the EOCDR, equal to 2KiB.
 const BUFFER_SIZE: usize = 2048;
