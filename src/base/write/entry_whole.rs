@@ -20,7 +20,7 @@ use futures_util::io::Cursor;
 use crate::spec::consts::{NON_ZIP64_MAX_NUM_FILES, NON_ZIP64_MAX_SIZE};
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]
 use async_compression::futures::write;
-use futures_util::io::{AsyncWrite, AsyncWriteExt};
+use futures_lite::io::{AsyncWrite, AsyncWriteExt};
 
 pub struct EntryWholeWriter<'b, 'c, W: AsyncWrite + Unpin> {
     writer: &'b mut ZipFileWriter<W>,

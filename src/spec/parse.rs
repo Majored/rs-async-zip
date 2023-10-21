@@ -7,7 +7,7 @@ use crate::spec::header::{
     Zip64EndOfCentralDirectoryLocator, Zip64EndOfCentralDirectoryRecord,
 };
 
-use futures_util::io::{AsyncRead, AsyncReadExt};
+use futures_lite::io::{AsyncRead, AsyncReadExt};
 
 impl LocalFileHeader {
     pub fn as_slice(&self) -> [u8; 26] {

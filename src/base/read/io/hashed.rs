@@ -7,7 +7,7 @@ use std::pin::Pin;
 use std::task::{ready, Context, Poll};
 
 use crc32fast::Hasher;
-use futures_util::io::AsyncRead;
+use futures_lite::io::AsyncRead;
 use pin_project::pin_project;
 
 /// A wrapping reader which computes the CRC32 hash of data read via [`AsyncRead`].

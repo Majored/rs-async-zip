@@ -32,7 +32,7 @@ use crate::file::ZipFile;
 #[cfg(feature = "tokio")]
 use crate::tokio::read::seek::ZipFileReader as TokioZipFileReader;
 
-use futures_util::io::{AsyncRead, AsyncSeek, BufReader};
+use futures_lite::io::{AsyncRead, AsyncSeek, BufReader};
 
 #[cfg(feature = "tokio")]
 use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
