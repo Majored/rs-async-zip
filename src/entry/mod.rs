@@ -168,12 +168,18 @@ pub struct StoredZipEntry {
     pub(crate) entry: ZipEntry,
     // pub(crate) general_purpose_flag: GeneralPurposeFlag,
     pub(crate) file_offset: u64,
+    pub(crate) header_size: u16,
 }
 
 impl StoredZipEntry {
     /// Returns the offset in bytes to where the header of the entry starts.
     pub fn header_offset(&self) -> u64 {
         self.file_offset
+    }
+
+    /// Returns the size in bytes where the header of the entry.
+    pub fn header_size(&self) -> u16 {
+        self.header_size
     }
 
     /// Seek to the offset in bytes where the data of the entry starts.

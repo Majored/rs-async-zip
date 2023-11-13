@@ -150,6 +150,7 @@ where
     crate::utils::assert_signature(&mut reader, CDH_SIGNATURE).await?;
 
     let header = CentralDirectoryRecord::from_reader(&mut reader).await?;
+    let header_size = 30 + header.file_name_length + header.extra_field_length;
     let filename_basic = io::read_bytes(&mut reader, header.file_name_length.into()).await?;
     let compression = Compression::try_from(header.compression)?;
     let extra_field = io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
@@ -197,7 +198,7 @@ where
     };
 
     // general_purpose_flag: header.flags,
-    Ok(StoredZipEntry { entry, file_offset })
+    Ok(StoredZipEntry { entry, file_offset, header_size })
 }
 
 pub(crate) async fn lfh<R>(mut reader: R) -> Result<Option<ZipEntry>>
