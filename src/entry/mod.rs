@@ -201,10 +201,10 @@ impl StoredZipEntry {
 
         // Skip the local file header and trailing data
         let header = LocalFileHeader::from_reader(&mut reader).await?;
-
-        let extra = (self.header_size - 30) as usize;
-
-        let _extra_field = crate::base::read::io::read_bytes(&mut reader, extra).await?;
+        let _filename =
+            crate::base::read::io::read_string(&mut reader, header.file_name_length.into(), StringEncoding::Utf8)
+                .await?;
+        let _extra_field = crate::base::read::io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
 
         Ok(())
     }
