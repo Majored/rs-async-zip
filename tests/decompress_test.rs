@@ -81,6 +81,7 @@ async fn decompress_zip_with_utf8_extra() {
     let zip = async_zip::base::read::seek::ZipFileReader::new(&mut file_compat).await.unwrap();
     let zip_entries: Vec<_> = zip.file().entries().to_vec();
     assert_eq!(zip_entries.len(), 1);
+    assert_eq!(zip_entries[0].header_size(), 93);
     assert_eq!(zip_entries[0].filename().as_str().unwrap(), "\u{4E2D}\u{6587}.txt");
     assert_eq!(zip_entries[0].filename().alternative(), Some(b"\xD6\xD0\xCe\xC4.txt".as_ref()));
 }
