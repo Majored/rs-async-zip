@@ -204,7 +204,7 @@ impl StoredZipEntry {
 
         // Found zip64.zip's CDS and LFH 's Extra field length not equal
         let mut record_ignore = self.header_size - 30;
-        let locol_ignore =header.file_name_length+header.extra_field_length;
+        let locol_ignore = header.file_name_length + header.extra_field_length;
 
         if record_ignore != locol_ignore {
             record_ignore = locol_ignore;
