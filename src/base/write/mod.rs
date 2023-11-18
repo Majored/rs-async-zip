@@ -30,7 +30,7 @@
 //! # use async_zip::{Compression, ZipEntryBuilder, base::write::ZipFileWriter};
 //! # use std::io::Cursor;
 //! # use async_zip::error::ZipError;
-//! # use futures_util::io::AsyncWriteExt;
+//! # use futures_lite::io::AsyncWriteExt;
 //! # use tokio_util::compat::TokioAsyncWriteCompatExt;
 //! #
 //! # async fn run() -> Result<(), ZipError> {

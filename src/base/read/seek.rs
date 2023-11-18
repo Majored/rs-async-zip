@@ -7,7 +7,7 @@
 //! ```no_run
 //! # use async_zip::base::read::seek::ZipFileReader;
 //! # use async_zip::error::Result;
-//! # use futures_util::io::AsyncReadExt;
+//! # use futures_lite::io::AsyncReadExt;
 //! # use tokio::fs::File;
 //! # use tokio_util::compat::TokioAsyncReadCompatExt;
 //! #

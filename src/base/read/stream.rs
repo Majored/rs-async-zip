@@ -29,7 +29,7 @@
 //!
 //! # Example
 //! ```no_run
-//! # use futures_util::io::Cursor;
+//! # use futures_lite::io::Cursor;
 //! # use async_zip::error::Result;
 //! # use async_zip::base::read::stream::ZipFileReader;
 //! #

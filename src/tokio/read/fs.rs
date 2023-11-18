@@ -17,7 +17,7 @@
 //! ```no_run
 //! # use async_zip::tokio::read::fs::ZipFileReader;
 //! # use async_zip::error::Result;
-//! # use futures_util::io::AsyncReadExt;
+//! # use futures_lite::io::AsyncReadExt;
 //! #
 //! async fn run() -> Result<()> {
 //!     let reader = ZipFileReader::new("./foo.zip").await?;
@@ -43,7 +43,7 @@
 //! ```no_run
 //! # use async_zip::tokio::read::fs::ZipFileReader;
 //! # use async_zip::error::Result;
-//! # use futures_util::io::AsyncReadExt;
+//! # use futures_lite::io::AsyncReadExt;
 //! #
 //! async fn run() -> Result<()> {
 //!     let reader = ZipFileReader::new("./foo.zip").await?;
@@ -77,7 +77,7 @@ use crate::file::ZipFile;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use futures_util::io::BufReader;
+use futures_lite::io::BufReader;
 use tokio::fs::File;
 use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
 

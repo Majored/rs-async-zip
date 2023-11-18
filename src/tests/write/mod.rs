@@ -1,7 +1,7 @@
 // Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use futures_util::io::AsyncWrite;
+use futures_lite::io::AsyncWrite;
 use std::io::Error;
 use std::pin::Pin;
 use std::task::{Context, Poll};

@@ -18,7 +18,7 @@
 //! of a better algorithm for this (and have tested/verified its performance).
 
 #[cfg(doc)]
-use futures_util::io::BufReader;
+use futures_lite::io::BufReader;
 
 use crate::error::{Result as ZipResult, ZipError};
 use crate::spec::consts::{EOCDR_LENGTH, EOCDR_SIGNATURE, SIGNATURE_LENGTH};

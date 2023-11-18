@@ -6,7 +6,7 @@ use async_zip::base::read::seek;
 use async_zip::base::write::ZipFileWriter;
 use async_zip::Compression;
 use async_zip::ZipEntryBuilder;
-use futures_util::io::AsyncWriteExt;
+use futures_lite::io::AsyncWriteExt;
 use tokio::fs::File;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 

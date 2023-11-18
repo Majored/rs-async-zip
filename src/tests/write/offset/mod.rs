@@ -5,8 +5,8 @@ use crate::base::write::io::offset::AsyncOffsetWriter;
 
 #[tokio::test]
 async fn basic() {
-    use futures_util::io::AsyncWriteExt;
-    use futures_util::io::Cursor;
+    use futures_lite::io::AsyncWriteExt;
+    use futures_lite::io::Cursor;
 
     let mut writer = AsyncOffsetWriter::new(Cursor::new(Vec::new()));
     assert_eq!(writer.offset(), 0);

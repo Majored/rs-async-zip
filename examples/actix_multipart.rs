@@ -13,7 +13,7 @@ mod inner {
     use actix_web::{web, App, HttpServer, Responder, ResponseError, Result};
     use derive_more::{Display, Error};
     use futures::StreamExt;
-    use futures_util::io::AsyncWriteExt;
+    use futures_lite::io::AsyncWriteExt;
     use tokio::fs::File;
     use uuid::Uuid;
 

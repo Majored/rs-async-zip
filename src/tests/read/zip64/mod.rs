@@ -2,7 +2,7 @@
 // Copyright (c) 2023 Cognite AS
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use futures_util::io::AsyncReadExt;
+use futures_lite::io::AsyncReadExt;
 
 use crate::tests::init_logger;
 

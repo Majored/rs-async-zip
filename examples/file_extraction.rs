@@ -69,7 +69,7 @@ async fn unzip_file(archive: File, out_dir: &Path) {
                 .open(&path)
                 .await
                 .expect("Failed to create extracted file");
-            futures_util::io::copy(&mut entry_reader, &mut writer.compat_write())
+            futures_lite::io::copy(&mut entry_reader, &mut writer.compat_write())
                 .await
                 .expect("Failed to copy to extracted file");
 
