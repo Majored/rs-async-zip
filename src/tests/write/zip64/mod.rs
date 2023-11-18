@@ -9,7 +9,7 @@ use crate::{Compression, ZipEntryBuilder};
 use std::io::Read;
 
 use crate::spec::header::ExtraField;
-use futures_util::io::AsyncWriteExt;
+use futures_lite::io::AsyncWriteExt;
 
 // Useful constants for writing a large file.
 const BATCH_SIZE: usize = 100_000;
@@ -100,7 +100,7 @@ async fn test_write_large_zip64_file() {
 /// Test writing a file, and reading it with async-zip
 #[tokio::test]
 async fn test_write_large_zip64_file_self_read() {
-    use futures_util::io::AsyncReadExt;
+    use futures_lite::io::AsyncReadExt;
 
     init_logger();
 

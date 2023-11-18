@@ -331,7 +331,7 @@ mod tests {
             0x50, 0x4B, 0x06, 0x07, 0x00, 0x00, 0x00, 0x00, 0x6F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
             0x00, 0x00,
         ];
-        let mut cursor = futures_util::io::Cursor::new(eocdl);
+        let mut cursor = futures_lite::io::Cursor::new(eocdl);
         let zip64eocdl = Zip64EndOfCentralDirectoryLocator::try_from_reader(&mut cursor).await.unwrap().unwrap();
         assert_eq!(
             zip64eocdl,

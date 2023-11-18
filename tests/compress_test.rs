@@ -2,7 +2,7 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use async_zip::{Compression, ZipEntryBuilder, ZipString};
-use futures_util::AsyncWriteExt;
+use futures_lite::AsyncWriteExt;
 
 mod common;
 

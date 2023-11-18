@@ -17,7 +17,7 @@
 //! ```no_run
 //! # use async_zip::base::read::mem::ZipFileReader;
 //! # use async_zip::error::Result;
-//! # use futures_util::io::AsyncReadExt;
+//! # use futures_lite::io::AsyncReadExt;
 //! #
 //! async fn run() -> Result<()> {
 //!     let reader = ZipFileReader::new(Vec::new()).await?;
@@ -43,7 +43,7 @@
 //! ```no_run
 //! # use async_zip::base::read::mem::ZipFileReader;
 //! # use async_zip::error::Result;
-//! # use futures_util::io::AsyncReadExt;
+//! # use futures_lite::io::AsyncReadExt;
 //! #
 //! async fn run() -> Result<()> {
 //!     let reader = ZipFileReader::new(Vec::new()).await?;

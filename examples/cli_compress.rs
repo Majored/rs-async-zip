@@ -20,7 +20,7 @@ mod inner {
     use std::path::{Path, PathBuf};
 
     use anyhow::{anyhow, bail, Result};
-    use futures_util::io::AsyncReadExt;
+    use futures_lite::io::AsyncReadExt;
     use tokio::fs::File;
 
     async fn run() -> Result<()> {
