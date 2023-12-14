@@ -72,7 +72,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             (self.data.len() as u32, compressed_data.len() as u32)
         };
 
-        let lh_offset = if self.writer.writer.offset() > NON_ZIP64_MAX_SIZE as usize {
+        let lh_offset = if self.writer.writer.offset() > NON_ZIP64_MAX_SIZE as u64 {
             if self.writer.force_no_zip64 {
                 return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
             }
