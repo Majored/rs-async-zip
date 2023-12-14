@@ -69,7 +69,7 @@ impl ExtraFieldAsBytes for Zip64ExtendedInformationExtraField {
         let mut bytes = Vec::new();
         let header_id: u16 = self.header_id.into();
         bytes.append(&mut header_id.to_le_bytes().to_vec());
-        bytes.append(&mut self.data_size.to_le_bytes().to_vec());
+        bytes.append(&mut (self.content_size() as u16).to_le_bytes().to_vec());
         if let Some(uncompressed_size) = &self.uncompressed_size {
             bytes.append(&mut uncompressed_size.to_le_bytes().to_vec());
         }
@@ -87,10 +87,7 @@ impl ExtraFieldAsBytes for Zip64ExtendedInformationExtraField {
     }
 
     fn count_bytes(&self) -> usize {
-        4 + self.uncompressed_size.map(|_| 8).unwrap_or_default()
-            + self.compressed_size.map(|_| 8).unwrap_or_default()
-            + self.relative_header_offset.map(|_| 8).unwrap_or_default()
-            + self.disk_start_number.map(|_| 8).unwrap_or_default()
+        4 + self.content_size()
     }
 }
 
@@ -160,7 +157,6 @@ impl ExtraFieldAsBytes for InfoZipUnicodePathExtraField {
 /// The content of "data" should exclude the header.
 fn zip64_extended_information_field_from_bytes(
     header_id: HeaderId,
-    data_size: u16,
     data: &[u8],
     uncompressed_size: u32,
     compressed_size: u32,
@@ -202,7 +198,6 @@ fn zip64_extended_information_field_from_bytes(
 
     Ok(Zip64ExtendedInformationExtraField {
         header_id,
-        data_size,
         uncompressed_size,
         compressed_size,
         relative_header_offset,
@@ -265,7 +260,6 @@ pub(crate) fn extra_field_from_bytes(
         HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD => {
             Ok(ExtraField::Zip64ExtendedInformation(zip64_extended_information_field_from_bytes(
                 header_id,
-                data_size,
                 data,
                 uncompressed_size,
                 compressed_size,
@@ -290,7 +284,6 @@ impl Zip64ExtendedInformationExtraFieldBuilder {
         Self {
             field: Zip64ExtendedInformationExtraField {
                 header_id: HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD,
-                data_size: 0,
                 uncompressed_size: None,
                 compressed_size: None,
                 relative_header_offset: None,
@@ -322,14 +315,9 @@ impl Zip64ExtendedInformationExtraFieldBuilder {
     }
 
     pub fn build(self) -> ZipResult<Zip64ExtendedInformationExtraField> {
-        let mut field = self.field;
+        let field = self.field;
 
-        field.data_size = field.uncompressed_size.map(|_| 8).unwrap_or_default()
-            + field.compressed_size.map(|_| 8).unwrap_or_default()
-            + field.relative_header_offset.map(|_| 8).unwrap_or_default()
-            + field.disk_start_number.map(|_| 8).unwrap_or_default();
-
-        if field.data_size == 0 {
+        if field.content_size() == 0 {
             return Err(ZipError::Zip64ExtendedFieldIncomplete);
         }
         Ok(field)

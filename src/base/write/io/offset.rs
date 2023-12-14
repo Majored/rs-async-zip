@@ -13,7 +13,7 @@ use pin_project::pin_project;
 pub struct AsyncOffsetWriter<W> {
     #[pin]
     inner: W,
-    offset: usize,
+    offset: u64,
 }
 
 impl<W> AsyncOffsetWriter<W>
@@ -26,7 +26,7 @@ where
     }
 
     /// Returns the current byte offset.
-    pub fn offset(&self) -> usize {
+    pub fn offset(&self) -> u64 {
         self.offset
     }
 
@@ -49,7 +49,7 @@ where
         let poll = this.inner.poll_write(cx, buf);
 
         if let Poll::Ready(Ok(inner)) = &poll {
-            *this.offset += inner;
+            *this.offset += *inner as u64;
         }
 
         poll

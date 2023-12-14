@@ -39,8 +39,8 @@ pub struct EntryStreamWriter<'b, W: AsyncWrite + Unpin> {
     entry: ZipEntry,
     hasher: Hasher,
     lfh: LocalFileHeader,
-    lfh_offset: usize,
-    data_offset: usize,
+    lfh_offset: u64,
+    data_offset: u64,
     force_no_zip64: bool,
     /// To write back to the original writer if zip64 is required.
     is_zip64: &'b mut bool,
@@ -82,7 +82,6 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             }
             entry.extra_fields.push(ExtraField::Zip64ExtendedInformation(Zip64ExtendedInformationExtraField {
                 header_id: HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD,
-                data_size: 16,
                 uncompressed_size: Some(entry.uncompressed_size),
                 compressed_size: Some(entry.compressed_size),
                 relative_header_offset: None,
@@ -172,15 +171,17 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         self.writer.close().await?;
 
         let crc = self.hasher.finalize();
-        let uncompressed_size = self.writer.offset() as u64;
+        let uncompressed_size = self.writer.offset();
         let inner_writer = self.writer.into_inner().into_inner();
-        let compressed_size = (inner_writer.offset() - self.data_offset) as u64;
+        let compressed_size = inner_writer.offset() - self.data_offset;
 
-        let (cdr_compressed_size, cdr_uncompressed_size) = if self.force_no_zip64 {
-            if uncompressed_size > NON_ZIP64_MAX_SIZE as u64 || compressed_size > NON_ZIP64_MAX_SIZE as u64 {
+        let (cdr_compressed_size, cdr_uncompressed_size, lh_offset) = if self.force_no_zip64 {
+            if uncompressed_size > NON_ZIP64_MAX_SIZE as u64
+                || compressed_size > NON_ZIP64_MAX_SIZE as u64
+                || self.lfh_offset > NON_ZIP64_MAX_SIZE as u64 {
                 return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
             }
-            (uncompressed_size as u32, compressed_size as u32)
+            (uncompressed_size as u32, compressed_size as u32, self.lfh_offset as u32)
         } else {
             // When streaming an entry, we are always using a zip64 field.
             match get_zip64_extra_field_mut(&mut self.entry.extra_fields) {
@@ -189,23 +190,23 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
                     self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformation(
                         Zip64ExtendedInformationExtraField {
                             header_id: HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD,
-                            data_size: 16,
                             uncompressed_size: Some(uncompressed_size),
                             compressed_size: Some(compressed_size),
-                            relative_header_offset: None,
+                            relative_header_offset: Some(self.lfh_offset),
                             disk_start_number: None,
                         },
                     ));
-                    self.lfh.extra_field_length =
-                        self.entry.extra_fields().count_bytes().try_into().map_err(|_| ZipError::ExtraFieldTooLarge)?;
                 }
                 Some(zip64) => {
                     zip64.uncompressed_size = Some(uncompressed_size);
                     zip64.compressed_size = Some(compressed_size);
+                    zip64.relative_header_offset = Some(self.lfh_offset);
                 }
             }
+            self.lfh.extra_field_length =
+                self.entry.extra_fields().count_bytes().try_into().map_err(|_| ZipError::ExtraFieldTooLarge)?;
 
-            (NON_ZIP64_MAX_SIZE, NON_ZIP64_MAX_SIZE)
+            (NON_ZIP64_MAX_SIZE, NON_ZIP64_MAX_SIZE, NON_ZIP64_MAX_SIZE)
         };
 
         inner_writer.write_all(&crate::spec::consts::DATA_DESCRIPTOR_SIGNATURE.to_le_bytes()).await?;
@@ -231,7 +232,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             disk_start: 0,
             inter_attr: self.entry.internal_file_attribute(),
             exter_attr: self.entry.external_file_attribute(),
-            lh_offset: self.lfh_offset as u32,
+            lh_offset,
         };
 
         self.cd_entries.push(CentralDirectoryEntry { header: cdh, entry: self.entry });

@@ -63,12 +63,20 @@ pub enum ExtraField {
 #[derive(Clone, Debug)]
 pub struct Zip64ExtendedInformationExtraField {
     pub header_id: HeaderId,
-    pub data_size: u16,
     pub uncompressed_size: Option<u64>,
     pub compressed_size: Option<u64>,
     // While not specified in the spec, these two fields are often left out in practice.
     pub relative_header_offset: Option<u64>,
     pub disk_start_number: Option<u32>,
+}
+
+impl Zip64ExtendedInformationExtraField {
+    pub(crate) fn content_size(&self) -> usize {
+        self.uncompressed_size.map(|_| 8).unwrap_or_default()
+            + self.compressed_size.map(|_| 8).unwrap_or_default()
+            + self.relative_header_offset.map(|_| 8).unwrap_or_default()
+            + self.disk_start_number.map(|_| 8).unwrap_or_default()
+    }
 }
 
 /// Stores the UTF-8 version of the file comment as stored in the central directory header.
