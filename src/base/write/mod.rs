@@ -168,7 +168,7 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
             self.writer.write_all(comment_basic).await?;
         }
 
-        let central_directory_size = (self.writer.offset() - cd_offset) as u64;
+        let central_directory_size = self.writer.offset() - cd_offset;
         let central_directory_size_u32 = if central_directory_size > NON_ZIP64_MAX_SIZE as u64 {
             NON_ZIP64_MAX_SIZE
         } else {
@@ -180,7 +180,6 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
         } else {
             num_entries_in_directory as u16
         };
-        let cd_offset = cd_offset as u64;
         let cd_offset_u32 = if cd_offset > NON_ZIP64_MAX_SIZE as u64 {
             if self.force_no_zip64 {
                 return Err(crate::error::ZipError::Zip64Needed(crate::error::Zip64ErrorCase::LargeFile));
@@ -212,7 +211,7 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
 
             let eocdl = Zip64EndOfCentralDirectoryLocator {
                 number_of_disk_with_start_of_zip64_end_of_central_directory: 0,
-                relative_offset: eocdr_offset as u64,
+                relative_offset: eocdr_offset,
                 total_number_of_disks: 1,
             };
             self.writer.write_all(&crate::spec::consts::ZIP64_EOCDL_SIGNATURE.to_le_bytes()).await?;

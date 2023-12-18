@@ -257,14 +257,9 @@ pub(crate) fn extra_field_from_bytes(
     compressed_size: u32,
 ) -> ZipResult<ExtraField> {
     match header_id {
-        HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD => {
-            Ok(ExtraField::Zip64ExtendedInformation(zip64_extended_information_field_from_bytes(
-                header_id,
-                data,
-                uncompressed_size,
-                compressed_size,
-            )?))
-        }
+        HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD => Ok(ExtraField::Zip64ExtendedInformation(
+            zip64_extended_information_field_from_bytes(header_id, data, uncompressed_size, compressed_size)?,
+        )),
         HeaderId::INFO_ZIP_UNICODE_COMMENT_EXTRA_FIELD => Ok(ExtraField::InfoZipUnicodeComment(
             info_zip_unicode_comment_extra_field_from_bytes(header_id, data_size, data)?,
         )),
