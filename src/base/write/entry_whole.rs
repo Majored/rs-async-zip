@@ -81,12 +81,11 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             }
 
             if let Some(zip64_extra_field) = zip64_extra_field_builder {
-                zip64_extra_field_builder =
-                    Some(zip64_extra_field.relative_header_offset(self.writer.writer.offset() as u64));
+                zip64_extra_field_builder = Some(zip64_extra_field.relative_header_offset(self.writer.writer.offset()));
             } else {
                 zip64_extra_field_builder = Some(
                     Zip64ExtendedInformationExtraFieldBuilder::new()
-                        .relative_header_offset(self.writer.writer.offset() as u64),
+                        .relative_header_offset(self.writer.writer.offset()),
                 );
             }
             NON_ZIP64_MAX_SIZE

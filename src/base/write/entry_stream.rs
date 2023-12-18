@@ -178,7 +178,8 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         let (cdr_compressed_size, cdr_uncompressed_size, lh_offset) = if self.force_no_zip64 {
             if uncompressed_size > NON_ZIP64_MAX_SIZE as u64
                 || compressed_size > NON_ZIP64_MAX_SIZE as u64
-                || self.lfh_offset > NON_ZIP64_MAX_SIZE as u64 {
+                || self.lfh_offset > NON_ZIP64_MAX_SIZE as u64
+            {
                 return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
             }
             (uncompressed_size as u32, compressed_size as u32, self.lfh_offset as u32)
