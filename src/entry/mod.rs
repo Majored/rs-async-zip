@@ -168,7 +168,7 @@ pub struct StoredZipEntry {
     pub(crate) entry: ZipEntry,
     // pub(crate) general_purpose_flag: GeneralPurposeFlag,
     pub(crate) file_offset: u64,
-    pub(crate) header_size: u16,
+    pub(crate) header_size: u64,
 }
 
 impl StoredZipEntry {
@@ -177,8 +177,11 @@ impl StoredZipEntry {
         self.file_offset
     }
 
-    /// Returns the size in bytes where the header of the entry.
-    pub fn header_size(&self) -> u16 {
+    /// Returns the combined size in bytes of the header, the filename, and any extra fields.
+    /// 
+    /// Note: This uses the extra field length stored in the central directory, which may differ from that stored in
+    /// the local file header. See specification: https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#732
+    pub fn header_size(&self) -> u64 {
         self.header_size
     }
 
@@ -201,16 +204,8 @@ impl StoredZipEntry {
 
         // Skip the local file header and trailing data
         let header = LocalFileHeader::from_reader(&mut reader).await?;
-
-        // Found zip64.zip's CDS and LFH 's Extra field length not equal
-        let mut record_ignore = self.header_size - 30;
-        let locol_ignore = header.file_name_length + header.extra_field_length;
-
-        if record_ignore != locol_ignore {
-            record_ignore = locol_ignore;
-        }
-
-        let _extra_field = crate::base::read::io::read_bytes(&mut reader, record_ignore as usize).await?;
+        let trailing_size = (header.file_name_length as i64) + (header.extra_field_length as i64);
+        reader.seek(SeekFrom::Current(trailing_size)).await?;
 
         Ok(())
     }

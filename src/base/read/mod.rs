@@ -20,6 +20,7 @@ use crate::entry::{StoredZipEntry, ZipEntry};
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 use crate::spec::attribute::AttributeCompatibility;
+use crate::spec::consts::LFH_LENGTH;
 use crate::spec::consts::{CDH_SIGNATURE, LFH_SIGNATURE, NON_ZIP64_MAX_SIZE, SIGNATURE_LENGTH, ZIP64_EOCDL_LENGTH};
 use crate::spec::header::InfoZipUnicodeCommentExtraField;
 use crate::spec::header::InfoZipUnicodePathExtraField;
@@ -150,7 +151,8 @@ where
     crate::utils::assert_signature(&mut reader, CDH_SIGNATURE).await?;
 
     let header = CentralDirectoryRecord::from_reader(&mut reader).await?;
-    let header_size = 30 + header.file_name_length + header.extra_field_length;
+    let header_size = (SIGNATURE_LENGTH + LFH_LENGTH) as u64;
+    let trailing_size = header.file_name_length as u64 + header.extra_field_length as u64;
     let filename_basic = io::read_bytes(&mut reader, header.file_name_length.into()).await?;
     let compression = Compression::try_from(header.compression)?;
     let extra_field = io::read_bytes(&mut reader, header.extra_field_length.into()).await?;
@@ -198,7 +200,7 @@ where
     };
 
     // general_purpose_flag: header.flags,
-    Ok(StoredZipEntry { entry, file_offset, header_size })
+    Ok(StoredZipEntry { entry, file_offset, header_size: header_size + trailing_size })
 }
 
 pub(crate) async fn lfh<R>(mut reader: R) -> Result<Option<ZipEntry>>
