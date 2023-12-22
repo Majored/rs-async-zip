@@ -35,7 +35,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 crc32fast = "1"
-futures-lite = { version = "1.13.0", default-features = false, features = ["std"] }
+futures-lite = { version = "2.1.0", default-features = false, features = ["std"] }
 pin-project = "1"
 thiserror = "1"
 
