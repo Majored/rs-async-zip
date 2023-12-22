@@ -20,7 +20,7 @@ An asynchronous ZIP archive reading/writing crate.
 
 ```toml
 [dependencies]
-async_zip = { version = "0.0.14", features = ["full"] }
+async_zip = { version = "0.0.16", features = ["full"] }
 ```
 
 A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-zip/tree/main/examples) can be found under the `/examples` directory.
