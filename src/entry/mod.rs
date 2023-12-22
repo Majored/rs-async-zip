@@ -15,10 +15,7 @@ use crate::spec::{
     header::{ExtraField, LocalFileHeader},
     Compression,
 };
-use crate::{
-    string::{StringEncoding, ZipString},
-    ZipDateTime,
-};
+use crate::{string::ZipString, ZipDateTime};
 
 /// An immutable store of data about a ZIP entry.
 ///
@@ -178,9 +175,9 @@ impl StoredZipEntry {
     }
 
     /// Returns the combined size in bytes of the header, the filename, and any extra fields.
-    /// 
+    ///
     /// Note: This uses the extra field length stored in the central directory, which may differ from that stored in
-    /// the local file header. See specification: https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#732
+    /// the local file header. See specification: <https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#732>
     pub fn header_size(&self) -> u64 {
         self.header_size
     }

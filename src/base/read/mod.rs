@@ -188,7 +188,7 @@ where
         ))]
         compression_level: async_compression::Level::Default,
         attribute_compatibility: AttributeCompatibility::Unix,
-        /// FIXME: Default to Unix for the moment
+        // FIXME: Default to Unix for the moment
         crc32: header.crc,
         uncompressed_size,
         compressed_size,
@@ -252,7 +252,7 @@ where
         ))]
         compression_level: async_compression::Level::Default,
         attribute_compatibility: AttributeCompatibility::Unix,
-        /// FIXME: Default to Unix for the moment
+        // FIXME: Default to Unix for the moment
         crc32: header.crc,
         uncompressed_size,
         compressed_size,
