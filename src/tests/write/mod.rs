@@ -7,6 +7,7 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 
 pub(crate) mod offset;
+#[cfg(target_pointer_width = "64")]
 mod zip64;
 
 /// /dev/null for AsyncWrite.
