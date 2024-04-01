@@ -140,7 +140,10 @@ impl ZipFileReader {
     }
 
     /// Returns a new entry reader if the provided index is valid.
-    pub async fn reader_with_entry(&self, index: usize) -> Result<ZipEntryReader<'_, Compat<BufReader<File>>, WithEntry<'_>>> {
+    pub async fn reader_with_entry(
+        &self,
+        index: usize,
+    ) -> Result<ZipEntryReader<'_, Compat<BufReader<File>>, WithEntry<'_>>> {
         let stored_entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
         let mut fs_file = BufReader::new(File::open(&self.inner.path).await?).compat();
 

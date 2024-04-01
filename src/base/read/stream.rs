@@ -55,8 +55,8 @@ use crate::error::ZipError;
 #[cfg(feature = "tokio")]
 use crate::tokio::read::stream::Ready as TokioReady;
 
-use futures_lite::io::AsyncReadExt;
 use futures_lite::io::AsyncBufRead;
+use futures_lite::io::AsyncReadExt;
 
 #[cfg(feature = "tokio")]
 use tokio_util::compat::TokioAsyncReadCompatExt;
@@ -92,7 +92,9 @@ where
             None => return Ok(None),
         };
 
-        let reader = ZipEntryReader::new_with_owned(self.0.0, entry.compression, u64::MAX);
+        let length = if entry.data_descriptor { u64::MAX } else { entry.compressed_size };
+        let reader = ZipEntryReader::new_with_owned(self.0 .0, entry.compression, length);
+
         Ok(Some(ZipFileReader(Reading(reader, entry.data_descriptor))))
     }
 
@@ -103,7 +105,8 @@ where
             None => return Ok(None),
         };
 
-        let reader = ZipEntryReader::new_with_owned(self.0.0, entry.compression, u64::MAX);
+        let length = if entry.data_descriptor { u64::MAX } else { entry.compressed_size };
+        let reader = ZipEntryReader::new_with_owned(self.0 .0, entry.compression, length);
         let data_descriptor = entry.data_descriptor;
 
         Ok(Some(ZipFileReader(Reading(reader.into_with_entry_owned(entry), data_descriptor))))
@@ -149,7 +152,7 @@ where
         let mut inner = self.0 .0.into_inner();
 
         // Has data descriptor.
-        if self.0.1 {
+        if self.0 .1 {
             ConsumeDataDescriptor(&mut inner).await?;
         }
 
@@ -162,7 +165,7 @@ where
         let mut inner = self.0 .0.into_inner();
 
         // Has data descriptor.
-        if self.0.1 {
+        if self.0 .1 {
             ConsumeDataDescriptor(&mut inner).await?;
         }
 

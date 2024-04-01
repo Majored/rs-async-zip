@@ -16,7 +16,10 @@ use std::{
 };
 
 use async_zip::base::read::seek::ZipFileReader;
-use tokio::{fs::{create_dir_all, File, OpenOptions}, io::BufReader};
+use tokio::{
+    fs::{create_dir_all, File, OpenOptions},
+    io::BufReader,
+};
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 #[tokio::main]

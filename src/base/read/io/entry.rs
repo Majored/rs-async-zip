@@ -9,7 +9,7 @@ use crate::spec::Compression;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use futures_lite::io::{AsyncRead, AsyncReadExt, Take, AsyncBufRead};
+use futures_lite::io::{AsyncBufRead, AsyncRead, AsyncReadExt, Take};
 use pin_project::pin_project;
 
 /// A type which encodes that [`ZipEntryReader`] has associated entry data.

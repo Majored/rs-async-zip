@@ -222,7 +222,7 @@ where
 
     if header.flags.data_descriptor && compression == Compression::Stored {
         return Err(ZipError::FeatureNotSupported(
-                "stream reading entries with data descriptors & Stored compression mode",
+            "stream reading entries with data descriptors & Stored compression mode",
         ));
     }
     if header.flags.encrypted {

@@ -8,13 +8,21 @@ pub(crate) mod hashed;
 pub(crate) mod locator;
 pub(crate) mod owned;
 
-use std::{future::Future, io::ErrorKind, pin::Pin, task::{ready, Context, Poll}};
+use std::{
+    future::Future,
+    io::ErrorKind,
+    pin::Pin,
+    task::{ready, Context, Poll},
+};
 
 pub use combined_record::CombinedCentralDirectoryRecord;
 use futures_lite::io::AsyncBufRead;
 use pin_project::pin_project;
 
-use crate::{spec::consts::{DATA_DESCRIPTOR_LENGTH, DATA_DESCRIPTOR_SIGNATURE, SIGNATURE_LENGTH}, string::{StringEncoding, ZipString}};
+use crate::{
+    spec::consts::{DATA_DESCRIPTOR_LENGTH, DATA_DESCRIPTOR_SIGNATURE, SIGNATURE_LENGTH},
+    string::{StringEncoding, ZipString},
+};
 use futures_lite::io::{AsyncRead, AsyncReadExt};
 
 /// Read and return a dynamic length string from a reader which impls AsyncRead.
