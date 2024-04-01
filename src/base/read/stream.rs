@@ -55,7 +55,7 @@ use crate::tokio::read::stream::Ready as TokioReady;
 
 use futures_lite::io::AsyncReadExt;
 use futures_lite::io::Take;
-use futures_lite::io::{AsyncRead, BufReader};
+use futures_lite::io::{AsyncRead, AsyncBufRead, BufReader};
 
 #[cfg(feature = "tokio")]
 use tokio_util::compat::TokioAsyncReadCompatExt;
@@ -77,7 +77,7 @@ pub struct ZipFileReader<S>(S);
 
 impl<'a, R> ZipFileReader<Ready<R>>
 where
-    R: AsyncRead + Unpin + 'a,
+    R: AsyncBufRead + Unpin + 'a,
 {
     /// Constructs a new ZIP reader from a non-seekable source.
     pub fn new(reader: R) -> Self {
@@ -91,7 +91,7 @@ where
             None => return Ok(None),
         };
 
-        let reader = BufReader::new(self.0 .0.take(entry.compressed_size));
+        let reader = self.0 .0.take(entry.compressed_size);
         let reader = ZipEntryReader::new_with_owned(reader, entry.compression, entry.compressed_size);
 
         Ok(Some(ZipFileReader(Reading(reader))))
@@ -104,7 +104,7 @@ where
             None => return Ok(None),
         };
 
-        let reader = BufReader::new(self.0 .0.take(entry.compressed_size));
+        let reader = self.0 .0.take(entry.compressed_size);
         let reader = ZipEntryReader::new_with_owned(reader, entry.compression, entry.compressed_size);
 
         Ok(Some(ZipFileReader(Reading(reader.into_with_entry_owned(entry)))))
@@ -119,7 +119,7 @@ where
 #[cfg(feature = "tokio")]
 impl<R> ZipFileReader<TokioReady<R>>
 where
-    R: tokio::io::AsyncRead + Unpin,
+    R: tokio::io::AsyncBufRead + Unpin,
 {
     /// Constructs a new tokio-specific ZIP reader from a non-seekable source.
     pub fn with_tokio(reader: R) -> ZipFileReader<TokioReady<R>> {
@@ -129,7 +129,7 @@ where
 
 impl<'a, R, E> ZipFileReader<Reading<'a, Take<R>, E>>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncBufRead + Unpin,
 {
     /// Returns an immutable reference to the inner entry reader.
     pub fn reader(&self) -> &ZipEntryReader<'a, Take<R>, E> {

@@ -118,7 +118,7 @@ impl ZipFileReader {
     /// Returns a new entry reader if the provided index is valid.
     pub async fn reader_without_entry(&self, index: usize) -> Result<ZipEntryReader<Cursor<&[u8]>, WithoutEntry>> {
         let stored_entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let mut cursor = BufReader::new(Cursor::new(&self.inner.data[..]));
+        let mut cursor = Cursor::new(&self.inner.data[..]);
 
         stored_entry.seek_to_data_offset(&mut cursor).await?;
 
@@ -132,7 +132,7 @@ impl ZipFileReader {
     /// Returns a new entry reader if the provided index is valid.
     pub async fn reader_with_entry(&self, index: usize) -> Result<ZipEntryReader<Cursor<&[u8]>, WithEntry<'_>>> {
         let stored_entry = self.inner.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let mut cursor = BufReader::new(Cursor::new(&self.inner.data[..]));
+        let mut cursor = Cursor::new(&self.inner.data[..]);
 
         stored_entry.seek_to_data_offset(&mut cursor).await?;
 

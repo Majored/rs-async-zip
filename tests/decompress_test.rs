@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use tokio::io::BufReader;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
 mod common;
@@ -76,7 +77,7 @@ async fn decompress_store_zip_fs() {
 
 #[tokio::test]
 async fn decompress_zip_with_utf8_extra() {
-    let file = tokio::fs::File::open(UTF8_EXTRA_ZIP_FILE).await.unwrap();
+    let file = BufReader::new(tokio::fs::File::open(UTF8_EXTRA_ZIP_FILE).await.unwrap());
     let mut file_compat = file.compat();
     let zip = async_zip::base::read::seek::ZipFileReader::new(&mut file_compat).await.unwrap();
     let zip_entries: Vec<_> = zip.file().entries().to_vec();

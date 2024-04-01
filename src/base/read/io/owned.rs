@@ -13,18 +13,18 @@ use pin_project::pin_project;
 /// suggesting that R implements some method of synchronisation & cloning).
 #[pin_project(project = OwnedReaderProj)]
 pub(crate) enum OwnedReader<'a, R> {
-    Owned(#[pin] BufReader<R>),
-    Borrow(#[pin] BufReader<&'a mut R>),
+    Owned(#[pin] R),
+    Borrow(#[pin] &'a mut R),
 }
 
 impl<'a, R> OwnedReader<'a, R>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncBufRead + Unpin,
 {
     /// Consumes an owned reader and returns the inner value.
     pub(crate) fn owned_into_inner(self) -> R {
         match self {
-            OwnedReader::Owned(inner) => inner.into_inner(),
+            OwnedReader::Owned(inner) => inner,
             OwnedReader::Borrow(_) => panic!("not OwnedReader::Owned value"),
         }
     }
@@ -32,7 +32,7 @@ where
 
 impl<'a, R> AsyncBufRead for OwnedReader<'a, R>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncBufRead + Unpin,
 {
     fn poll_fill_buf(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<&[u8]>> {
         match self.project() {
@@ -51,7 +51,7 @@ where
 
 impl<'a, R> AsyncRead for OwnedReader<'a, R>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncBufRead + Unpin,
 {
     fn poll_read(self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut [u8]) -> Poll<std::io::Result<usize>> {
         match self.project() {

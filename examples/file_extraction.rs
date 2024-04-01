@@ -16,7 +16,7 @@ use std::{
 };
 
 use async_zip::base::read::seek::ZipFileReader;
-use tokio::fs::{create_dir_all, File, OpenOptions};
+use tokio::{fs::{create_dir_all, File, OpenOptions}, io::BufReader};
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 #[tokio::main]
@@ -38,7 +38,7 @@ fn sanitize_file_path(path: &str) -> PathBuf {
 
 /// Extracts everything from the ZIP archive to the output directory
 async fn unzip_file(archive: File, out_dir: &Path) {
-    let archive = archive.compat();
+    let archive = BufReader::new(archive).compat();
     let mut reader = ZipFileReader::new(archive).await.expect("Failed to read zip file");
     for index in 0..reader.file().entries().len() {
         let entry = reader.file().entries().get(index).unwrap();

@@ -32,7 +32,7 @@ use crate::file::ZipFile;
 #[cfg(feature = "tokio")]
 use crate::tokio::read::seek::ZipFileReader as TokioZipFileReader;
 
-use futures_lite::io::{AsyncRead, AsyncSeek, BufReader};
+use futures_lite::io::{AsyncRead, AsyncBufRead, AsyncSeek, BufReader};
 
 #[cfg(feature = "tokio")]
 use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
@@ -48,7 +48,7 @@ pub struct ZipFileReader<R> {
 
 impl<R> ZipFileReader<R>
 where
-    R: AsyncRead + AsyncSeek + Unpin,
+    R: AsyncBufRead + AsyncSeek + Unpin,
 {
     /// Constructs a new ZIP reader from a seekable source.
     pub async fn new(mut reader: R) -> Result<ZipFileReader<R>> {
@@ -83,12 +83,12 @@ where
     /// Returns a new entry reader if the provided index is valid.
     pub async fn reader_without_entry(&mut self, index: usize) -> Result<ZipEntryReader<'_, R, WithoutEntry>> {
         let stored_entry = self.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let mut reader = BufReader::new(&mut self.reader);
+        let mut reader = &mut self.reader;
 
-        stored_entry.seek_to_data_offset(&mut reader).await?;
+        stored_entry.seek_to_data_offset(&mut self.reader).await?;
 
         Ok(ZipEntryReader::new_with_borrow(
-            reader,
+            &mut self.reader,
             stored_entry.entry.compression(),
             stored_entry.entry.compressed_size(),
         ))
@@ -97,12 +97,11 @@ where
     /// Returns a new entry reader if the provided index is valid.
     pub async fn reader_with_entry(&mut self, index: usize) -> Result<ZipEntryReader<'_, R, WithEntry<'_>>> {
         let stored_entry = self.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let mut reader = BufReader::new(&mut self.reader);
 
-        stored_entry.seek_to_data_offset(&mut reader).await?;
+        stored_entry.seek_to_data_offset(&mut self.reader).await?;
 
         let reader = ZipEntryReader::new_with_borrow(
-            reader,
+            &mut self.reader,
             stored_entry.entry.compression(),
             stored_entry.entry.compressed_size(),
         );
@@ -112,17 +111,16 @@ where
 
     /// Returns a new entry reader if the provided index is valid.
     /// Consumes self
-    pub async fn into_entry<'a>(self, index: usize) -> Result<ZipEntryReader<'a, R, WithoutEntry>>
+    pub async fn into_entry<'a>(mut self, index: usize) -> Result<ZipEntryReader<'a, R, WithoutEntry>>
     where
         R: 'a,
     {
         let stored_entry = self.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let mut reader = BufReader::new(self.reader);
 
-        stored_entry.seek_to_data_offset(&mut reader).await?;
+        stored_entry.seek_to_data_offset(&mut self.reader).await?;
 
         Ok(ZipEntryReader::new_with_owned(
-            reader,
+            self.reader,
             stored_entry.entry.compression(),
             stored_entry.entry.compressed_size(),
         ))
@@ -132,7 +130,7 @@ where
 #[cfg(feature = "tokio")]
 impl<R> ZipFileReader<Compat<R>>
 where
-    R: tokio::io::AsyncRead + tokio::io::AsyncSeek + Unpin,
+    R: tokio::io::AsyncBufRead + tokio::io::AsyncSeek + Unpin,
 {
     /// Constructs a new tokio-specific ZIP reader from a seekable source.
     pub async fn with_tokio(reader: R) -> Result<TokioZipFileReader<R>> {

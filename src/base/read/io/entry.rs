@@ -9,7 +9,7 @@ use crate::spec::Compression;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use futures_lite::io::{AsyncRead, AsyncReadExt, BufReader, Take};
+use futures_lite::io::{AsyncRead, AsyncReadExt, BufReader, Take, AsyncBufRead};
 use pin_project::pin_project;
 
 /// A type which encodes that [`ZipEntryReader`] has associated entry data.
@@ -28,16 +28,16 @@ pub struct ZipEntryReader<'a, R, E> {
 
 impl<'a, R> ZipEntryReader<'a, R, WithoutEntry>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncBufRead + Unpin,
 {
     /// Constructs a new entry reader from its required parameters (incl. an owned R).
-    pub(crate) fn new_with_owned(reader: BufReader<R>, compression: Compression, size: u64) -> Self {
+    pub(crate) fn new_with_owned(reader: R, compression: Compression, size: u64) -> Self {
         let reader = HashedReader::new(CompressedReader::new(OwnedReader::Owned(reader).take(size), compression));
         Self { reader, entry: WithoutEntry }
     }
 
     /// Constructs a new entry reader from its required parameters (incl. a mutable borrow of an R).
-    pub(crate) fn new_with_borrow(reader: BufReader<&'a mut R>, compression: Compression, size: u64) -> Self {
+    pub(crate) fn new_with_borrow(reader: &'a mut R, compression: Compression, size: u64) -> Self {
         let reader = HashedReader::new(CompressedReader::new(OwnedReader::Borrow(reader).take(size), compression));
         Self { reader, entry: WithoutEntry }
     }
@@ -53,7 +53,7 @@ where
 
 impl<'a, R, E> AsyncRead for ZipEntryReader<'a, R, E>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncBufRead + Unpin,
 {
     fn poll_read(self: Pin<&mut Self>, c: &mut Context<'_>, b: &mut [u8]) -> Poll<std::io::Result<usize>> {
         self.project().reader.poll_read(c, b)
@@ -62,7 +62,7 @@ where
 
 impl<'a, R, E> ZipEntryReader<'a, R, E>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncBufRead + Unpin,
 {
     /// Computes and returns the CRC32 hash of bytes read by this reader so far.
     ///
@@ -79,7 +79,7 @@ where
 
 impl<R> ZipEntryReader<'_, R, WithEntry<'_>>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncBufRead + Unpin,
 {
     /// Returns an immutable reference to the associated entry data.
     pub fn entry(&self) -> &'_ ZipEntry {

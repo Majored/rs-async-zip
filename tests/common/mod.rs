@@ -8,6 +8,7 @@ use async_zip::Compression;
 use async_zip::ZipEntryBuilder;
 use futures_lite::io::AsyncWriteExt;
 use tokio::fs::File;
+use tokio::io::BufReader;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
 const FOLDER_PREFIX: &str = "tests/test_inputs";
@@ -57,7 +58,7 @@ pub async fn check_decompress_fs(fname: &str) {
 }
 
 pub async fn check_decompress_seek(fname: &str) {
-    let file = File::open(fname).await.unwrap();
+    let file = BufReader::new(File::open(fname).await.unwrap());
     let mut file_compat = file.compat();
     let mut zip = seek::ZipFileReader::new(&mut file_compat).await.unwrap();
     let zip_entries: Vec<_> = zip.file().entries().to_vec();
