@@ -220,6 +220,11 @@ where
     let (uncompressed_size, compressed_size) =
         get_combined_sizes(header.uncompressed_size, header.compressed_size, &zip64_extra_field)?;
 
+    if header.flags.data_descriptor && compression == Compression::Stored {
+        return Err(ZipError::FeatureNotSupported(
+                "stream reading entries with data descriptors & Stored compression mode",
+        ));
+    }
     if header.flags.encrypted {
         return Err(ZipError::FeatureNotSupported("encryption"));
     }

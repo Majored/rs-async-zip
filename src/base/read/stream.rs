@@ -56,7 +56,6 @@ use crate::error::ZipError;
 use crate::tokio::read::stream::Ready as TokioReady;
 
 use futures_lite::io::AsyncReadExt;
-use futures_lite::io::Take;
 use futures_lite::io::AsyncBufRead;
 
 #[cfg(feature = "tokio")]
@@ -87,27 +86,24 @@ where
     }
 
     /// Opens the next entry for reading if the central directory hasn’t yet been reached.
-    pub async fn next_without_entry(mut self) -> Result<Option<ZipFileReader<Reading<'a, Take<R>, WithoutEntry>>>> {
+    pub async fn next_without_entry(mut self) -> Result<Option<ZipFileReader<Reading<'a, R, WithoutEntry>>>> {
         let entry = match crate::base::read::lfh(&mut self.0 .0).await? {
             Some(entry) => entry,
             None => return Ok(None),
         };
 
-        let reader = self.0 .0.take(entry.compressed_size);
-        let reader = ZipEntryReader::new_with_owned(reader, entry.compression, entry.compressed_size);
-
+        let reader = ZipEntryReader::new_with_owned(self.0.0, entry.compression, u64::MAX);
         Ok(Some(ZipFileReader(Reading(reader, entry.data_descriptor))))
     }
 
     /// Opens the next entry for reading if the central directory hasn’t yet been reached.
-    pub async fn next_with_entry(mut self) -> Result<Option<ZipFileReader<Reading<'a, Take<R>, WithEntry<'a>>>>> {
+    pub async fn next_with_entry(mut self) -> Result<Option<ZipFileReader<Reading<'a, R, WithEntry<'a>>>>> {
         let entry = match crate::base::read::lfh(&mut self.0 .0).await? {
             Some(entry) => entry,
             None => return Ok(None),
         };
 
-        let reader = self.0 .0.take(entry.compressed_size);
-        let reader = ZipEntryReader::new_with_owned(reader, entry.compression, entry.compressed_size);
+        let reader = ZipEntryReader::new_with_owned(self.0.0, entry.compression, u64::MAX);
         let data_descriptor = entry.data_descriptor;
 
         Ok(Some(ZipFileReader(Reading(reader.into_with_entry_owned(entry), data_descriptor))))
@@ -130,17 +126,17 @@ where
     }
 }
 
-impl<'a, R, E> ZipFileReader<Reading<'a, Take<R>, E>>
+impl<'a, R, E> ZipFileReader<Reading<'a, R, E>>
 where
     R: AsyncBufRead + Unpin,
 {
     /// Returns an immutable reference to the inner entry reader.
-    pub fn reader(&self) -> &ZipEntryReader<'a, Take<R>, E> {
+    pub fn reader(&self) -> &ZipEntryReader<'a, R, E> {
         &self.0 .0
     }
 
     /// Returns a mutable reference to the inner entry reader.
-    pub fn reader_mut(&mut self) -> &mut ZipEntryReader<'a, Take<R>, E> {
+    pub fn reader_mut(&mut self) -> &mut ZipEntryReader<'a, R, E> {
         &mut self.0 .0
     }
 
@@ -150,7 +146,7 @@ where
             return Err(ZipError::EOFNotReached);
         }
 
-        let mut inner = self.0 .0.into_inner().into_inner();
+        let mut inner = self.0 .0.into_inner();
 
         // Has data descriptor.
         if self.0.1 {
@@ -163,7 +159,7 @@ where
     /// Reads until EOF and converts the reader back into the Ready state.
     pub async fn skip(mut self) -> Result<ZipFileReader<Ready<R>>> {
         while self.0 .0.read(&mut [0; 2048]).await? != 0 {}
-        let mut inner = self.0 .0.into_inner().into_inner();
+        let mut inner = self.0 .0.into_inner();
 
         // Has data descriptor.
         if self.0.1 {
