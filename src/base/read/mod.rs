@@ -34,10 +34,7 @@ use crate::string::StringEncoding;
 use crate::base::read::io::CombinedCentralDirectoryRecord;
 use crate::spec::parse::parse_extra_fields;
 
-use futures_lite::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, BufReader, SeekFrom};
-
-/// The max buffer size used when parsing the central directory, equal to 20MiB.
-const MAX_CD_BUFFER_SIZE: usize = 20 * 1024 * 1024;
+use futures_lite::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, SeekFrom};
 
 pub(crate) async fn file<R>(mut reader: R) -> Result<ZipFile>
 where
@@ -79,12 +76,7 @@ where
 
     // Find and parse the central directory.
     reader.seek(SeekFrom::Start(eocdr.offset_of_start_of_directory)).await?;
-
-    // To avoid lots of small reads to `reader` when parsing the central directory, we use a BufReader that can read the whole central directory at once.
-    // Because `eocdr.offset_of_start_of_directory` is a u64, we use MAX_CD_BUFFER_SIZE to prevent very large buffer sizes.
-    let buf =
-        BufReader::with_capacity(std::cmp::min(eocdr.offset_of_start_of_directory as _, MAX_CD_BUFFER_SIZE), reader);
-    let entries = crate::base::read::cd(buf, eocdr.num_entries_in_directory, zip64).await?;
+    let entries = crate::base::read::cd(reader, eocdr.num_entries_in_directory, zip64).await?;
 
     Ok(ZipFile { entries, comment, zip64 })
 }
