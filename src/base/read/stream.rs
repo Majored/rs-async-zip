@@ -55,7 +55,7 @@ use crate::tokio::read::stream::Ready as TokioReady;
 
 use futures_lite::io::AsyncReadExt;
 use futures_lite::io::Take;
-use futures_lite::io::{AsyncRead, AsyncBufRead, BufReader};
+use futures_lite::io::AsyncBufRead;
 
 #[cfg(feature = "tokio")]
 use tokio_util::compat::TokioAsyncReadCompatExt;

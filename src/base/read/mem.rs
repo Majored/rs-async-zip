@@ -76,7 +76,7 @@ use crate::file::ZipFile;
 
 use std::sync::Arc;
 
-use futures_lite::io::{BufReader, Cursor};
+use futures_lite::io::{Cursor};
 
 use super::io::entry::{WithEntry, WithoutEntry};
 

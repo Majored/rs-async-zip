@@ -4,7 +4,7 @@
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use futures_lite::io::{AsyncBufRead, AsyncRead, BufReader};
+use futures_lite::io::{AsyncBufRead, AsyncRead};
 use pin_project::pin_project;
 
 /// A wrapping reader which holds an owned R or a mutable borrow to R.

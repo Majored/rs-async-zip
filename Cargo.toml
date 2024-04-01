@@ -18,7 +18,7 @@ full = ["chrono", "tokio-fs", "deflate", "bzip2", "lzma", "zstd", "xz", "deflate
 # All features that are compatible with WASM
 full-wasm = ["chrono", "deflate", "zstd"]
 
-tokio = ["dep:tokio", "tokio-util"]
+tokio = ["dep:tokio", "tokio-util", "tokio/io-util"]
 tokio-fs = ["tokio/fs"]
 
 deflate = ["async-compression/deflate"]

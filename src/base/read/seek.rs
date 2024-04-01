@@ -10,9 +10,10 @@
 //! # use futures_lite::io::AsyncReadExt;
 //! # use tokio::fs::File;
 //! # use tokio_util::compat::TokioAsyncReadCompatExt;
+//! # use tokio::io::BufReader;
 //! #
 //! async fn run() -> Result<()> {
-//!     let mut data = File::open("./foo.zip").await?;
+//!     let mut data = BufReader::new(File::open("./foo.zip").await?);
 //!     let mut reader = ZipFileReader::new(data.compat()).await?;
 //!
 //!     let mut data = Vec::new();
@@ -32,7 +33,7 @@ use crate::file::ZipFile;
 #[cfg(feature = "tokio")]
 use crate::tokio::read::seek::ZipFileReader as TokioZipFileReader;
 
-use futures_lite::io::{AsyncRead, AsyncBufRead, AsyncSeek, BufReader};
+use futures_lite::io::{AsyncBufRead, AsyncSeek};
 
 #[cfg(feature = "tokio")]
 use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
@@ -83,8 +84,6 @@ where
     /// Returns a new entry reader if the provided index is valid.
     pub async fn reader_without_entry(&mut self, index: usize) -> Result<ZipEntryReader<'_, R, WithoutEntry>> {
         let stored_entry = self.file.entries.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        let mut reader = &mut self.reader;
-
         stored_entry.seek_to_data_offset(&mut self.reader).await?;
 
         Ok(ZipEntryReader::new_with_borrow(
