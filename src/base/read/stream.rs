@@ -46,6 +46,8 @@
 //! # }
 //! ```
 
+use super::io::ConsumeDataDescriptor;
+
 use crate::base::read::io::entry::ZipEntryReader;
 use crate::error::Result;
 use crate::error::ZipError;
@@ -67,7 +69,7 @@ use super::io::entry::WithoutEntry;
 pub struct Ready<R>(R);
 
 /// A type which encodes that [`ZipFileReader`] is currently reading an entry.
-pub struct Reading<'a, R, E>(ZipEntryReader<'a, R, E>);
+pub struct Reading<'a, R, E>(ZipEntryReader<'a, R, E>, bool);
 
 /// A ZIP reader which acts over a non-seekable source.
 ///
@@ -94,7 +96,7 @@ where
         let reader = self.0 .0.take(entry.compressed_size);
         let reader = ZipEntryReader::new_with_owned(reader, entry.compression, entry.compressed_size);
 
-        Ok(Some(ZipFileReader(Reading(reader))))
+        Ok(Some(ZipFileReader(Reading(reader, entry.data_descriptor))))
     }
 
     /// Opens the next entry for reading if the central directory hasn’t yet been reached.
@@ -106,8 +108,9 @@ where
 
         let reader = self.0 .0.take(entry.compressed_size);
         let reader = ZipEntryReader::new_with_owned(reader, entry.compression, entry.compressed_size);
+        let data_descriptor = entry.data_descriptor;
 
-        Ok(Some(ZipFileReader(Reading(reader.into_with_entry_owned(entry)))))
+        Ok(Some(ZipFileReader(Reading(reader.into_with_entry_owned(entry), data_descriptor))))
     }
 
     /// Consumes the `ZipFileReader` returning the original `reader`
@@ -147,12 +150,26 @@ where
             return Err(ZipError::EOFNotReached);
         }
 
-        Ok(ZipFileReader(Ready(self.0 .0.into_inner().into_inner())))
+        let mut inner = self.0 .0.into_inner().into_inner();
+
+        // Has data descriptor.
+        if self.0.1 {
+            ConsumeDataDescriptor(&mut inner).await?;
+        }
+
+        Ok(ZipFileReader(Ready(inner)))
     }
 
     /// Reads until EOF and converts the reader back into the Ready state.
     pub async fn skip(mut self) -> Result<ZipFileReader<Ready<R>>> {
         while self.0 .0.read(&mut [0; 2048]).await? != 0 {}
-        Ok(ZipFileReader(Ready(self.0 .0.into_inner().into_inner())))
+        let mut inner = self.0 .0.into_inner().into_inner();
+
+        // Has data descriptor.
+        if self.0.1 {
+            ConsumeDataDescriptor(&mut inner).await?;
+        }
+
+        Ok(ZipFileReader(Ready(inner)))
     }
 }

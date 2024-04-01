@@ -189,9 +189,9 @@ where
         external_file_attribute: header.exter_attr,
         extra_fields,
         comment,
+        data_descriptor: header.flags.data_descriptor,
     };
 
-    // general_purpose_flag: header.flags,
     Ok(StoredZipEntry { entry, file_offset, header_size: header_size + trailing_size })
 }
 
@@ -220,11 +220,6 @@ where
     let (uncompressed_size, compressed_size) =
         get_combined_sizes(header.uncompressed_size, header.compressed_size, &zip64_extra_field)?;
 
-    if header.flags.data_descriptor {
-        return Err(ZipError::FeatureNotSupported(
-            "stream reading entries with data descriptors (planned to be reintroduced)",
-        ));
-    }
     if header.flags.encrypted {
         return Err(ZipError::FeatureNotSupported("encryption"));
     }
@@ -253,6 +248,7 @@ where
         external_file_attribute: 0,
         extra_fields,
         comment: String::new().into(),
+        data_descriptor: header.flags.data_descriptor,
     };
 
     Ok(Some(entry))

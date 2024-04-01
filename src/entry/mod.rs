@@ -44,6 +44,7 @@ pub struct ZipEntry {
     pub(crate) external_file_attribute: u32,
     pub(crate) extra_fields: Vec<ExtraField>,
     pub(crate) comment: ZipString,
+    pub(crate) data_descriptor: bool,
 }
 
 impl From<ZipEntryBuilder> for ZipEntry {
@@ -75,6 +76,7 @@ impl ZipEntry {
             external_file_attribute: 0,
             extra_fields: Vec::new(),
             comment: String::new().into(),
+            data_descriptor: false,
         }
     }
 
