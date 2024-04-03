@@ -46,12 +46,13 @@
 //! # }
 //! ```
 
-use super::io::ConsumeDataDescriptor;
-
 use crate::base::read::io::entry::ZipEntryReader;
 use crate::error::Result;
 use crate::error::ZipError;
 
+use crate::spec::consts::DATA_DESCRIPTOR_LENGTH;
+use crate::spec::consts::DATA_DESCRIPTOR_SIGNATURE;
+use crate::spec::consts::SIGNATURE_LENGTH;
 #[cfg(feature = "tokio")]
 use crate::tokio::read::stream::Ready as TokioReady;
 
@@ -153,7 +154,7 @@ where
 
         // Has data descriptor.
         if self.0 .1 {
-            ConsumeDataDescriptor(&mut inner).await?;
+            consume_data_descriptor(&mut inner).await?;
         }
 
         Ok(ZipFileReader(Ready(inner)))
@@ -166,9 +167,21 @@ where
 
         // Has data descriptor.
         if self.0 .1 {
-            ConsumeDataDescriptor(&mut inner).await?;
+            consume_data_descriptor(&mut inner).await?;
         }
 
         Ok(ZipFileReader(Ready(inner)))
     }
+}
+
+async fn consume_data_descriptor<R: AsyncBufRead + Unpin>(reader: &mut R) -> Result<()> {
+    let mut descriptor: [u8; DATA_DESCRIPTOR_LENGTH] = [0; DATA_DESCRIPTOR_LENGTH];
+    reader.read_exact(&mut descriptor).await?;
+
+    if descriptor[0..SIGNATURE_LENGTH] == DATA_DESCRIPTOR_SIGNATURE.to_le_bytes() {
+        let mut tail: [u8; SIGNATURE_LENGTH] = [0; SIGNATURE_LENGTH];
+        reader.read_exact(&mut tail).await?;
+    }
+
+    Ok(())
 }
