@@ -20,7 +20,7 @@ An asynchronous ZIP archive reading/writing crate.
 
 ```toml
 [dependencies]
-async_zip = { version = "0.0.16", features = ["full"] }
+async_zip = { version = "0.0.17", features = ["full"] }
 ```
 
 A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-zip/tree/main/examples) can be found under the `/examples` directory.
@@ -39,11 +39,11 @@ A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-
 
 ### Reading
 ```rust
-use tokio::{io::AsyncReadExt, fs::File};
+use tokio::{io::BufReader, fs::File};
 use async_zip::tokio::read::seek::ZipFileReader;
 ...
 
-let mut file = File::open("./Archive.zip").await?;
+let mut file = BufReader::new(File::open("./Archive.zip").await?);
 let mut zip = ZipFileReader::with_tokio(&mut file).await?;
 
 let mut string = String::new();

@@ -4,7 +4,7 @@
 #[cfg(feature = "chrono")]
 use chrono::{TimeZone, Utc};
 
-use crate::{ZipDateTime, ZipDateTimeBuilder};
+use crate::ZipDateTimeBuilder;
 
 #[test]
 #[cfg(feature = "chrono")]

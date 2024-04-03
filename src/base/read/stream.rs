@@ -18,7 +18,7 @@
 //! As the central directory of a ZIP archive is stored at the end of it, a non-seekable reader doesn't have access
 //! to it. We have to rely on information provided within the local file header which may not be accurate or complete.
 //! This results in:
-//! - The inability to read internally stored ZIP archives when using the Stored compression method.
+//! - The inability to read ZIP entries using the combination of a data descriptor and the Stored compression method.
 //! - No file comment being available (defaults to an empty string).
 //! - No internal or external file attributes being available (defaults to 0).
 //! - The extra field data potentially being inconsistent with what's stored in the central directory.
