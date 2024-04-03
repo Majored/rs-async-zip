@@ -55,8 +55,8 @@ pub(crate) mod tests;
 pub use crate::spec::attribute::AttributeCompatibility;
 pub use crate::spec::compression::{Compression, DeflateOption};
 
+pub use crate::date::{builder::ZipDateTimeBuilder, ZipDateTime};
 pub use crate::entry::{builder::ZipEntryBuilder, StoredZipEntry, ZipEntry};
 pub use crate::file::{builder::ZipFileBuilder, ZipFile};
 
-pub use crate::date::ZipDateTime;
 pub use crate::string::{StringEncoding, ZipString};
