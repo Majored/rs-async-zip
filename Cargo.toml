@@ -49,7 +49,7 @@ tokio-util = { version = "0.7", features = ["compat"], optional = true }
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7", features = ["compat"] }
 env_logger = "0.11.2"
-zip = "0.6.3"
+zip = "1.1.4"
 
 # shared across multiple examples
 anyhow = "1"
