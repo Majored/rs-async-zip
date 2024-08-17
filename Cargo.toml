@@ -59,5 +59,5 @@ sanitize-filename = "0.5"
 actix-web = "4"
 actix-multipart = "0.7"
 futures = "0.3"
-derive_more = "0.99"
+derive_more = { version = "1.0", features = ["display", "error"] }
 uuid = { version = "1", features = ["v4", "serde"] } 
