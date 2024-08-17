@@ -20,7 +20,7 @@ mod inner {
     const TMP_DIR: &str = "./tmp/";
 
     #[derive(Debug, Display, Error)]
-    #[display(fmt = "An error occurred during ZIP creation which was logged to stderr.")]
+    #[display("An error occurred during ZIP creation which was logged to stderr.")]
     struct CreationError;
 
     impl ResponseError for CreationError {}
