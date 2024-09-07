@@ -58,7 +58,7 @@ async fn test_read_zip64_archive_stream() {
 #[cfg(feature = "tokio")]
 fn generate_zip64many_zip() -> std::path::PathBuf {
     use std::io::Write;
-    use zip::write::FileOptions;
+    use zip::write::{ExtendedFileOptions, FileOptions};
 
     let mut path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     path.push("src/tests/read/zip64/zip64many.zip");
@@ -70,10 +70,11 @@ fn generate_zip64many_zip() -> std::path::PathBuf {
 
     let zip_file = std::fs::File::create(&path).unwrap();
     let mut zip = zip::ZipWriter::new(zip_file);
-    let options = FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+    let options: FileOptions<'_, ExtendedFileOptions> =
+        FileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
     for i in 0..2_u32.pow(16) + 1 {
-        zip.start_file(format!("{i}.txt"), options).unwrap();
+        zip.start_file(format!("{i}.txt"), options.clone()).unwrap();
         zip.write_all(b"\n").unwrap();
     }
 
