@@ -38,6 +38,7 @@
 
 pub mod base;
 pub mod error;
+pub mod core;
 
 #[cfg(feature = "tokio")]
 pub mod tokio;
