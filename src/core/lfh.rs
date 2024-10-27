@@ -3,6 +3,7 @@
 
 use crate::core::{raw, raw_deref};
 use crate::utils::{read_u16, read_u32, write_u16, write_u32};
+use crate::error::ZipError;
 
 use futures_lite::io::AsyncWriteExt;
 
@@ -58,6 +59,22 @@ pub async fn read(mut reader: impl AsyncBufRead + Unpin) -> Result<LocalFileHead
     let extra_field = crate::utils::read_bytes(&mut reader, raw.extra_field_length as usize).await?;
 
     Ok(LocalFileHeader { raw, file_name, extra_field })
+}
+
+/// Reads a local file header from the given reader in a streaming fashion.
+///
+/// This function does so by:
+/// - matching against the next signature without consuming
+/// - reading the local file header if we got the expected signature
+/// - returning None if the signature is a CDR (meaning no more local file headers)
+/// - returning an error if the signature is unexpected
+#[tracing::instrument(skip(reader))]
+pub async fn read_streaming(mut reader: impl AsyncBufRead + Unpin) -> Result<Option<LocalFileHeader>> {
+    match crate::utils::check_signature(&mut reader, SIGNATURE).await? {
+        SIGNATURE => Ok(Some(read(&mut reader).await?)),
+        crate::core::cdr::SIGNATURE => return Ok(None),
+        actual => return Err(ZipError::UnexpectedHeaderError(actual, SIGNATURE)),
+    }
 }
 
 /// Writes a local file header to the given writer.

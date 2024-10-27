@@ -2,7 +2,7 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::error::{Result, ZipError};
-use futures_lite::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use futures_lite::io::{AsyncBufRead, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, Cursor, AsyncBufReadExt};
 
 // Assert that the next four-byte signature read by a reader which impls AsyncRead matches the expected signature.
 #[tracing::instrument(skip(reader))]
@@ -22,6 +22,12 @@ pub(crate) async fn read_bytes(reader: impl AsyncRead + Unpin, length: usize) ->
     let mut buffer = Vec::with_capacity(length);
     reader.take(length as u64).read_to_end(&mut buffer).await?;
     Ok(buffer)
+}
+
+/// Returns the next signature read by a reader without consuming.
+#[tracing::instrument(skip(reader))]
+pub(crate) async fn check_signature(mut reader: impl AsyncBufRead + Unpin, expected: u32) -> Result<u32> {
+    Ok(read_u32(Cursor::new(reader.fill_buf().await?)).await?)
 }
 
 macro_rules! read_int_helper {
