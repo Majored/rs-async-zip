@@ -2,7 +2,7 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::error::{Result, ZipError};
-use futures_lite::io::{AsyncBufRead, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, Cursor, AsyncBufReadExt};
+use futures_lite::io::{AsyncBufRead, AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, Cursor};
 
 // Assert that the next four-byte signature read by a reader which impls AsyncRead matches the expected signature.
 #[tracing::instrument(skip(reader))]

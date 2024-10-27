@@ -2,8 +2,8 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::core::{raw, raw_deref};
-use crate::utils::{read_u16, read_u32, write_u16, write_u32};
 use crate::error::ZipError;
+use crate::utils::{read_u16, read_u32, write_u16, write_u32};
 
 use futures_lite::io::AsyncWriteExt;
 

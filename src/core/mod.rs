@@ -4,6 +4,7 @@
 pub mod cd;
 pub mod cdr;
 pub mod dd;
+pub mod edf;
 pub mod eocdr;
 pub mod lfh;
 pub mod zip64;
