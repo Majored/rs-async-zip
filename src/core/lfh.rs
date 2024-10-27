@@ -1,11 +1,8 @@
 // Copyright (c) 2024 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::core::raw;
-use crate::utils::read_u16;
-use crate::utils::read_u32;
-use crate::utils::write_u16;
-use crate::utils::write_u32;
+use crate::core::{raw, raw_deref};
+use crate::utils::{read_u16, read_u32, write_u16, write_u32};
 
 use futures_lite::io::AsyncWriteExt;
 
@@ -32,6 +29,8 @@ pub struct LocalFileHeader {
     pub file_name: Vec<u8>,
     pub extra_field: Vec<u8>,
 }
+
+raw_deref!(LocalFileHeader, RawLocalFileHeader);
 
 /// Reads a local file header from the given reader.
 ///

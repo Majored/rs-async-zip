@@ -5,8 +5,9 @@ use futures_lite::io::Cursor;
 use futures_lite::{AsyncBufRead, AsyncBufReadExt};
 
 use crate::core::{raw, SIGNATURE_LENGTH};
-use crate::utils::read_u32;
-use crate::utils::write_u32;
+use crate::utils::{read_u32, write_u32};
+
+use super::raw_deref;
 
 pub const SIGNATURE: u32 = 0x8074b50;
 
@@ -22,6 +23,8 @@ raw! {
 pub struct DataDescriptor {
     pub raw: RawDataDescriptor,
 }
+
+raw_deref!(DataDescriptor, RawDataDescriptor);
 
 /// Reads a data descriptor from the provided reader, ensuring to skip the signature if present.
 ///

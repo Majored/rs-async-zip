@@ -1,11 +1,8 @@
 // Copyright (c) 2024 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::core::raw;
-use crate::utils::read_u16;
-use crate::utils::read_u32;
-use crate::utils::write_u16;
-use crate::utils::write_u32;
+use crate::core::{raw, raw_deref};
+use crate::utils::{read_u16, read_u32, write_u16, write_u32};
 
 use futures_lite::io::AsyncWriteExt;
 
@@ -28,6 +25,8 @@ pub struct EndOfCentralDirectoryRecord {
     pub raw: RawEndOfCentralDirectoryRecord,
     pub zip_file_comment: Vec<u8>,
 }
+
+raw_deref!(EndOfCentralDirectoryRecord, RawEndOfCentralDirectoryRecord);
 
 /// Reads the end of central directory record from the given reader.
 ///

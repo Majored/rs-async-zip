@@ -37,4 +37,19 @@ macro_rules! raw {
     }
 }
 
+macro_rules! raw_deref {
+    ($from:ident, $to:ident) => {
+        use std::ops::Deref;
+
+        impl Deref for $from {
+            type Target = $to;
+
+            fn deref(&self) -> &Self::Target {
+                &self.raw
+            }
+        }
+    };
+}
+
 pub(crate) use raw;
+pub(crate) use raw_deref;
