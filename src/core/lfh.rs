@@ -48,15 +48,11 @@ pub async fn read(mut reader: impl AsyncRead + Unpin) -> Result<LocalFileHeader>
     let file_name = crate::utils::read_bytes(&mut reader, raw.file_name_length as usize).await?;
     let extra_field = crate::utils::read_bytes(&mut reader, raw.extra_field_length as usize).await?;
 
-    Ok(LocalFileHeader {
-        raw,
-        file_name,
-        extra_field,
-    })
+    Ok(LocalFileHeader { raw, file_name, extra_field })
 }
 
 /// Writes a local file header to the given writer.
-/// 
+///
 /// This function does so by:
 /// - writing the signature of the local file header
 /// - writing the raw local file header

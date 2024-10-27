@@ -57,16 +57,11 @@ pub async fn read(mut reader: impl AsyncRead + Unpin) -> Result<CentralDirectory
     let extra_field = crate::utils::read_bytes(&mut reader, raw.extra_field_length as usize).await?;
     let file_comment = crate::utils::read_bytes(&mut reader, raw.file_comment_length as usize).await?;
 
-    Ok(CentralDirectoryRecord {
-        raw,
-        file_name,
-        extra_field,
-        file_comment,
-    })
+    Ok(CentralDirectoryRecord { raw, file_name, extra_field, file_comment })
 }
 
 /// Writes a central directory record to the given writer.
-/// 
+///
 /// This function does so by:
 /// - writing the signature of the central directory record
 /// - writing the raw central directory record

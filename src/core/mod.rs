@@ -1,12 +1,14 @@
 // Copyright (c) 2024 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use futures_lite::io::{AsyncRead, AsyncWrite, AsyncReadExt};
-use crate::error::Result;
-
-pub mod lfh;
+pub mod cd;
 pub mod cdr;
+pub mod dd;
 pub mod eocdr;
+pub mod lfh;
+
+/// The length in bytes of a signature. All signatures are u32s, so 4 bytes long.
+pub const SIGNATURE_LENGTH: usize = 4;
 
 macro_rules! raw {
     ($name:ident { $($field:ident, $type:ty, $read:expr, $write:expr),* }) => {

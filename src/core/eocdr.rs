@@ -42,14 +42,11 @@ pub async fn read(mut reader: impl AsyncRead + Unpin) -> Result<EndOfCentralDire
     let raw = raw_read(&mut reader).await?;
     let zip_file_comment = crate::utils::read_bytes(&mut reader, raw.zip_file_comment_length as usize).await?;
 
-    Ok(EndOfCentralDirectoryRecord {
-        raw,
-        zip_file_comment
-    })
+    Ok(EndOfCentralDirectoryRecord { raw, zip_file_comment })
 }
 
 /// Writes the end of central directory record to the given writer.
-/// 
+///
 /// This function does so by:
 /// - writing the signature of the end of central directory record
 /// - writing the raw end of central directory record
