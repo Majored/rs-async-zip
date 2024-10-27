@@ -1,6 +1,9 @@
 // Copyright (c) 2024 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use futures_lite::io::{AsyncRead, AsyncWrite, AsyncReadExt};
+use crate::error::Result;
+
 pub mod lfh;
 pub mod cdr;
 
@@ -9,6 +12,7 @@ macro_rules! raw {
         use crate::error::Result;
         use futures_lite::io::{AsyncRead, AsyncWrite};
 
+        #[derive(Clone, Copy, Debug)]
         pub struct $name {
             $(pub $field : $type),*
         }
