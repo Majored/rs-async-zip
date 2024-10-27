@@ -14,7 +14,7 @@ pub const SIGNATURE_LENGTH: usize = 4;
 macro_rules! raw {
     ($name:ident { $($field:ident, $type:ty, $read:expr, $write:expr),* }) => {
         use crate::error::Result;
-        use futures_lite::io::{AsyncRead, AsyncWrite};
+        use futures_lite::io::{AsyncBufRead, AsyncWrite};
 
         #[derive(Clone, Copy, Debug)]
         pub struct $name {
@@ -23,7 +23,7 @@ macro_rules! raw {
 
         /// Reads the raw underlying header from the given reader.
         #[tracing::instrument(skip(reader))]
-        pub async fn raw_read(mut reader: impl AsyncRead + Unpin) -> Result<$name> {
+        pub async fn raw_read(mut reader: impl AsyncBufRead + Unpin) -> Result<$name> {
             Ok($name {
                 $($field : $read(&mut reader).await? ),*
             })
@@ -40,13 +40,19 @@ macro_rules! raw {
 
 macro_rules! raw_deref {
     ($from:ident, $to:ident) => {
-        use std::ops::Deref;
+        use std::ops::{Deref, DerefMut};
 
         impl Deref for $from {
             type Target = $to;
 
             fn deref(&self) -> &Self::Target {
                 &self.raw
+            }
+        }
+
+        impl DerefMut for $from {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.raw
             }
         }
     };

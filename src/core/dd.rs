@@ -2,7 +2,7 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use futures_lite::io::Cursor;
-use futures_lite::{AsyncBufRead, AsyncBufReadExt};
+use futures_lite::AsyncBufReadExt;
 
 use crate::core::{raw, SIGNATURE_LENGTH};
 use crate::utils::{read_u32, write_u32};

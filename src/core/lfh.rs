@@ -10,15 +10,25 @@ pub const SIGNATURE: u32 = 0x4034b50;
 
 raw! {
     RawLocalFileHeader {
-        version_needed_to_extract, u16, read_u16, write_u16,
-        general_purpose_flags, u16, read_u16, write_u16,
-        compression_method, u16, read_u16, write_u16,
-        last_mod_file_time, u16, read_u16, write_u16,
-        last_mod_file_date, u16, read_u16, write_u16,
-        crc_32, u32, read_u32, write_u32,
+        // version needed to extract - 2 bytes
+        version_needed, u16, read_u16, write_u16,
+        // general purpose bit flag - 2 bytes
+        flags, u16, read_u16, write_u16,
+        // compression method - 2 bytes
+        compression, u16, read_u16, write_u16,
+        // last mod file time - 2 bytes
+        last_mod_time, u16, read_u16, write_u16,
+        // last mod file date - 2 bytes
+        last_mod_date, u16, read_u16, write_u16,
+        // crc-32 - 4 bytes
+        crc, u32, read_u32, write_u32,
+        // compressed_size - 4 bytes
         compressed_size, u32, read_u32, write_u32,
+        // uncompressed_size - 4 bytes
         uncompressed_size, u32, read_u32, write_u32,
+        // file name length - 2 bytes
         file_name_length, u16, read_u16, write_u16,
+        // extra field length - 2 bytes
         extra_field_length, u16, read_u16, write_u16
     }
 }
@@ -40,7 +50,7 @@ raw_deref!(LocalFileHeader, RawLocalFileHeader);
 /// - reading the file name
 /// - reading the extra field
 #[tracing::instrument(skip(reader))]
-pub async fn read(mut reader: impl AsyncRead + Unpin) -> Result<LocalFileHeader> {
+pub async fn read(mut reader: impl AsyncBufRead + Unpin) -> Result<LocalFileHeader> {
     crate::utils::assert_signature(&mut reader, SIGNATURE).await?;
 
     let raw = raw_read(&mut reader).await?;

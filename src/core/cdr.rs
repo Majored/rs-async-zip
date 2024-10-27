@@ -48,7 +48,7 @@ raw_deref!(CentralDirectoryRecord, RawCentralDirectoryRecord);
 /// - reading the extra field
 /// - reading the file comment
 #[tracing::instrument(skip(reader))]
-pub async fn read(mut reader: impl AsyncRead + Unpin) -> Result<CentralDirectoryRecord> {
+pub async fn read(mut reader: impl AsyncBufRead + Unpin) -> Result<CentralDirectoryRecord> {
     crate::utils::assert_signature(&mut reader, SIGNATURE).await?;
 
     let raw = raw_read(&mut reader).await?;

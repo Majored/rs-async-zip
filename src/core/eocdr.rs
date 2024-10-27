@@ -35,7 +35,7 @@ raw_deref!(EndOfCentralDirectoryRecord, RawEndOfCentralDirectoryRecord);
 /// - reading the raw end of central directory record
 /// - reading the zip file comment
 #[tracing::instrument(skip(reader))]
-pub async fn read(mut reader: impl AsyncRead + Unpin) -> Result<EndOfCentralDirectoryRecord> {
+pub async fn read(mut reader: impl AsyncBufRead + Unpin) -> Result<EndOfCentralDirectoryRecord> {
     crate::utils::assert_signature(&mut reader, SIGNATURE).await?;
 
     let raw = raw_read(&mut reader).await?;

@@ -42,7 +42,7 @@ raw_deref!(Zip64EndOfCentralDirectoryRecord, RawZip64EndOfCentralDirectoryRecord
 /// - asserting the signature of the ZIP64 end of central directory record
 /// - reading the raw ZIP64 end of central directory record
 #[tracing::instrument(skip(reader))]
-pub async fn read(mut reader: impl AsyncRead + Unpin) -> Result<Zip64EndOfCentralDirectoryRecord> {
+pub async fn read(mut reader: impl AsyncBufRead + Unpin) -> Result<Zip64EndOfCentralDirectoryRecord> {
     crate::utils::assert_signature(&mut reader, SIGNATURE).await?;
     let raw = raw_read(&mut reader).await?;
     Ok(Zip64EndOfCentralDirectoryRecord { raw })
