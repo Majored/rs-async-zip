@@ -6,6 +6,7 @@ use crate::error::Result;
 
 pub mod lfh;
 pub mod cdr;
+pub mod eocdr;
 
 macro_rules! raw {
     ($name:ident { $($field:ident, $type:ty, $read:expr, $write:expr),* }) => {

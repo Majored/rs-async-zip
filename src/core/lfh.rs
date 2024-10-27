@@ -2,22 +2,27 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 use crate::core::raw;
+use crate::utils::read_u16;
+use crate::utils::read_u32;
+use crate::utils::write_u16;
+use crate::utils::write_u32;
+
 use futures_lite::io::AsyncWriteExt;
 
 pub const SIGNATURE: u32 = 0x4034b50;
 
 raw! {
     RawLocalFileHeader {
-        version_needed_to_extract, u16, crate::utils::read_u16, crate::utils::write_u16,
-        general_purpose_flags, u16, crate::utils::read_u16, crate::utils::write_u16,
-        compression_method, u16, crate::utils::read_u16, crate::utils::write_u16,
-        last_mod_file_time, u16, crate::utils::read_u16, crate::utils::write_u16,
-        last_mod_file_date, u16, crate::utils::read_u16, crate::utils::write_u16,
-        crc_32, u32, crate::utils::read_u32, crate::utils::write_u32,
-        compressed_size, u32, crate::utils::read_u32, crate::utils::write_u32,
-        uncompressed_size, u32, crate::utils::read_u32, crate::utils::write_u32,
-        file_name_length, u16, crate::utils::read_u16, crate::utils::write_u16,
-        extra_field_length, u16, crate::utils::read_u16, crate::utils::write_u16
+        version_needed_to_extract, u16, read_u16, write_u16,
+        general_purpose_flags, u16, read_u16, write_u16,
+        compression_method, u16, read_u16, write_u16,
+        last_mod_file_time, u16, read_u16, write_u16,
+        last_mod_file_date, u16, read_u16, write_u16,
+        crc_32, u32, read_u32, write_u32,
+        compressed_size, u32, read_u32, write_u32,
+        uncompressed_size, u32, read_u32, write_u32,
+        file_name_length, u16, read_u16, write_u16,
+        extra_field_length, u16, read_u16, write_u16
     }
 }
 
