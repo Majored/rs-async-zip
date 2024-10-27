@@ -16,45 +16,6 @@ pub(crate) async fn assert_signature(reader: impl AsyncRead + Unpin, expected: u
     Ok(())
 }
 
-#[tracing::instrument(skip(reader))]
-pub(crate) async fn read_u16(mut reader: impl AsyncRead + Unpin) -> Result<u16> {
-    let mut buf = [0u8; 2];
-    reader.read_exact(&mut buf).await.unwrap();
-    Ok(u16::from_le_bytes(buf))
-}
-
-#[tracing::instrument(skip(reader))]
-pub(crate) async fn read_u32(mut reader: impl AsyncRead + Unpin) -> Result<u32> {
-    let mut buf = [0u8; 4];
-    reader.read_exact(&mut buf).await.unwrap();
-    Ok(u32::from_le_bytes(buf))
-}
-
-#[tracing::instrument(skip(reader))]
-pub(crate) async fn read_u64(mut reader: impl AsyncRead + Unpin) -> Result<u64> {
-    let mut buf = [0u8; 8];
-    reader.read_exact(&mut buf).await.unwrap();
-    Ok(u64::from_le_bytes(buf))
-}
-
-#[tracing::instrument(skip(writer))]
-pub(crate) async fn write_u16(mut writer: impl AsyncWrite + Unpin, value: u16) -> Result<()> {
-    writer.write_all(&value.to_be_bytes()).await?;
-    Ok(())
-}
-
-#[tracing::instrument(skip(writer))]
-pub(crate) async fn write_u32(mut writer: impl AsyncWrite + Unpin, value: u32) -> Result<()> {
-    writer.write_all(&value.to_be_bytes()).await?;
-    Ok(())
-}
-
-#[tracing::instrument(skip(writer))]
-pub(crate) async fn write_u64(mut writer: impl AsyncWrite + Unpin, value: u64) -> Result<()> {
-    writer.write_all(&value.to_be_bytes()).await?;
-    Ok(())
-}
-
 /// Read and return a dynamic length vector of bytes from a reader which impls AsyncRead.
 #[tracing::instrument(skip(reader))]
 pub(crate) async fn read_bytes(reader: impl AsyncRead + Unpin, length: usize) -> Result<Vec<u8>> {
@@ -62,3 +23,32 @@ pub(crate) async fn read_bytes(reader: impl AsyncRead + Unpin, length: usize) ->
     reader.take(length as u64).read_to_end(&mut buffer).await?;
     Ok(buffer)
 }
+
+macro_rules! read_int_helper {
+    ($type:ty, $size:expr, $name:ident) => {
+        #[tracing::instrument(skip(reader))]
+        pub(crate) async fn $name(mut reader: impl AsyncRead + Unpin) -> Result<$type> {
+            let mut buf = [0u8; $size];
+            reader.read_exact(&mut buf).await.unwrap();
+            Ok(<$type>::from_le_bytes(buf))
+        }
+    };
+}
+
+macro_rules! write_int_helper {
+    ($type:ty, $name:ident) => {
+        #[tracing::instrument(skip(writer))]
+        pub(crate) async fn $name(mut writer: impl AsyncWrite + Unpin, value: $type) -> Result<()> {
+            writer.write_all(&value.to_be_bytes()).await?;
+            Ok(())
+        }
+    };
+}
+
+read_int_helper!(u16, 2, read_u16);
+read_int_helper!(u32, 4, read_u32);
+read_int_helper!(u64, 8, read_u64);
+
+write_int_helper!(u16, write_u16);
+write_int_helper!(u32, write_u32);
+write_int_helper!(u64, write_u64);
