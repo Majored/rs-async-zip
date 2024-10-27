@@ -6,6 +6,7 @@ pub mod cdr;
 pub mod dd;
 pub mod eocdr;
 pub mod lfh;
+pub mod zip64;
 
 /// The length in bytes of a signature. All signatures are u32s, so 4 bytes long.
 pub const SIGNATURE_LENGTH: usize = 4;

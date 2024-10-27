@@ -30,6 +30,13 @@ pub(crate) async fn read_u32(mut reader: impl AsyncRead + Unpin) -> Result<u32> 
     Ok(u32::from_le_bytes(buf))
 }
 
+#[tracing::instrument(skip(reader))]
+pub(crate) async fn read_u64(mut reader: impl AsyncRead + Unpin) -> Result<u64> {
+    let mut buf = [0u8; 8];
+    reader.read_exact(&mut buf).await.unwrap();
+    Ok(u64::from_le_bytes(buf))
+}
+
 #[tracing::instrument(skip(writer))]
 pub(crate) async fn write_u16(mut writer: impl AsyncWrite + Unpin, value: u16) -> Result<()> {
     writer.write_all(&value.to_be_bytes()).await?;
@@ -38,6 +45,12 @@ pub(crate) async fn write_u16(mut writer: impl AsyncWrite + Unpin, value: u16) -
 
 #[tracing::instrument(skip(writer))]
 pub(crate) async fn write_u32(mut writer: impl AsyncWrite + Unpin, value: u32) -> Result<()> {
+    writer.write_all(&value.to_be_bytes()).await?;
+    Ok(())
+}
+
+#[tracing::instrument(skip(writer))]
+pub(crate) async fn write_u64(mut writer: impl AsyncWrite + Unpin, value: u64) -> Result<()> {
     writer.write_all(&value.to_be_bytes()).await?;
     Ok(())
 }
