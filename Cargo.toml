@@ -37,7 +37,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 crc32fast = "1"
 futures-lite = { version = "2.1.0", default-features = false, features = ["std"] }
 pin-project = "1"
-thiserror = "1"
+thiserror = "2"
 
 async-compression = { version = "0.4.2", default-features = false, features = ["futures-io"], optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock"], optional = true }
