@@ -51,11 +51,20 @@ where
     let signature = &EOCDR_SIGNATURE.to_le_bytes();
     let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
 
-    let mut position = length.saturating_sub((EOCDR_LENGTH + BUFFER_SIZE) as u64);
+    let mut position = length.saturating_sub(BUFFER_SIZE as u64);
     reader.seek(SeekFrom::Start(position)).await?;
 
     loop {
-        let read = reader.read(&mut buffer).await?;
+        let mut read = 0;
+
+        // Read repeatedly until eof or the buffer is full.
+        while read < BUFFER_SIZE {
+            let bytes_read = reader.read(&mut buffer[read..]).await?;
+            if bytes_read == 0 {
+                break;
+            }
+            read += bytes_read;
+        }
 
         if let Some(match_index) = reverse_search_buffer(&buffer[..read], signature) {
             return Ok(position + (match_index + 1) as u64);
