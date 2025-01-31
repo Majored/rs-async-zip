@@ -1,7 +1,7 @@
 // Copyright (c) 2024 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::core::{raw, raw_deref};
+use crate::core::raw::{raw, raw_deref};
 use crate::utils::{read_u32, read_u64, write_u32, write_u64};
 
 pub const SIGNATURE: u32 = 0x07064b50;

@@ -4,7 +4,7 @@
 use futures_lite::io::Cursor;
 use futures_lite::AsyncBufReadExt;
 
-use crate::core::{raw, raw_deref, SIGNATURE_LENGTH};
+use crate::core::raw::{raw, raw_deref, SIGNATURE_LENGTH};
 use crate::utils::{read_u32, write_u32};
 
 pub const SIGNATURE: u32 = 0x8074b50;

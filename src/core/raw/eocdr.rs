@@ -1,10 +1,14 @@
 // Copyright (c) 2024 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::core::{raw, raw_deref};
+use std::io::SeekFrom;
+
+use crate::core::raw::{raw, raw_deref};
+use crate::core::SIGNATURE_LENGTH;
+use crate::error::ZipError;
 use crate::utils::{read_u16, read_u32, write_u16, write_u32};
 
-use futures_lite::io::AsyncWriteExt;
+use futures_lite::io::{AsyncSeek, AsyncWriteExt, AsyncSeekExt, AsyncBufReadExt};
 
 pub const SIGNATURE: u32 = 0x2014b50;
 
@@ -58,4 +62,69 @@ pub async fn write(mut writer: impl AsyncWrite + Unpin, header: &EndOfCentralDir
     writer.write_all(&header.zip_file_comment).await?;
 
     Ok(())
+}
+
+struct Matcher<'a> {
+    matched: usize,
+    signature: &'a [u8],
+}
+
+impl<'a> Matcher<'a> {
+    fn new(signature: &'a [u8]) -> Self {
+        Self { matched: 0, signature }
+    }
+
+    fn byte(&mut self, byte: u8) -> bool {
+        if byte == self.signature[self.matched] {
+            self.matched += 1;
+        } else {
+            self.reset();
+
+            if byte == self.signature[self.matched] {
+                self.matched += 1;
+            }
+        }
+
+        if self.matched == self.signature.len() {
+            self.reset();
+            return true;
+        }
+
+        return false;
+    }
+
+    fn reset(&mut self) {
+        self.matched = 0;
+    }
+}
+
+pub async fn locate(mut reader: impl AsyncBufRead + AsyncSeek + Unpin, interval: u64) -> Result<u64> {
+    if interval <= SIGNATURE_LENGTH as u64 {
+        return Err(ZipError::LocatorIntervalInvalid);
+    }
+
+    let signature = SIGNATURE.to_le_bytes();
+    let mut matcher = Matcher::new(&signature);
+    let mut position = reader.seek(SeekFrom::End(0)).await?;
+    let interval = (interval - SIGNATURE_LENGTH as u64) as i64;
+
+    loop {
+        let buffer = reader.fill_buf().await?;
+        let len = buffer.len();
+
+        if buffer.is_empty() {
+            break;
+        }
+
+        for (index, byte) in buffer.iter().enumerate() {
+            if matcher.byte(*byte) {
+                return Ok(position + index as u64);
+            }
+        }
+
+        reader.consume(len);
+        position = reader.seek(SeekFrom::Current(interval * -1)).await?;
+    }
+
+    todo!();
 }

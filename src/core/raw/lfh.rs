@@ -1,7 +1,7 @@
 // Copyright (c) 2024 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::core::{raw, raw_deref};
+use crate::core::raw::{raw, raw_deref};
 use crate::error::ZipError;
 use crate::utils::{read_u16, read_u32, write_u16, write_u32};
 
@@ -70,9 +70,9 @@ pub async fn read(mut reader: impl AsyncBufRead + Unpin) -> Result<LocalFileHead
 /// - returning an error if the signature is unexpected
 #[tracing::instrument(skip(reader))]
 pub async fn read_streaming(mut reader: impl AsyncBufRead + Unpin) -> Result<Option<LocalFileHeader>> {
-    match crate::utils::check_signature(&mut reader, SIGNATURE).await? {
+    match crate::utils::check_signature(&mut reader).await? {
         SIGNATURE => Ok(Some(read(&mut reader).await?)),
-        crate::core::cdr::SIGNATURE => return Ok(None),
+        crate::core::raw::cdr::SIGNATURE => return Ok(None),
         actual => return Err(ZipError::UnexpectedHeaderError(actual, SIGNATURE)),
     }
 }
