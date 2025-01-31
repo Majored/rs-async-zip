@@ -51,6 +51,8 @@ pub enum ZipError {
 
     #[error("unable to locate the end of central directory record")]
     UnableToLocateEOCDR,
+    #[error("end of central directory locator interval must be > 4")]
+    LocatorIntervalInvalid,
     #[error("extra field size was indicated to be {0} but only {1} bytes remain")]
     InvalidExtraFieldHeader(u16, usize),
     #[error("zip64 extended information field was incomplete")]

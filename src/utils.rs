@@ -26,15 +26,15 @@ pub(crate) async fn read_bytes(reader: impl AsyncRead + Unpin, length: usize) ->
 
 /// Returns the next signature read by a reader without consuming.
 #[tracing::instrument(skip(reader))]
-pub(crate) async fn check_signature(mut reader: impl AsyncBufRead + Unpin, expected: u32) -> Result<u32> {
+pub(crate) async fn check_signature(mut reader: impl AsyncBufRead + Unpin) -> Result<u32> {
     Ok(read_u32(Cursor::new(reader.fill_buf().await?)).await?)
 }
 
 macro_rules! read_int_helper {
-    ($type:ty, $size:expr, $name:ident) => {
+    ($type:ty, $name:ident) => {
         #[tracing::instrument(skip(reader))]
         pub(crate) async fn $name(mut reader: impl AsyncRead + Unpin) -> Result<$type> {
-            let mut buf = [0u8; $size];
+            let mut buf = [0u8; size_of::<$type>()];
             reader.read_exact(&mut buf).await.unwrap();
             Ok(<$type>::from_le_bytes(buf))
         }
@@ -51,9 +51,9 @@ macro_rules! write_int_helper {
     };
 }
 
-read_int_helper!(u16, 2, read_u16);
-read_int_helper!(u32, 4, read_u32);
-read_int_helper!(u64, 8, read_u64);
+read_int_helper!(u16, read_u16);
+read_int_helper!(u32, read_u32);
+read_int_helper!(u64, read_u64);
 
 write_int_helper!(u16, write_u16);
 write_int_helper!(u32, write_u32);
