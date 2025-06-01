@@ -55,9 +55,9 @@ where
     reader.seek(SeekFrom::Start(position)).await?;
 
     loop {
-        let read = reader.read(&mut buffer).await?;
+        reader.read_exact(&mut buffer).await?;
 
-        if let Some(match_index) = reverse_search_buffer(&buffer[..read], signature) {
+        if let Some(match_index) = reverse_search_buffer(&buffer, signature) {
             return Ok(position + (match_index + 1) as u64);
         }
 
