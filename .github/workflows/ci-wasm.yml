@@ -16,7 +16,6 @@ jobs:
     strategy:
       matrix:
         target:
-          - wasm32-wasi
           - wasm32-unknown-unknown
     steps:
     - uses: actions/checkout@v4

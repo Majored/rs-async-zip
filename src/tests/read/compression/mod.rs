@@ -23,7 +23,7 @@ compressed_test_helper!(xz_test, Compression::Xz, "foo bar", include_bytes!("xz.
 
 /// A helper macro for generating a CompressedReader test using a specific compression method.
 macro_rules! compressed_test_helper {
-    ($name:ident, $typ:expr, $data_raw:expr, $data:expr) => {
+    ($name:ident, $type:expr, $data_raw:expr, $data:expr) => {
         #[cfg(test)]
         #[tokio::test]
         async fn $name() {
@@ -33,7 +33,7 @@ macro_rules! compressed_test_helper {
             let data_raw = $data_raw;
 
             let cursor = Cursor::new(data);
-            let mut reader = CompressedReader::new(cursor, $typ);
+            let mut reader = CompressedReader::new(cursor, $type);
 
             let mut read_data = String::new();
             reader.read_to_string(&mut read_data).await.expect("read into CompressedReader failed");
