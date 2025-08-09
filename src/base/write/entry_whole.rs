@@ -1,6 +1,8 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use std::borrow::Cow;
+
 use crate::base::write::get_or_put_info_zip_unicode_comment_extra_field_mut;
 use crate::base::write::get_or_put_info_zip_unicode_path_extra_field_mut;
 use crate::base::write::{CentralDirectoryEntry, ZipFileWriter};
@@ -25,85 +27,86 @@ use futures_lite::io::{AsyncWrite, AsyncWriteExt};
 pub struct EntryWholeWriter<'b, 'c, W: AsyncWrite + Unpin> {
     writer: &'b mut ZipFileWriter<W>,
     entry: ZipEntry,
-    data: &'c [u8],
+    data: Cow<'c, [u8]>,
+    builder: Option<Zip64ExtendedInformationExtraFieldBuilder>,
+    lh_offset: u64,
 }
 
 impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
     pub fn from_raw(writer: &'b mut ZipFileWriter<W>, entry: ZipEntry, data: &'c [u8]) -> Self {
-        Self { writer, entry, data }
+        Self { writer, entry, data: Cow::Borrowed(data), builder: None, lh_offset: 0 }
     }
 
-    pub async fn write(mut self) -> Result<()> {
-        let mut _compressed_data: Option<Vec<u8>> = None;
-        let compressed_data = match self.entry.compression() {
-            Compression::Stored => self.data,
-            #[cfg(any(
-                feature = "deflate",
-                feature = "bzip2",
-                feature = "zstd",
-                feature = "lzma",
-                feature = "xz",
-                feature = "deflate64"
-            ))]
-            _ => {
-                _compressed_data =
-                    Some(compress(self.entry.compression(), self.data, self.entry.compression_level).await);
-                _compressed_data.as_ref().unwrap()
-            }
-        };
-
-        let mut zip64_extra_field_builder = None;
-
-        let (lfh_uncompressed_size, lfh_compressed_size) = if self.data.len() as u64 > NON_ZIP64_MAX_SIZE as u64
-            || compressed_data.len() as u64 > NON_ZIP64_MAX_SIZE as u64
-        {
-            if self.writer.force_no_zip64 {
-                return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
-            }
-            if !self.writer.is_zip64 {
-                self.writer.is_zip64 = true;
-            }
-            zip64_extra_field_builder = Some(
-                Zip64ExtendedInformationExtraFieldBuilder::new()
-                    .sizes(compressed_data.len() as u64, self.data.len() as u64),
-            );
-            (NON_ZIP64_MAX_SIZE, NON_ZIP64_MAX_SIZE)
-        } else {
-            (self.data.len() as u32, compressed_data.len() as u32)
-        };
-
-        let lh_offset = if self.writer.writer.offset() > NON_ZIP64_MAX_SIZE as u64 {
-            if self.writer.force_no_zip64 {
-                return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
-            }
-            if !self.writer.is_zip64 {
-                self.writer.is_zip64 = true;
-            }
-
-            if let Some(zip64_extra_field) = zip64_extra_field_builder {
-                zip64_extra_field_builder = Some(zip64_extra_field.relative_header_offset(self.writer.writer.offset()));
-            } else {
-                zip64_extra_field_builder = Some(
-                    Zip64ExtendedInformationExtraFieldBuilder::new()
-                        .relative_header_offset(self.writer.writer.offset()),
-                );
-            }
-            NON_ZIP64_MAX_SIZE
-        } else {
-            self.writer.writer.offset() as u32
-        };
-
-        if let Some(builder) = zip64_extra_field_builder {
-            if !builder.eof_only() {
-                self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformation(builder.build()?));
-                zip64_extra_field_builder = None;
-            } else {
-                zip64_extra_field_builder = Some(builder);
-            }
+    async fn compress(&mut self) {
+        if self.entry.compression() == Compression::Stored {
+            return;
         }
 
+        #[cfg(any(
+            feature = "deflate",
+            feature = "bzip2",
+            feature = "zstd",
+            feature = "lzma",
+            feature = "xz",
+            feature = "deflate64"
+        ))]
+        {
+            let new_data = compress(self.entry.compression(), &self.data, self.entry.compression_level).await;
+            self.data = Cow::Owned(new_data);
+        }
+    }
+
+    fn enforce_zip64_sizes(&mut self) -> Result<()> {
+        let uncompressed_larger = self.entry.uncompressed_size > NON_ZIP64_MAX_SIZE.into();
+        let compressed_larger = self.entry.compressed_size > NON_ZIP64_MAX_SIZE.into();
+
+        if !uncompressed_larger && !compressed_larger {
+            return Ok(());
+        }
+
+        self.enforce_zip64()?;
+
+        // TODO: accept ZipEntry with sizes already set
+        let builder = Zip64ExtendedInformationExtraFieldBuilder::new();
+        let builder = builder.sizes(self.entry.compressed_size(), self.entry.uncompressed_size());
+        self.builder = Some(builder);
+
+        self.entry.uncompressed_size = NON_ZIP64_MAX_SIZE.into();
+        self.entry.compressed_size = NON_ZIP64_MAX_SIZE.into();
+
+        Ok(())
+    }
+
+    fn enforce_zip64_offset(&mut self) -> Result<()> {
+        if self.lh_offset <= NON_ZIP64_MAX_SIZE.into() {
+            return Ok(());
+        }
+
+        self.enforce_zip64()?;
+
+        let builder = self.builder.take().unwrap_or(Zip64ExtendedInformationExtraFieldBuilder::new());
+        let builder = builder.relative_header_offset(self.lh_offset);
+        self.builder = Some(builder);
+
+        self.lh_offset = NON_ZIP64_MAX_SIZE.into();
+        Ok(())
+    }
+
+    fn enforce_zip64(&mut self) -> Result<()> {
+        if self.writer.force_no_zip64 {
+            return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
+        }
+        if !self.writer.is_zip64 {
+            self.writer.is_zip64 = true;
+        }
+
+        Ok(())
+    }
+
+    fn utf8_without_alternative(&mut self) -> bool {
         let utf8_without_alternative =
             self.entry.filename().is_utf8_without_alternative() && self.entry.comment().is_utf8_without_alternative();
+
         if !utf8_without_alternative {
             if matches!(self.entry.filename().encoding(), StringEncoding::Utf8) {
                 let u_file_name = self.entry.filename().as_bytes().to_vec();
@@ -135,14 +138,39 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             }
         }
 
+        utf8_without_alternative
+    }
+
+    pub async fn write(mut self) -> Result<()> {
+        self.entry.uncompressed_size = self.data.len() as u64;
+        let crc = crc32fast::hash(&self.data);
+
+        self.compress().await;
+        self.entry.compressed_size = self.data.len() as u64;
+
+        self.enforce_zip64_sizes()?;
+
+        self.lh_offset = self.writer.writer.offset();
+        self.enforce_zip64_offset()?;
+
+        if let Some(builder) = self.builder {
+            if !builder.eof_only() {
+                self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformation(builder.build()?));
+                self.builder = None;
+            } else {
+                self.builder = Some(builder);
+            }
+        }
+
+        let utf8_without_alternative = self.utf8_without_alternative();
         let filename_basic = self.entry.filename().alternative().unwrap_or_else(|| self.entry.filename().as_bytes());
         let comment_basic = self.entry.comment().alternative().unwrap_or_else(|| self.entry.comment().as_bytes());
 
         let lf_header = LocalFileHeader {
-            compressed_size: lfh_compressed_size,
-            uncompressed_size: lfh_uncompressed_size,
+            compressed_size: self.entry.compressed_size() as u32,
+            uncompressed_size: self.entry.uncompressed_size() as u32,
             compression: self.entry.compression().into(),
-            crc: crc32fast::hash(self.data),
+            crc,
             extra_field_length: self
                 .entry
                 .extra_fields()
@@ -176,17 +204,17 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             disk_start: 0,
             inter_attr: self.entry.internal_file_attribute(),
             exter_attr: self.entry.external_file_attribute(),
-            lh_offset,
+            lh_offset: self.lh_offset as u32,
         };
 
         self.writer.writer.write_all(&crate::spec::consts::LFH_SIGNATURE.to_le_bytes()).await?;
         self.writer.writer.write_all(&lf_header.as_slice()).await?;
         self.writer.writer.write_all(filename_basic).await?;
         self.writer.writer.write_all(&self.entry.extra_fields().as_bytes()).await?;
-        self.writer.writer.write_all(compressed_data).await?;
+        self.writer.writer.write_all(&self.data).await?;
 
-        if let Some(builder) = zip64_extra_field_builder {
-            self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformation(builder.build()?));
+        if let Some(builder1) = self.builder {
+            self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformation(builder1.build()?));
             header.extra_field_length =
                 self.entry.extra_fields().count_bytes().try_into().map_err(|_| ZipError::ExtraFieldTooLarge)?;
         }
