@@ -54,6 +54,7 @@ pub(crate) mod entry_stream;
 pub(crate) mod entry_whole;
 pub(crate) mod io;
 
+pub use entry_whole::{compress, crc32};
 pub use entry_stream::EntryStreamWriter;
 
 #[cfg(feature = "tokio")]
@@ -124,6 +125,13 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
     /// Write a new ZIP entry of known size and data.
     pub async fn write_entry_whole<E: Into<ZipEntry>>(&mut self, entry: E, data: &[u8]) -> Result<()> {
         EntryWholeWriter::from_raw(self, entry.into(), data).write().await
+    }
+
+    /// Write a new ZIP entry of known size and data, with the data already being compressed.
+    /// 
+    /// The provided entry's compression method, CRC, and uncompressed sizes must be set.
+    pub async fn write_entry_whole_precompressed<E: Into<ZipEntry>>(&mut self, entry: E, data: &[u8]) -> Result<()> {
+        EntryWholeWriter::from_precompressed(self, entry.into(), data).write().await
     }
 
     /// Write an entry of unknown size and data via streaming (ie. using a data descriptor).

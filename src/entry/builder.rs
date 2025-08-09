@@ -34,12 +34,21 @@ impl ZipEntryBuilder {
         self
     }
 
-    /// Set a size hint for the file, to be written into the local file header.
-    /// Unlikely to be useful except for the case of streaming files to be Store'd.
-    /// This size hint does not affect the central directory, nor does it affect whole files.
-    pub fn size<N: Into<u64>, M: Into<u64>>(mut self, compressed_size: N, uncompressed_size: M) -> Self {
-        self.0.compressed_size = compressed_size.into();
-        self.0.uncompressed_size = uncompressed_size.into();
+    // Sets the entry's CRC32 checksum.
+    pub fn crc32<N: Into<u32>>(mut self, crc: N) -> Self {
+        self.0.crc32 = crc.into();
+        self
+    }
+
+    // Sets the entry's compressed size.
+    pub fn compressed_size<N: Into<u64>>(mut self, size: N) -> Self {
+        self.0.compressed_size = size.into();
+        self
+    }
+
+    // Sets the entry's uncompressed size.
+    pub fn uncompressed_size<N: Into<u64>>(mut self, size: N) -> Self {
+        self.0.uncompressed_size = size.into();
         self
     }
 
@@ -96,6 +105,11 @@ impl ZipEntryBuilder {
             self.0.external_file_attribute = (self.0.external_file_attribute & 0xFFFF) | (mode as u32) << 16;
         }
         self
+    }
+
+    /// Returns a reference to the currently built entry.
+    pub fn current(&self) -> &ZipEntry {
+        &self.0
     }
 
     /// Consumes this builder and returns a final [`ZipEntry`].

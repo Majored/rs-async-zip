@@ -30,11 +30,16 @@ pub struct EntryWholeWriter<'b, 'c, W: AsyncWrite + Unpin> {
     data: Cow<'c, [u8]>,
     builder: Option<Zip64ExtendedInformationExtraFieldBuilder>,
     lh_offset: u64,
+    precompressed: bool,
 }
 
 impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
     pub fn from_raw(writer: &'b mut ZipFileWriter<W>, entry: ZipEntry, data: &'c [u8]) -> Self {
-        Self { writer, entry, data: Cow::Borrowed(data), builder: None, lh_offset: 0 }
+        Self { writer, entry, data: Cow::Borrowed(data), builder: None, lh_offset: 0, precompressed: false }
+    }
+
+    pub fn from_precompressed(writer: &'b mut ZipFileWriter<W>, entry: ZipEntry, data: &'c [u8]) -> Self {
+        Self { writer, entry, data: Cow::Borrowed(data), builder: None, lh_offset: 0, precompressed: true }
     }
 
     async fn compress(&mut self) {
@@ -51,7 +56,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             feature = "deflate64"
         ))]
         {
-            let new_data = compress(self.entry.compression(), &self.data, self.entry.compression_level).await;
+            let new_data = compress(&self.entry, &self.data).await;
             self.data = Cow::Owned(new_data);
         }
     }
@@ -142,12 +147,14 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
     }
 
     pub async fn write(mut self) -> Result<()> {
-        self.entry.uncompressed_size = self.data.len() as u64;
-        let crc = crc32fast::hash(&self.data);
+        if !self.precompressed {
+            self.entry.uncompressed_size = self.data.len() as u64;
+            self.entry.crc32 = crc32fast::hash(&self.data);
 
-        self.compress().await;
+            self.compress().await;
+        }
+
         self.entry.compressed_size = self.data.len() as u64;
-
         self.enforce_zip64_sizes()?;
 
         self.lh_offset = self.writer.writer.offset();
@@ -170,7 +177,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             compressed_size: self.entry.compressed_size() as u32,
             uncompressed_size: self.entry.uncompressed_size() as u32,
             compression: self.entry.compression().into(),
-            crc,
+            crc: self.entry.crc32(),
             extra_field_length: self
                 .entry
                 .extra_fields()
@@ -241,10 +248,14 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
     feature = "xz",
     feature = "deflate64"
 ))]
-async fn compress(compression: Compression, data: &[u8], level: async_compression::Level) -> Vec<u8> {
+
+/// Compresses the data of a ZIP entry using the specified compression method and level.
+pub async fn compress(entry: &ZipEntry, data: &[u8]) -> Vec<u8> {
     // TODO: Reduce reallocations of Vec by making a lower-bound estimate of the length reduction and
     // pre-initialising the Vec to that length. Then truncate() to the actual number of bytes written.
-    match compression {
+    let level = entry.compression_level;
+
+    match entry.compression() {
         #[cfg(feature = "deflate")]
         Compression::Deflate => {
             let mut writer = write::DeflateEncoder::with_quality(Cursor::new(Vec::new()), level);
@@ -284,4 +295,9 @@ async fn compress(compression: Compression, data: &[u8], level: async_compressio
         }
         _ => unreachable!(),
     }
+}
+
+/// Performs a CRC32 checksum on the provided data.
+pub fn crc32(data: &[u8]) -> u32 {
+    crc32fast::hash(data)
 }

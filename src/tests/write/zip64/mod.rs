@@ -59,8 +59,9 @@ async fn test_write_large_zip64_file() {
 
     // Stream-written zip files are dubiously spec-conformant. We need to specify a valid file size
     // in order for rs-zip (and unzip) to correctly read these files.
-    let entry = ZipEntryBuilder::new("file".to_string().into(), Compression::Stored)
-        .size(BATCHED_FILE_SIZE as u64, BATCHED_FILE_SIZE as u64);
+    let entry = ZipEntryBuilder::new("file".to_string().into(), Compression::Stored);
+    let entry = entry.uncompressed_size(BATCHED_FILE_SIZE as u64);
+    let entry = entry.compressed_size(BATCHED_FILE_SIZE as u64);
     let mut entry_writer = writer.write_entry_stream(entry).await.unwrap();
     for _ in 0..NUM_BATCHES {
         entry_writer.write_all(&[0; BATCH_SIZE]).await.unwrap();
