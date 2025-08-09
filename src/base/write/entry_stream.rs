@@ -44,6 +44,7 @@ pub struct EntryStreamWriter<'b, W: AsyncWrite + Unpin> {
     force_no_zip64: bool,
     /// To write back to the original writer if zip64 is required.
     is_zip64: &'b mut bool,
+    precompressed: bool,
 }
 
 impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
@@ -58,7 +59,8 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
 
         let cd_entries = &mut writer.cd_entries;
         let is_zip64 = &mut writer.is_zip64;
-        let writer = AsyncOffsetWriter::new(CompressedAsyncWriter::from_raw(&mut writer.writer, entry.compression()));
+        let writer =
+            AsyncOffsetWriter::new(CompressedAsyncWriter::from_raw(&mut writer.writer, entry.compression(), false));
 
         Ok(EntryStreamWriter {
             writer,
@@ -70,6 +72,35 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             hasher: Hasher::new(),
             force_no_zip64,
             is_zip64,
+            precompressed: false,
+        })
+    }
+
+    pub(crate) async fn from_raw_precompressed(
+        writer: &'b mut ZipFileWriter<W>,
+        mut entry: ZipEntry,
+    ) -> Result<EntryStreamWriter<'b, W>> {
+        let lfh_offset = writer.writer.offset();
+        let lfh = EntryStreamWriter::write_lfh(writer, &mut entry).await?;
+        let data_offset = writer.writer.offset();
+        let force_no_zip64 = writer.force_no_zip64;
+
+        let cd_entries = &mut writer.cd_entries;
+        let is_zip64 = &mut writer.is_zip64;
+        let writer =
+            AsyncOffsetWriter::new(CompressedAsyncWriter::from_raw(&mut writer.writer, entry.compression(), true));
+
+        Ok(EntryStreamWriter {
+            writer,
+            cd_entries,
+            entry,
+            lfh,
+            lfh_offset,
+            data_offset,
+            hasher: Hasher::new(),
+            force_no_zip64,
+            is_zip64,
+            precompressed: true,
         })
     }
 
@@ -170,19 +201,22 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
     pub async fn close(mut self) -> Result<()> {
         self.writer.close().await?;
 
-        let crc = self.hasher.finalize();
-        let uncompressed_size = self.writer.offset();
+        if !self.precompressed {
+            self.entry.crc32 = self.hasher.finalize();
+            self.entry.uncompressed_size = self.writer.offset();
+        }
+
         let inner_writer = self.writer.into_inner().into_inner();
         let compressed_size = inner_writer.offset() - self.data_offset;
 
         let (cdr_compressed_size, cdr_uncompressed_size, lh_offset) = if self.force_no_zip64 {
-            if uncompressed_size > NON_ZIP64_MAX_SIZE as u64
+            if self.entry.uncompressed_size > NON_ZIP64_MAX_SIZE as u64
                 || compressed_size > NON_ZIP64_MAX_SIZE as u64
                 || self.lfh_offset > NON_ZIP64_MAX_SIZE as u64
             {
                 return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
             }
-            (uncompressed_size as u32, compressed_size as u32, self.lfh_offset as u32)
+            (self.entry.uncompressed_size as u32, compressed_size as u32, self.lfh_offset as u32)
         } else {
             // When streaming an entry, we are always using a zip64 field.
             match get_zip64_extra_field_mut(&mut self.entry.extra_fields) {
@@ -191,7 +225,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
                     self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformation(
                         Zip64ExtendedInformationExtraField {
                             header_id: HeaderId::ZIP64_EXTENDED_INFORMATION_EXTRA_FIELD,
-                            uncompressed_size: Some(uncompressed_size),
+                            uncompressed_size: Some(self.entry.uncompressed_size),
                             compressed_size: Some(compressed_size),
                             relative_header_offset: Some(self.lfh_offset),
                             disk_start_number: None,
@@ -199,7 +233,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
                     ));
                 }
                 Some(zip64) => {
-                    zip64.uncompressed_size = Some(uncompressed_size);
+                    zip64.uncompressed_size = Some(self.entry.uncompressed_size);
                     zip64.compressed_size = Some(compressed_size);
                     zip64.relative_header_offset = Some(self.lfh_offset);
                 }
@@ -211,7 +245,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         };
 
         inner_writer.write_all(&crate::spec::consts::DATA_DESCRIPTOR_SIGNATURE.to_le_bytes()).await?;
-        inner_writer.write_all(&crc.to_le_bytes()).await?;
+        inner_writer.write_all(&self.entry.crc32.to_le_bytes()).await?;
         inner_writer.write_all(&cdr_compressed_size.to_le_bytes()).await?;
         inner_writer.write_all(&cdr_uncompressed_size.to_le_bytes()).await?;
 
@@ -220,7 +254,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         let cdh = CentralDirectoryRecord {
             compressed_size: cdr_compressed_size,
             uncompressed_size: cdr_uncompressed_size,
-            crc,
+            crc: self.entry.crc32,
             v_made_by: crate::spec::version::as_made_by(),
             v_needed: self.lfh.version,
             compression: self.lfh.compression,

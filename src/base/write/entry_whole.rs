@@ -248,7 +248,6 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
     feature = "xz",
     feature = "deflate64"
 ))]
-
 /// Compresses the data of a ZIP entry using the specified compression method and level.
 pub async fn compress(entry: &ZipEntry, data: &[u8]) -> Vec<u8> {
     // TODO: Reduce reallocations of Vec by making a lower-bound estimate of the length reduction and

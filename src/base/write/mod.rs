@@ -54,8 +54,18 @@ pub(crate) mod entry_stream;
 pub(crate) mod entry_whole;
 pub(crate) mod io;
 
-pub use entry_whole::{compress, crc32};
+#[cfg(any(
+    feature = "deflate",
+    feature = "bzip2",
+    feature = "zstd",
+    feature = "lzma",
+    feature = "xz",
+    feature = "deflate64"
+))]
+pub use entry_whole::compress;
+
 pub use entry_stream::EntryStreamWriter;
+pub use entry_whole::crc32;
 
 #[cfg(feature = "tokio")]
 use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
@@ -128,8 +138,9 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
     }
 
     /// Write a new ZIP entry of known size and data, with the data already being compressed.
-    /// 
-    /// The provided entry's compression method, CRC, and uncompressed sizes must be set.
+    ///
+    /// The provided entry's compression method, CRC, and uncompressed size must be set. Use with `base::write::compress`
+    /// and `base::write::crc32` to precompress.
     pub async fn write_entry_whole_precompressed<E: Into<ZipEntry>>(&mut self, entry: E, data: &[u8]) -> Result<()> {
         EntryWholeWriter::from_precompressed(self, entry.into(), data).write().await
     }
@@ -139,6 +150,20 @@ impl<W: AsyncWrite + Unpin> ZipFileWriter<W> {
     /// and a null CRC. This might cause problems with the destination reader.
     pub async fn write_entry_stream<E: Into<ZipEntry>>(&mut self, entry: E) -> Result<EntryStreamWriter<'_, W>> {
         EntryStreamWriter::from_raw(self, entry.into()).await
+    }
+
+    /// Write an entry of unknown size and data via streaming (ie. using a data descriptor), with the data already being compressed.
+    ///
+    /// The provided entry's compression method, CRC, and uncompressed size must be set. Use with `base::write::compress`
+    /// and `base::write::crc32` to precompress.
+    ///
+    /// The generated Local File Header will be invalid, with no compressed size, uncompressed size,
+    /// and a null CRC. This might cause problems with the destination reader.
+    pub async fn write_entry_stream_precompressed<E: Into<ZipEntry>>(
+        &mut self,
+        entry: E,
+    ) -> Result<EntryStreamWriter<'_, W>> {
+        EntryStreamWriter::from_raw_precompressed(self, entry.into()).await
     }
 
     /// Set the ZIP file comment.
