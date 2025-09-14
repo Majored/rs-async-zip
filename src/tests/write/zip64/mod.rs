@@ -14,7 +14,7 @@ use futures_lite::io::AsyncWriteExt;
 // Useful constants for writing a large file.
 const BATCH_SIZE: usize = 100_000;
 const NUM_BATCHES: usize = NON_ZIP64_MAX_SIZE as usize / BATCH_SIZE + 1;
-const BATCHED_FILE_SIZE: usize = NUM_BATCHES * BATCH_SIZE;
+const BATCHED_FILE_SIZE: u64 = NUM_BATCHES as u64 * BATCH_SIZE as u64;
 
 /// Test writing a small zip64 file.
 /// No zip64 extra fields will be emitted for EntryWhole.
@@ -50,11 +50,12 @@ async fn test_write_zip64_file() {
 
 /// Test writing a large zip64 file. This test will use upwards of 4GB of memory.
 #[tokio::test]
+#[cfg(not(target_pointer_width="32"))]
 async fn test_write_large_zip64_file() {
     init_logger();
 
     // Allocate space with some extra for metadata records
-    let mut buffer = Vec::with_capacity(BATCHED_FILE_SIZE + 100_000);
+    let mut buffer = Vec::with_capacity((BATCHED_FILE_SIZE + 100_000).try_into().unwrap());
     let mut writer = ZipFileWriter::new(&mut buffer);
 
     // Stream-written zip files are dubiously spec-conformant. We need to specify a valid file size
@@ -95,18 +96,21 @@ async fn test_write_large_zip64_file() {
         }
         bytes_total += read_bytes;
     }
-    assert_eq!(bytes_total, BATCHED_FILE_SIZE);
+    assert_eq!(bytes_total as u64, BATCHED_FILE_SIZE);
 }
 
 /// Test writing a file, and reading it with async-zip
+/// Skip this test on 32-bit architectures as it will
+/// Run out of address space.
 #[tokio::test]
+#[cfg(not(target_pointer_width="32"))]
 async fn test_write_large_zip64_file_self_read() {
     use futures_lite::io::AsyncReadExt;
 
     init_logger();
 
     // Allocate space with some extra for metadata records
-    let mut buffer = Vec::with_capacity(BATCHED_FILE_SIZE + 100_000);
+    let mut buffer = Vec::with_capacity((BATCHED_FILE_SIZE + 100_000).try_into().unwrap());
     let mut writer = ZipFileWriter::new(&mut buffer);
 
     let entry = ZipEntryBuilder::new("file".into(), Compression::Stored);
@@ -132,7 +136,7 @@ async fn test_write_large_zip64_file_self_read() {
         }
         bytes_total += read_bytes;
     }
-    assert_eq!(bytes_total, BATCHED_FILE_SIZE);
+    assert_eq!(bytes_total as u64, BATCHED_FILE_SIZE);
 }
 
 /// Test writing a zip64 file with more than u16::MAX files.
