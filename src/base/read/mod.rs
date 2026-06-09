@@ -20,6 +20,7 @@ use crate::entry::{StoredZipEntry, ZipEntry};
 use crate::error::{Result, ZipError};
 use crate::file::ZipFile;
 use crate::spec::attribute::AttributeCompatibility;
+use crate::spec::consts::EOCDR_SIGNATURE;
 use crate::spec::consts::LFH_LENGTH;
 use crate::spec::consts::{CDH_SIGNATURE, LFH_SIGNATURE, NON_ZIP64_MAX_SIZE, SIGNATURE_LENGTH, ZIP64_EOCDL_LENGTH};
 use crate::spec::header::InfoZipUnicodeCommentExtraField;
@@ -207,6 +208,11 @@ where
     match signature {
         actual if actual == LFH_SIGNATURE => (),
         actual if actual == CDH_SIGNATURE => return Ok(None),
+        // Per the specification (https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT):
+        //
+        // > A ZIP file containing only an "end of central directory record" is
+        // > considered an empty ZIP file.
+        actual if actual == EOCDR_SIGNATURE => return Ok(None),
         actual => return Err(ZipError::UnexpectedHeaderError(actual, LFH_SIGNATURE)),
     };
 

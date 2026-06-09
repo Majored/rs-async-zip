@@ -10,6 +10,7 @@ const ZSTD_ZIP_FILE: &str = "tests/test_inputs/sample_data.zstd.zip";
 const DEFLATE_ZIP_FILE: &str = "tests/test_inputs/sample_data.deflate.zip";
 const STORE_ZIP_FILE: &str = "tests/test_inputs/sample_data.store.zip";
 const UTF8_EXTRA_ZIP_FILE: &str = "tests/test_inputs/sample_data_utf8_extra.zip";
+const EMPTY_ZIP_FILE: &str = "tests/test_inputs/empty.zip";
 
 #[cfg(feature = "zstd")]
 #[tokio::test]
@@ -73,6 +74,33 @@ async fn decompress_deflate_zip_fs() {
 #[tokio::test]
 async fn decompress_store_zip_fs() {
     common::check_decompress_fs(STORE_ZIP_FILE).await
+}
+
+#[cfg(feature = "deflate")]
+#[cfg(feature = "tokio-fs")]
+#[tokio::test]
+async fn decompress_deflate_zip_stream() {
+    common::check_decompress_stream(DEFLATE_ZIP_FILE).await
+}
+
+#[cfg(feature = "tokio-fs")]
+#[tokio::test]
+async fn decompress_store_zip_stream() {
+    common::check_decompress_stream(STORE_ZIP_FILE).await
+}
+
+#[cfg(feature = "zstd")]
+#[cfg(feature = "tokio-fs")]
+#[tokio::test]
+async fn decompress_zstd_zip_stream() {
+    common::check_decompress_stream(ZSTD_ZIP_FILE).await
+}
+
+#[cfg(feature = "deflate")]
+#[cfg(feature = "tokio-fs")]
+#[tokio::test]
+async fn decompress_empty_zip_stream() {
+    common::check_decompress_stream(EMPTY_ZIP_FILE).await
 }
 
 #[tokio::test]

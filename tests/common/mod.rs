@@ -3,6 +3,7 @@
 
 use async_zip::base::read::mem;
 use async_zip::base::read::seek;
+use async_zip::base::read::stream;
 use async_zip::base::write::ZipFileWriter;
 use async_zip::Compression;
 use async_zip::ZipEntryBuilder;
@@ -75,6 +76,29 @@ pub async fn check_decompress_seek(fname: &str) {
         let fs_file = format!("tests/test_inputs/{fname}");
         let expected = tokio::fs::read_to_string(fs_file).await.unwrap();
         assert_eq!(output, expected, "for {fname}, expect zip data to match file data");
+    }
+}
+
+#[cfg(feature = "tokio-fs")]
+pub async fn check_decompress_stream(fname: &str) {
+    let mut file = BufReader::new(File::open(fname).await.unwrap());
+    let mut zip = stream::ZipFileReader::with_tokio(&mut file);
+
+    while let Some(mut entry) = zip.next_with_entry().await.unwrap() {
+        let reader = entry.reader_mut();
+        // TODO: resolve unwrap usage
+        if reader.entry().dir().unwrap() {
+            zip = entry.done().await.unwrap();
+            continue;
+        }
+        // TODO: resolve unwrap usage
+        let mut output = String::new();
+        let _ = reader.read_to_string_checked(&mut output).await.unwrap();
+        let fname = reader.entry().filename().as_str().unwrap();
+        let fs_file = format!("tests/test_inputs/{fname}");
+        let expected = tokio::fs::read_to_string(fs_file).await.unwrap();
+        assert_eq!(output, expected, "for {fname}, expect zip data to match file data");
+        zip = entry.done().await.unwrap();
     }
 }
 
