@@ -58,6 +58,8 @@ pub enum ZipError {
 
     #[error("an upstream reader returned an error: {0}")]
     UpstreamReadError(#[from] std::io::Error),
+    #[error("failed to parse a binary header: {0}")]
+    BinaryParseError(#[from] binrw::Error),
     #[error("a computed CRC32 value did not match the expected value")]
     CRC32CheckError,
     #[error("entry index was out of bounds")]

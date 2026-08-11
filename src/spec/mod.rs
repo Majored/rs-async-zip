@@ -8,5 +8,6 @@ pub(crate) mod extra_field;
 pub(crate) mod header;
 pub(crate) mod parse;
 pub(crate) mod version;
+pub(crate) mod headers1;
 
 pub use compression::Compression;
