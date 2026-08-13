@@ -71,4 +71,18 @@ pub enum ZipError {
     InfoZipUnicodeCommentFieldIncomplete,
     #[error("Info-ZIP Unicode Path Extra Field was incomplete")]
     InfoZipUnicodePathFieldIncomplete,
+
+    #[error("invalid compressed size header match")]
+    InvalidCompressedSizeHeaderMatch,
+    #[error("invalid uncompressed size header match")]
+    InvalidUncompressedSizeHeaderMatch,
+    #[error("invalid CRC header match")]
+    InvalidCrcHeaderMatch,
+    #[error("invalid filename header match")]
+    InvalidFilenameHeaderMatch,
+    #[error("invalid compression header match")]
+    InvalidCompressionHeaderMatch,
+
+    #[error("operation needed file meta but loading was disabled")]
+    FileMetaNotLoaded,
 }

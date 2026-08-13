@@ -11,6 +11,16 @@ use crate::spec::consts::{CDH_LENGTH, EOCDR_LENGTH, LFH_LENGTH};
 
 #[binrw]
 #[brw(little)]
+#[brw(repr = u32)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Signature {
+    LFH = 0x04034b50,
+    CDH = 0x02014b50,
+    EOCDR = 0x06054b50,
+}
+
+#[binrw]
+#[brw(little)]
 // Local file header
 pub struct LFH {
     pub version: u16,
@@ -25,8 +35,15 @@ pub struct LFH {
     pub extra_field_length: u16,
 }
 
+pub struct LF {
+    pub lfh: LFH,
+    pub file_name: Vec<u8>,
+    pub extra_field: Vec<u8>,
+}
+
 #[binrw]
 #[brw(little)]
+#[derive(Clone)]
 // Central directory record header
 pub struct CDRH {
     pub v_made_by: u16,
@@ -47,6 +64,14 @@ pub struct CDRH {
     pub lh_offset: u32,
 }
 
+#[derive(Clone)]
+pub struct CDR {
+    pub cdrh: CDRH,
+    pub file_name: Vec<u8>,
+    pub extra_field: Vec<u8>,
+    pub file_comment: Vec<u8>,
+}
+
 #[binrw]
 #[brw(little)]
 // End of central directory record header
@@ -60,8 +85,17 @@ pub struct EOCDRH {
     pub(crate) file_comm_length: u16,
 }
 
+pub struct EOCDR {
+    pub eocdrh: EOCDRH,
+    pub file_comment: Vec<u8>,
+}
+
 pub(crate) trait HeaderSize {
     const SIZE: usize;
+}
+
+impl HeaderSize for Signature {
+    const SIZE: usize = 4;
 }
 
 impl HeaderSize for LFH {
@@ -77,7 +111,7 @@ impl HeaderSize for EOCDRH {
 }
 
 /// Reads a fixed-size header from the given reader and returns the parsed struct.
-pub(crate) async fn read_header<T, R>(reader: &mut R) -> Result<T>
+pub(crate) async fn read<T, R>(reader: &mut R) -> Result<T>
 where
     T: BinRead + HeaderSize,
     for<'a> T::Args<'a>: Default,
@@ -89,7 +123,7 @@ where
 }
 
 /// Writes a fixed-size header to the given writer.
-pub(crate) async fn write_header<T, W>(writer: &mut W, value: &T) -> Result<()>
+pub(crate) async fn write<T, W>(writer: &mut W, value: &T) -> Result<()>
 where
     T: BinWrite,
     for<'a> T::Args<'a>: Default,
