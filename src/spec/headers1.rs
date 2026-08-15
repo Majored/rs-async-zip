@@ -27,11 +27,25 @@ impl From<Signature> for u32 {
 
 #[binrw]
 #[brw(little)]
+#[brw(repr = u16)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Compression {
+    Stored = 0,
+    Deflate = 8,
+    Deflate64 = 9,
+    Bz = 12,
+    Lzma = 14,
+    Zstd = 93,
+    Xz = 95,
+}
+
+#[binrw]
+#[brw(little)]
 // Local file header
 pub struct LFH {
     pub version: u16,
     pub flags: u16,
-    pub compression: u16,
+    pub compression: Compression,
     pub mod_time: u16,
     pub mod_date: u16,
     pub crc: u32,
@@ -55,7 +69,7 @@ pub struct CDRH {
     pub v_made_by: u16,
     pub v_needed: u16,
     pub flags: u16,
-    pub compression: u16,
+    pub compression: Compression,
     pub mod_time: u16,
     pub mod_date: u16,
     pub crc: u32,

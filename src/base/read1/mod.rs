@@ -3,17 +3,23 @@
 
 //! A set of ZIP archive readers which vary based on their seeking vs streaming capabilities.
 //! 
+//! # AsyncBufRead requirement
+//! All readers require an [`AsyncBufRead`] implementer as their underlying source.
+//! 
 //! ## Seek
-//! The seek reader acts over a single [`AsyncSeek`] reader. It supports out-of-order reads.
-//! This re-uses the same reader for all reads, meaning reads must be sequential.
+//! The seek reader acts over a single [`AsyncSeek`] reader.
 //! 
 //! ### Advantages
+//! - Can perform out-of-order file reads.
+//! - Reads and uses the central directory as the source of truth for file metadata.
 //! - Can perform validation of local file headers against the central directory.
+//! - Can perform validation of the central directory itself.
+//! - Can perform concurrent/parallel file reads when using a factory.
 //! 
 //! ### Limitations
-//! - 
-//! 
-//! See [`seek`] for more information.
+//! - The underlying reader must implement [`AsyncSeek`] (or the tokio equivalent).
+//! - File reads must be sequential (ie. one at a time) unless using a factory.
+//! - [`ZipFileReader`] does not support seeking, so nested ZIPs must be opened with [`stream`].
 //! 
 //! ## Stream
 //! The stream reader acts over a single non-[`AsyncSeek`] reader. Support for streaming across the industry is limited.
@@ -40,11 +46,17 @@
 // We provide documentation about the differences between the two readers in this module.
 // And then usage-level information in the submodules.
 
+pub(crate) mod file;
+pub(crate) mod ops;
+pub(crate) mod valid;
+
 pub mod seek;
-pub mod ops;
-pub mod file;
-pub mod valid;
 pub mod opts;
 
 #[allow(unused_imports)]
 use futures_lite::AsyncSeek;
+#[allow(unused_imports)]
+use futures_lite::AsyncBufRead;
+
+// Public API
+pub use file::ZipFileReader;

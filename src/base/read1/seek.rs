@@ -35,7 +35,7 @@
 //! 
 
 use std::{io::SeekFrom, sync::Arc};
-use futures_lite::{AsyncRead, AsyncSeek, AsyncSeekExt};
+use futures_lite::{AsyncBufRead, AsyncSeek, AsyncSeekExt};
 
 use crate::{base::read1::{file::ZipFileReader, ops::{Ops, SeekOps}, opts::Options}, error::Result, spec::headers1::{CDR, LF}};
 
@@ -45,7 +45,7 @@ pub struct ZipArchiveReader<R> {
     reader: R,
 }
 
-impl<R: AsyncRead + AsyncSeek + Unpin> ZipArchiveReader<R> {
+impl<R: AsyncBufRead + AsyncSeek + Unpin> ZipArchiveReader<R> {
     /// Opens a ZIP archive with the default options.
     /// 
     /// # Errors
@@ -177,7 +177,7 @@ pub struct ZipArchiveFactory<G, R> {
     generator: G,
 }
 
-impl <R: AsyncRead + AsyncSeek + Unpin, G: AsyncFn() -> Result<R>> ZipArchiveFactory<G, R> {
+impl <R: AsyncBufRead + AsyncSeek + Unpin, G: AsyncFn() -> Result<R>> ZipArchiveFactory<G, R> {
     /// Wraps an open [`ZipArchiveReader`] with a generator function which produces new readers.
     /// 
     /// The generator function must produce readers over the same archive this reader was opened with.
