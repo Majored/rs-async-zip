@@ -1,9 +1,9 @@
 // Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::{base::read1::opts::Options, error::Result, spec::headers1::{CDR, LF}};
+use crate::{base::read1::opts::ZipOptions, error::Result, spec::headers1::{CDR, LF}};
 
-pub fn validate(lf: &LF, cdr: &CDR, options: &Options) -> Result<()> {
+pub fn validate(lf: &LF, cdr: &CDR, options: &ZipOptions) -> Result<()> {
     // TODO: we're still performing these checks even if disabled. Reorder.
 
     let compressed_match = lf.lfh.compressed_size == cdr.cdrh.compressed_size;
@@ -12,8 +12,8 @@ pub fn validate(lf: &LF, cdr: &CDR, options: &Options) -> Result<()> {
     let filename_match = lf.file_name == cdr.file_name;
     let compression_match = lf.lfh.compression == cdr.cdrh.compression;
 
-    // TODO: data descriptor
-    if false {
+    // These checks can only be performed with actually set LFH values.
+    if !cdr.cdrh.flags.data_descriptor() {
         if options.validate_compressed_size_header_match && !compressed_match {
             return Err(crate::error::ZipError::InvalidCompressedSizeHeaderMatch);
         }

@@ -49,7 +49,8 @@ pub enum ZipError {
     #[error("attempted to convert non-UTF8 bytes to a string/str")]
     StringNotUtf8,
 
-    #[error("unable to locate the end of central directory record")]
+    #[error("unable to locate the end of central directory record.")]
+    /// Unable to locate the end of central directory record
     UnableToLocateEOCDR,
     #[error("extra field size was indicated to be {0} but only {1} bytes remain")]
     InvalidExtraFieldHeader(u16, usize),
@@ -65,6 +66,7 @@ pub enum ZipError {
     #[error("entry index was out of bounds")]
     EntryIndexOutOfBounds,
     #[error("Encountered an unexpected header (actual: {0:#x}, expected: {1:#x}).")]
+    /// Encountered an unexpected header
     UnexpectedHeaderError(u32, u32),
 
     #[error("Info-ZIP Unicode Comment Extra Field was incomplete")]
@@ -82,6 +84,10 @@ pub enum ZipError {
     InvalidFilenameHeaderMatch,
     #[error("invalid compression header match")]
     InvalidCompressionHeaderMatch,
+    #[error("invalid number of central directory files ({0}), expected ({1})")]
+    InvalidNumCentralDirectoryFiles(u64, u64),
+    #[error("number of central directory files ({0}) exceeds the maximum allowed ({1})")]
+    CentralDirectoryFilesNumAboveMax(u64, u64),
 
     #[error("operation needed file meta but loading was disabled")]
     FileMetaNotLoaded,

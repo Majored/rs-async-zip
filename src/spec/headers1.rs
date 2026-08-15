@@ -29,6 +29,7 @@ impl From<Signature> for u32 {
 #[brw(little)]
 #[brw(repr = u16)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Compression {
     Stored = 0,
     Deflate = 8,
@@ -44,7 +45,7 @@ pub enum Compression {
 // Local file header
 pub struct LFH {
     pub version: u16,
-    pub flags: u16,
+    pub flags: GPF,
     pub compression: Compression,
     pub mod_time: u16,
     pub mod_date: u16,
@@ -68,7 +69,7 @@ pub struct LF {
 pub struct CDRH {
     pub v_made_by: u16,
     pub v_needed: u16,
-    pub flags: u16,
+    pub flags: GPF,
     pub compression: Compression,
     pub mod_time: u16,
     pub mod_date: u16,
@@ -108,6 +109,18 @@ pub struct EOCDRH {
 pub struct EOCDR {
     pub eocdrh: EOCDRH,
     pub file_comment: Vec<u8>,
+}
+
+#[binrw]
+#[brw(little)]
+#[derive(Clone)]
+// General purpose flags
+pub struct GPF(u16);
+
+impl GPF {
+    pub fn data_descriptor(&self) -> bool {
+        self.0 & 0x08 != 0
+    }
 }
 
 pub(crate) trait HeaderSize {

@@ -8,7 +8,7 @@ use futures_lite::AsyncReadExt;
 use futures_lite::AsyncRead;
 use futures_lite::AsyncSeek;
 
-use crate::base::read1::opts::Options;
+use crate::base::read1::opts::ZipOptions;
 use crate::base::read1::seek::ZipArchiveInner;
 use crate::spec::headers1::CDRH;
 use crate::spec::headers1::EOCDR;
@@ -88,7 +88,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         todo!()
     }
 
-    pub async fn open(&mut self, opts: Options) -> Result<ZipArchiveInner> {
+    pub async fn open(&mut self, opts: ZipOptions) -> Result<ZipArchiveInner> {
         let mut inner = ZipArchiveInner::default();
 
         // Locate EOCDR and seek to it (erroring if not found).
@@ -101,7 +101,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         self.reader.seek(SeekFrom::Start(pos)).await?;
 
         // The callee will not populate metas if load_file_meta is false.
-        let (metas, offsets) = SeekOps::new(&mut self.reader).cd(&inner.options, pos).await?;
+        let (metas, offsets) = SeekOps::new(&mut self.reader).cd(&opts, &eocdr).await?;
 
         inner.cdr_metas = metas;
         inner.cdr_offsets = offsets;
@@ -109,7 +109,18 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         Ok(inner)
     }
 
-    pub async fn cd(&mut self, options: &Options, mut offset: u64) -> Result<(Vec<CDR>, Vec<u64>)> {
+    pub async fn cd(&mut self, options: &ZipOptions, eocdr: &EOCDR) -> Result<(Vec<CDR>, Vec<u64>)> {
+        // Enforce max number of files if configured
+        if let Some(max) = options.max_num_central_directory_files {
+            let actual = eocdr.eocdrh.num_of_entries as u64;
+
+            if actual > max {
+                return Err(crate::error::ZipError::CentralDirectoryFilesNumAboveMax(actual, max));
+            }
+        }
+
+        let mut offset = eocdr.eocdrh.cent_dir_offset as u64;
+
         // TODO: get size from EOCDR.
         let mut offsets = Vec::new();
         let mut cdrs = Vec::new();
@@ -117,12 +128,13 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         // TODO: validate size, validate length
 
         loop {
-            offsets.push(offset);
             let signature = crate::spec::headers1::read::<Signature, R>(&mut self.reader).await?;
 
             if signature != Signature::CDH {
                 break;
             }
+
+            offsets.push(offset);
 
             let cdr = Ops::new(&mut self.reader).cdr().await?;
 
@@ -137,10 +149,19 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
             offset = self.reader.seek(SeekFrom::Current(0)).await?;
         }
 
+        // Validate that the number of CDRs read matches the number of entries in the EOCDR
+        let num_matched = offsets.len() == eocdr.eocdrh.num_of_entries as usize;
+        if options.validate_num_central_directory_files && !num_matched {
+            return Err(crate::error::ZipError::InvalidNumCentralDirectoryFiles(
+                offsets.len() as u64,
+                eocdr.eocdrh.num_of_entries as u64,
+            ));
+        }
+
         Ok((cdrs, offsets))
     }
 
-    pub async fn file(&mut self, cdr: CDR, opts: &Options) -> Result<LF> {
+    pub async fn file(&mut self, cdr: CDR, opts: &ZipOptions) -> Result<LF> {
         // Seek to file offset and read LF.
         // We read the LF instead of just using the CDR because the extra fields may differ (and so the data offset).
         self.reader.seek(SeekFrom::Start(cdr.cdrh.lh_offset as u64)).await?;
