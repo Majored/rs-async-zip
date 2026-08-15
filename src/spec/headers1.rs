@@ -16,7 +16,13 @@ use crate::spec::consts::{CDH_LENGTH, EOCDR_LENGTH, LFH_LENGTH};
 pub enum Signature {
     LFH = 0x04034b50,
     CDH = 0x02014b50,
-    EOCDR = 0x06054b50,
+    EOCDRH = 0x06054b50,
+}
+
+impl From<Signature> for u32 {
+    fn from(sig: Signature) -> Self {
+        sig as u32
+    }
 }
 
 #[binrw]

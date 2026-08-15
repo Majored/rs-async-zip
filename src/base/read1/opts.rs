@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+#[derive(Clone)]
 pub struct Options {
     // Whether we load the full CDR file meta into memory on open.
     pub load_file_meta: bool,

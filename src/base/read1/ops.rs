@@ -9,7 +9,7 @@ use futures_lite::AsyncRead;
 use futures_lite::AsyncSeek;
 
 use crate::base::read1::opts::Options;
-use crate::base::read1::seek::SeekInner;
+use crate::base::read1::seek::ZipArchiveInner;
 use crate::spec::headers1::CDRH;
 use crate::spec::headers1::EOCDR;
 use crate::spec::headers1::EOCDRH;
@@ -24,9 +24,18 @@ impl <R: AsyncRead + Unpin> Ops<R> {
         Self { reader }
     }
 
-    pub async fn lf(&mut self) -> Result<LF> {
+    pub async fn assert_signature(&mut self, expected: Signature) -> Result<()> {
         let signature = crate::spec::headers1::read::<Signature, R>(&mut self.reader).await?;
-        // TODO: validate signature
+
+        if signature != expected {
+            return Err(crate::error::ZipError::UnexpectedHeaderError(signature.into(), expected.into()));
+        }
+
+        Ok(())
+    }
+
+    pub async fn lf(&mut self) -> Result<LF> {
+        self.assert_signature(Signature::LFH).await?;
         let lfh = crate::spec::headers1::read::<LFH, R>(&mut self.reader).await?;
 
         let mut file_name = vec![0u8; lfh.file_name_length.into()]; 
@@ -39,7 +48,7 @@ impl <R: AsyncRead + Unpin> Ops<R> {
     }
 
     pub async fn cdr(&mut self) -> Result<CDR> {
-        // We don't read the signature, as this occurs in the caller's loop.
+        // We don't assert the signature, as this occurs in the caller's loop.
 
         let cdrh = crate::spec::headers1::read::<CDRH, R>(&mut self.reader).await?;
 
@@ -55,8 +64,7 @@ impl <R: AsyncRead + Unpin> Ops<R> {
     }
 
     pub async fn eocdr(&mut self) -> Result<EOCDR> {
-        let signature = crate::spec::headers1::read::<Signature, R>(&mut self.reader).await?;
-        // TODO: validate signature
+        self.assert_signature(Signature::EOCDRH).await?;
 
         let eocdrh = crate::spec::headers1::read::<EOCDRH, R>(&mut self.reader).await?;
         let mut file_comment = vec![0u8; eocdrh.file_comm_length.into()];
@@ -80,8 +88,8 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         todo!()
     }
 
-    pub async fn open(&mut self) -> Result<SeekInner> {
-        let mut inner = SeekInner::default();
+    pub async fn open(&mut self, opts: Options) -> Result<ZipArchiveInner> {
+        let mut inner = ZipArchiveInner::default();
 
         // Locate EOCDR and seek to it (erroring if not found).
         let eocdr_offset = crate::base::read::io::locator::eocdr(&mut self.reader).await?;
