@@ -32,5 +32,11 @@ pub fn validate(lf: &LF, cdr: &CDR, options: &ZipOptions) -> Result<()> {
         return Err(crate::error::ZipError::InvalidCompressionHeaderMatch);
     }
 
+    if let Some(max) = &options.max_uncompressed_size_per_file {
+        if cdr.cdrh.uncompressed_size as u64 > *max {
+            return Err(crate::error::ZipError::InvalidUncompressedSizeHeaderMatch); // TODO: error
+        }
+    }
+
     Ok(())
 }

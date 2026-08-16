@@ -70,6 +70,9 @@
 //! let content = file.read_to_string().await.expect("failed to read file contents");
 //! # }
 //! ```
+//! 
+//! # Handling untrusted archives
+//! TODO
 
 #[expect(unused_imports)]
 use crate::error::ZipError;
@@ -125,7 +128,7 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> ZipArchiveReader<R> {
     /// [`ZipError::UpstreamReadError`]. 
     pub async fn file(&mut self, index: usize) -> Result<ZipFileReader<&mut R>> {
         let lf = self.file_open(index).await?;
-        ZipFileReader::new(&mut self.reader, lf)
+        ZipFileReader::new(&mut self.reader, lf, self.inner.options.clone())
     }
 
     /// Opens a file for reading by its index in the archive. See [`Self::file()`] for more information.
@@ -133,7 +136,7 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> ZipArchiveReader<R> {
     /// This takes an owned Self and consumes the source reader.
     pub async fn file_oneshot(mut self, index: usize) -> Result<ZipFileReader<R>> {
         let lf = self.file_open(index).await?;
-        ZipFileReader::new(self.reader, lf)
+        ZipFileReader::new(self.reader, lf, self.inner.options.clone())
     }
 
     /// Converts this reader into a [`ZipArchiveFactory`] which can produce new readers over the same archive.

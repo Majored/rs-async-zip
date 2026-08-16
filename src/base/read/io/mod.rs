@@ -45,4 +45,4 @@ macro_rules! poll_result_ok {
     };
 }
 
-use poll_result_ok;
+pub(crate) use poll_result_ok;

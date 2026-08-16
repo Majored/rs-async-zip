@@ -39,9 +39,25 @@ pub struct ZipOptions {
 
     pub max_num_central_directory_files: Option<u64>,
 
+    /// Validates the CRC of the actual read data matches the expected value.
+    /// Users must call [`ZipFileReader::validate()`] after reading all data to perform this check.
+    pub validate_crc_match_against_read: bool,
+
+    /// Validates the uncompressed size of the actual read data matches the expected value.
+    /// Users must call [`ZipFileReader::validate()`] after reading all data to perform this check.
+    /// 
+    pub validate_uncompressed_size_match_against_read: bool,
+
+    /// Enforces a maximum uncompressed size per file. Attempts to open the file for reading will
+    /// fail, or if the file declares a smaller uncompressed size than is actually the case,
+    /// reading the file will fail if the limit is exceeded.
+    pub max_uncompressed_size_per_file: Option<u64>,
+
     // TODO: max cd dize
-    // TODO: max ef size per file
+    // TODO: max ef size per files
     // TODO: max ef num per file
+    // TODO: max compressed size per file
+    // TODO: max uncompressed size per file
 }
 
 impl Default for ZipOptions {
@@ -56,6 +72,9 @@ impl Default for ZipOptions {
             validate_compression_header_match: true,
             validate_num_central_directory_files: true,
             max_num_central_directory_files: None,
+            validate_crc_match_against_read: true,
+            max_uncompressed_size_per_file: None,
+            validate_uncompressed_size_match_against_read: true,
         }
     }
 }
@@ -71,53 +90,31 @@ pub struct ZipOptionsBuilder {
     options: ZipOptions,
 }
 
+// Generates a builder setter that assigns `param` to the same-named field on `self.options`.
+macro_rules! builder_setter {
+    ($name:ident, $param:ident: $ty:ty) => {
+        pub fn $name(mut self, $param: $ty) -> Self {
+            self.options.$name = $param;
+            self
+        }
+    };
+}
+
 impl ZipOptionsBuilder {
     pub fn new() -> Self {
         Self { options: ZipOptions::default() }
     }
 
-    pub fn load_file_meta(mut self, load: bool) -> Self {
-        self.options.load_file_meta = load;
-        self
-    }
-
-    pub fn eocdr_locate_method(mut self, method: u8) -> Self {
-        self.options.eocdr_locate_method = method;
-        self
-    }
-
-    pub fn validate_compressed_size_header_match(mut self, validate: bool) -> Self {
-        self.options.validate_compressed_size_header_match = validate;
-        self
-    }
-
-    pub fn validate_uncompressed_size_header_match(mut self, validate: bool) -> Self {
-        self.options.validate_uncompressed_size_header_match = validate;
-        self
-    }
-
-    pub fn validate_crc_header_match(mut self, validate: bool) -> Self {
-        self.options.validate_crc_header_match = validate;
-        self
-    }
-
-    pub fn validate_filename_header_match(mut self, validate: bool) -> Self {
-        self.options.validate_filename_header_match = validate;
-        self
-    }
-
-    pub fn validate_compression_header_match(mut self, validate: bool) -> Self {
-        self.options.validate_compression_header_match = validate;
-        self
-    }
-
-    pub fn validate_num_central_directory_files(mut self, validate: bool) -> Self {
-        self.options.validate_num_central_directory_files = validate;
-        self
-    }
-
-    pub fn max_num_central_directory_files(mut self, max: Option<u64>) -> Self {
-        self.options.max_num_central_directory_files = max;
-        self
-    }
+    builder_setter!(load_file_meta, load: bool);
+    builder_setter!(eocdr_locate_method, method: u8);
+    builder_setter!(validate_compressed_size_header_match, validate: bool);
+    builder_setter!(validate_uncompressed_size_header_match, validate: bool);
+    builder_setter!(validate_crc_header_match, validate: bool);
+    builder_setter!(validate_filename_header_match, validate: bool);
+    builder_setter!(validate_compression_header_match, validate: bool);
+    builder_setter!(validate_num_central_directory_files, validate: bool);
+    builder_setter!(max_num_central_directory_files, max: Option<u64>);
+    builder_setter!(validate_crc_match_against_read, validate: bool);
+    builder_setter!(validate_uncompressed_size_match_against_read, validate: bool);
+    builder_setter!(max_uncompressed_size_per_file, max: Option<u64>);
 }

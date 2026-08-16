@@ -208,7 +208,7 @@ impl HeaderSize for EOCDL64H {
 #[derive(Clone, Debug)]
 // Extra field header - not part of the ZIP structure itself, but the spec still describes it as a 'header'.
 pub struct EFH {
-    pub tag: u16,
+    pub tag: ExtraFieldHeaderId,
     pub data_size: u16,
 }
 

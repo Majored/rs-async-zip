@@ -14,10 +14,13 @@ use tracing::{instrument, trace};
 use crate::base::read1::opts::ZipOptions;
 use crate::base::read1::seek::ZipArchiveInner;
 use crate::spec::constructs::EF;
+use crate::spec::constructs::EFData;
+use crate::spec::constructs::Zip64ExtendedInformation;
 use crate::spec::headers1::CDRH;
 use crate::spec::constructs::{CDR, LF, EOCDR};
 use crate::spec::headers1::EFH;
 use crate::spec::headers1::EOCDRH;
+use crate::spec::headers1::ExtraFieldHeaderId;
 use crate::{error::Result, spec::headers1::{LFH, Signature}};
 
 pub(crate) struct Ops<R> {
@@ -88,9 +91,21 @@ impl <R: AsyncRead + Unpin> Ops<R> {
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn ef(&mut self) -> Result<EF> {
         let efh = crate::spec::headers1::read::<EFH, R>(&mut self.reader).await?;
-        let mut data = vec![0u8; efh.data_size.into()];
-        self.reader.read_exact(&mut data).await?;
-        Ok(EF { efh, data })
+        let data;
+
+        match efh.tag {
+            ExtraFieldHeaderId::EI64 => {
+                let zip64 = crate::spec::headers1::read::<Zip64ExtendedInformation, R>(&mut self.reader).await?;
+                data = Some(EFData::Zip64ExtendedInformation(zip64));
+            },
+            _ => {
+                let mut raw = vec![0u8; efh.data_size.into()];
+                self.reader.read_exact(&mut raw).await?;
+                data = Some(EFData::Unknown(raw));
+            }
+        };
+
+        Ok(EF { efh, data: data.unwrap() })
     }
 
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
@@ -122,10 +137,6 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         Self { reader }
     }
 
-    pub async fn cd_offsets(&mut self) -> Result<Vec<u64>> {
-        todo!()
-    }
-
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn open(&mut self, opts: ZipOptions) -> Result<ZipArchiveInner> {
         let mut inner = ZipArchiveInner::default();
@@ -144,6 +155,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
 
         inner.cdr_metas = metas;
         inner.cdr_offsets = offsets;
+        inner.options = opts;
     
         Ok(inner)
     }
@@ -212,12 +224,13 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         // Run configured validations on the LF and CDR.
         crate::base::read1::valid::validate(&lf, &cdr, opts)?;
 
-        // TODO: data descriptor.
-        if false {
+        if lf.lfh.flags.data_descriptor() {
             // Fill in LFH with known-good values from the CDR.
             lf.lfh.compressed_size = cdr.cdrh.compressed_size;
             lf.lfh.uncompressed_size = cdr.cdrh.uncompressed_size;
             lf.lfh.crc = cdr.cdrh.crc;
+            
+            // TODO: should we set data_descriptor to false?
         }
 
         Ok(lf)
