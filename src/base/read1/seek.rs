@@ -77,7 +77,7 @@ use crate::error::ZipError;
 use std::{io::SeekFrom, ops::Deref, sync::Arc};
 use futures_lite::{AsyncBufRead, AsyncSeek, AsyncSeekExt};
 
-use crate::{base::read1::{file::ZipFileReader, ops::{Ops, SeekOps}, opts::ZipOptions}, error::Result, spec::headers1::{CDR, LF}};
+use crate::{base::read1::{file::ZipFileReader, ops::{Ops, SeekOps}, opts::ZipOptions}, error::Result, spec::constructs::{CDR, LF}};
 
 /// A ZIP archive reader which acts over a seekable source.
 pub struct ZipArchiveReader<R> {

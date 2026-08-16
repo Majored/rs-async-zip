@@ -38,6 +38,10 @@ pub struct ZipOptions {
     pub validate_num_central_directory_files: bool,
 
     pub max_num_central_directory_files: Option<u64>,
+
+    // TODO: max cd dize
+    // TODO: max ef size per file
+    // TODO: max ef num per file
 }
 
 impl Default for ZipOptions {

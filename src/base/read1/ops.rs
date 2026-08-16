@@ -10,10 +10,12 @@ use futures_lite::AsyncSeek;
 
 use crate::base::read1::opts::ZipOptions;
 use crate::base::read1::seek::ZipArchiveInner;
+use crate::spec::constructs::EF;
 use crate::spec::headers1::CDRH;
-use crate::spec::headers1::EOCDR;
+use crate::spec::constructs::{CDR, LF, EOCDR};
+use crate::spec::headers1::EFH;
 use crate::spec::headers1::EOCDRH;
-use crate::{error::Result, spec::headers1::{CDR, LF, LFH, Signature}};
+use crate::{error::Result, spec::headers1::{LFH, Signature}};
 
 pub(crate) struct Ops<R> {
     reader: R,
@@ -38,13 +40,11 @@ impl <R: AsyncRead + Unpin> Ops<R> {
         self.assert_signature(Signature::LFH).await?;
         let lfh = crate::spec::headers1::read::<LFH, R>(&mut self.reader).await?;
 
-        let mut file_name = vec![0u8; lfh.file_name_length.into()]; 
-        let mut extra_field = vec![0u8; lfh.extra_field_length.into()];
-
+        let mut file_name = vec![0u8; lfh.file_name_length.into()];
         self.reader.read_exact(&mut file_name).await?;
-        self.reader.read_exact(&mut extra_field).await?;
+        let extra_fields = Ops::new(&mut self.reader).all_efs(lfh.extra_field_length).await?;
 
-        Ok(LF { lfh, file_name, extra_field })
+        Ok(LF { lfh, file_name, extra_fields })
     }
 
     pub async fn cdr(&mut self) -> Result<CDR> {
@@ -53,14 +53,13 @@ impl <R: AsyncRead + Unpin> Ops<R> {
         let cdrh = crate::spec::headers1::read::<CDRH, R>(&mut self.reader).await?;
 
         let mut file_name = vec![0u8; cdrh.file_name_length.into()];
-        let mut extra_field = vec![0u8; cdrh.extra_field_length.into()];
         let mut file_comment = vec![0u8; cdrh.file_comment_length.into()];
 
         self.reader.read_exact(&mut file_name).await?;
-        self.reader.read_exact(&mut extra_field).await?;
+        let extra_fields = Ops::new(&mut self.reader).all_efs(cdrh.extra_field_length).await?;
         self.reader.read_exact(&mut file_comment).await?;
 
-        Ok(CDR { cdrh, file_name, extra_field, file_comment })
+        Ok(CDR { cdrh, file_name, extra_fields, file_comment })
     }
 
     pub async fn eocdr(&mut self) -> Result<EOCDR> {
@@ -72,6 +71,32 @@ impl <R: AsyncRead + Unpin> Ops<R> {
         self.reader.read_exact(&mut file_comment).await?;
 
         Ok(EOCDR { eocdrh, file_comment })
+    }
+
+    pub async fn ef(&mut self) -> Result<EF> {
+        let efh = crate::spec::headers1::read::<EFH, R>(&mut self.reader).await?;
+        let mut data = vec![0u8; efh.data_size.into()];
+        self.reader.read_exact(&mut data).await?;
+        Ok(EF { efh, data })
+    }
+
+    pub async fn all_efs(&mut self, size: u16) -> Result<Vec<EF>> {
+        let mut take = (&mut self.reader).take(size.into());
+        let mut vec = Vec::new();
+
+        // TODO: validation
+        // TODO: with_capacity
+
+        loop {
+            println!("take.limit(): {}", take.limit());
+            if take.limit() == 0 {
+                break;
+            }
+
+            vec.push(Ops::new(&mut take).ef().await?);
+        }
+
+        Ok(vec)
     }
 }
 

@@ -9,5 +9,6 @@ pub(crate) mod header;
 pub(crate) mod parse;
 pub(crate) mod version;
 pub(crate) mod headers1;
+pub(crate) mod constructs;
 
 pub use compression::Compression;

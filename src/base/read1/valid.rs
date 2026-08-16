@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::{base::read1::opts::ZipOptions, error::Result, spec::headers1::{CDR, LF}};
+use crate::{base::read1::opts::ZipOptions, error::Result, spec::constructs::{CDR, LF}};
 
 pub fn validate(lf: &LF, cdr: &CDR, options: &ZipOptions) -> Result<()> {
     // TODO: we're still performing these checks even if disabled. Reorder.

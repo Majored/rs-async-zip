@@ -12,7 +12,7 @@ use futures_lite::io::Take;
 
 use crate::error::Result;
 use crate::spec::headers1::Compression;
-use crate::spec::headers1::LF;
+use crate::spec::constructs::LF;
 
 #[cfg(any(
     feature = "deflate", feature = "bzip2", feature = "zstd",
