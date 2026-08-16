@@ -5,8 +5,17 @@ use std::io::Cursor;
 
 use binrw::{binrw, BinRead, BinWrite};
 use futures_lite::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+#[cfg(feature = "tracing")]
+use tracing::{instrument, trace};
 
 use crate::error::Result;
+
+/// A trait for types that have a fixed size in bytes, such as headers.
+/// 
+/// We cannot use `std::mem::size_of::<T>()` because the types are not packed.
+pub(crate) trait HeaderSize {
+    const SIZE: usize;
+}
 
 #[binrw]
 #[brw(little)]
@@ -25,6 +34,10 @@ impl From<Signature> for u32 {
     fn from(sig: Signature) -> Self {
         sig as u32
     }
+}
+
+impl HeaderSize for Signature {
+    const SIZE: usize = 4;
 }
 
 #[binrw]
@@ -82,6 +95,7 @@ impl From<&ExtraFieldHeaderId> for u16 {
 
 #[binrw]
 #[brw(little)]
+#[derive(Debug)]
 // Local file header
 pub struct LFH {
     pub version: u16,
@@ -96,9 +110,13 @@ pub struct LFH {
     pub extra_field_length: u16,
 }
 
+impl HeaderSize for LFH {
+    const SIZE: usize = 26;
+}
+
 #[binrw]
 #[brw(little)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 // Central directory record header
 pub struct CDRH {
     pub v_made_by: u16,
@@ -119,8 +137,13 @@ pub struct CDRH {
     pub lh_offset: u32,
 }
 
+impl HeaderSize for CDRH {
+    const SIZE: usize = 42;
+}
+
 #[binrw]
 #[brw(little)]
+#[derive(Debug)]
 // End of central directory record header
 pub struct EOCDRH {
     pub(crate) disk_num: u16,
@@ -132,9 +155,13 @@ pub struct EOCDRH {
     pub(crate) file_comm_length: u16,
 }
 
+impl HeaderSize for EOCDRH {
+    const SIZE: usize = 18;
+}
+
 #[binrw]
 #[brw(little)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 // General purpose flags
 pub struct GPF(u16);
 
@@ -159,6 +186,10 @@ pub struct EOCDR64H {
     pub offset_of_start_of_directory: u64,
 }
 
+impl HeaderSize for EOCDR64H {
+    const SIZE: usize = 56;
+}
+
 #[binrw]
 #[brw(little)]
 /// ZIP64 end of central directory locator header
@@ -168,25 +199,44 @@ pub struct EOCDL64H {
     pub total_number_of_disks: u32,
 }
 
+impl HeaderSize for EOCDL64H {
+    const SIZE: usize = 16;
+}
+
 #[binrw]
 #[brw(little)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 // Extra field header - not part of the ZIP structure itself, but the spec still describes it as a 'header'.
 pub struct EFH {
     pub tag: u16,
     pub data_size: u16,
 }
 
+impl HeaderSize for EFH {
+    const SIZE: usize = 4;
+}
+
 /// Reads a fixed-size header from the given reader and returns the parsed struct.
+#[cfg_attr(feature = "tracing", instrument(skip(reader), level = "trace"))]
 pub(crate) async fn read<T, R>(reader: &mut R) -> Result<T>
 where
-    T: BinRead,
+    T: BinRead + HeaderSize + std::fmt::Debug,
     for<'a> T::Args<'a>: Default,
     R: AsyncRead + Unpin,
 {
-    let mut buffer = vec![0; size_of::<T>()];
+    #[cfg(feature = "tracing")]
+    trace!("reading header of size {:02X?}", T::SIZE);
+
+    let mut buffer = vec![0; T::SIZE];
     reader.read_exact(&mut buffer).await?;
-    Ok(T::read_le(&mut Cursor::new(buffer))?)
+    #[cfg(feature = "tracing")]
+    trace!("read buffer: {:02X?}", buffer);
+
+    let header = T::read_le(&mut Cursor::new(buffer))?;
+    #[cfg(feature = "tracing")]
+    trace!("parsed header: {:?}", header);
+
+    Ok(header)
 }
 
 /// Writes a fixed-size header to the given writer.

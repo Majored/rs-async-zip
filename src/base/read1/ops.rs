@@ -8,6 +8,9 @@ use futures_lite::AsyncReadExt;
 use futures_lite::AsyncRead;
 use futures_lite::AsyncSeek;
 
+#[cfg(feature = "tracing")]
+use tracing::{instrument, trace};
+
 use crate::base::read1::opts::ZipOptions;
 use crate::base::read1::seek::ZipArchiveInner;
 use crate::spec::constructs::EF;
@@ -26,8 +29,11 @@ impl <R: AsyncRead + Unpin> Ops<R> {
         Self { reader }
     }
 
+    #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn assert_signature(&mut self, expected: Signature) -> Result<()> {
         let signature = crate::spec::headers1::read::<Signature, R>(&mut self.reader).await?;
+        #[cfg(feature = "tracing")]
+        trace!("read signature: {:02X?}", signature);
 
         if signature != expected {
             return Err(crate::error::ZipError::UnexpectedHeaderError(signature.into(), expected.into()));
@@ -36,9 +42,13 @@ impl <R: AsyncRead + Unpin> Ops<R> {
         Ok(())
     }
 
+    #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn lf(&mut self) -> Result<LF> {
         self.assert_signature(Signature::LFH).await?;
+
         let lfh = crate::spec::headers1::read::<LFH, R>(&mut self.reader).await?;
+        #[cfg(feature = "tracing")]
+        trace!("lfh read: {:?}", lfh);
 
         let mut file_name = vec![0u8; lfh.file_name_length.into()];
         self.reader.read_exact(&mut file_name).await?;
@@ -47,6 +57,7 @@ impl <R: AsyncRead + Unpin> Ops<R> {
         Ok(LF { lfh, file_name, extra_fields })
     }
 
+    #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn cdr(&mut self) -> Result<CDR> {
         // We don't assert the signature, as this occurs in the caller's loop.
 
@@ -62,17 +73,19 @@ impl <R: AsyncRead + Unpin> Ops<R> {
         Ok(CDR { cdrh, file_name, extra_fields, file_comment })
     }
 
+    #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn eocdr(&mut self) -> Result<EOCDR> {
         self.assert_signature(Signature::EOCDRH).await?;
 
         let eocdrh = crate::spec::headers1::read::<EOCDRH, R>(&mut self.reader).await?;
-        let mut file_comment = vec![0u8; eocdrh.file_comm_length.into()];
 
+        let mut file_comment = vec![0u8; eocdrh.file_comm_length.into()];
         self.reader.read_exact(&mut file_comment).await?;
 
         Ok(EOCDR { eocdrh, file_comment })
     }
 
+    #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn ef(&mut self) -> Result<EF> {
         let efh = crate::spec::headers1::read::<EFH, R>(&mut self.reader).await?;
         let mut data = vec![0u8; efh.data_size.into()];
@@ -80,6 +93,7 @@ impl <R: AsyncRead + Unpin> Ops<R> {
         Ok(EF { efh, data })
     }
 
+    #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn all_efs(&mut self, size: u16) -> Result<Vec<EF>> {
         let mut take = (&mut self.reader).take(size.into());
         let mut vec = Vec::new();
@@ -88,7 +102,6 @@ impl <R: AsyncRead + Unpin> Ops<R> {
         // TODO: with_capacity
 
         loop {
-            println!("take.limit(): {}", take.limit());
             if take.limit() == 0 {
                 break;
             }
@@ -113,6 +126,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         todo!()
     }
 
+    #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn open(&mut self, opts: ZipOptions) -> Result<ZipArchiveInner> {
         let mut inner = ZipArchiveInner::default();
 
@@ -134,6 +148,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         Ok(inner)
     }
 
+    #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn cd(&mut self, options: &ZipOptions, eocdr: &EOCDR) -> Result<(Vec<CDR>, Vec<u64>)> {
         // Enforce max number of files if configured
         if let Some(max) = options.max_num_central_directory_files {
@@ -186,6 +201,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         Ok((cdrs, offsets))
     }
 
+    #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn file(&mut self, cdr: CDR, opts: &ZipOptions) -> Result<LF> {
         // Seek to file offset and read LF.
         // We read the LF instead of just using the CDR because the extra fields may differ (and so the data offset).

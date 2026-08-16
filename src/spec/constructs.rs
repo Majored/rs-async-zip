@@ -13,7 +13,7 @@ pub struct LF {
 }
 
 // Central directory record
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CDR {
     pub cdrh: CDRH,
     pub file_name: Vec<u8>,
@@ -22,13 +22,14 @@ pub struct CDR {
 }
 
 // End of central directory record
+#[derive(Debug)]
 pub struct EOCDR {
     pub eocdrh: EOCDRH,
     pub file_comment: Vec<u8>,
 }
 
 // Extra field
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct EF {
     pub efh: EFH,
     pub data: Vec<u8>,

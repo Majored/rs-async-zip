@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 /// A set of options for configuring the behavior of a ZIP archive reader.
 pub struct ZipOptions {
     /// Whether we load the full CDR file meta into memory on open.
