@@ -159,7 +159,7 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> ZipArchiveReader<R> {
         self.reader.seek(SeekFrom::Start(*offset)).await?;
 
         // Read the CDR.
-        Ops::new(&mut self.reader).cdr().await
+        Ops::new(&mut self.reader, &self.inner.options).cdr().await
     }
 
     async fn file_open(&mut self, index: usize) -> Result<LF> {

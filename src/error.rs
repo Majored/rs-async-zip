@@ -88,6 +88,10 @@ pub enum ZipError {
     InvalidNumCentralDirectoryFiles(u64, u64),
     #[error("number of central directory files ({0}) exceeds the maximum allowed ({1})")]
     CentralDirectoryFilesNumAboveMax(u64, u64),
+    #[error("extra field block size ({0}) exceeds the maximum allowed ({1})")]
+    ExtraFieldSizeAboveMax(u16, u16),
+    #[error("number of extra fields ({0}) exceeds the maximum allowed ({1})")]
+    ExtraFieldNumAboveMax(usize, u16),
 
     #[error("operation needed file meta but loading was disabled")]
     FileMetaNotLoaded,

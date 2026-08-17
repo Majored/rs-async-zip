@@ -55,7 +55,7 @@ impl<R: AsyncBufRead + Unpin> ZipFileReader<R> {
         }
 
         if self.opts.validate_uncompressed_size_match_against_read {
-            if self.read as u64 != self.lf.lfh.uncompressed_size.into() {
+            if self.read as u64 != u64::from(self.lf.lfh.uncompressed_size) {
                 return Err(crate::error::ZipError::InvalidUncompressedSizeHeaderMatch); // TODO: new error
             }
         }

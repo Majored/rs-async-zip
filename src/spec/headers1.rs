@@ -243,6 +243,45 @@ where
     Ok(header)
 }
 
+/// Reads a variable-length record from the given reader and returns the parsed construct.
+///
+/// Every such record begins with a fixed-size header `H` which states the length of the
+/// variable data following it. We read that header to learn how many more bytes belong to
+/// the record, pull them, then hand the whole record to binrw as `T`. `H` is parsed twice
+/// (once here, once as `T`'s first field) which is a few dozen bytes of work, and buys us
+/// a single declarative definition of the record in `spec::constructs`.
+///
+/// `tail_len` is fallible so that callers can apply their configured limits to the lengths the
+/// header declares, before anything is allocated or read on their behalf.
+#[cfg_attr(feature = "tracing", instrument(skip(reader, tail_len), level = "trace"))]
+pub(crate) async fn read_record<H, T, R>(reader: &mut R, tail_len: impl FnOnce(&H) -> Result<usize>) -> Result<T>
+where
+    H: BinRead + HeaderSize + std::fmt::Debug,
+    for<'a> H::Args<'a>: Default,
+    T: BinRead + std::fmt::Debug,
+    for<'a> T::Args<'a>: Default,
+    R: AsyncRead + Unpin,
+{
+    let mut buffer = vec![0; H::SIZE];
+    reader.read_exact(&mut buffer).await?;
+
+    let header = H::read_le(&mut Cursor::new(&buffer))?;
+    #[cfg(feature = "tracing")]
+    trace!("parsed header: {:?}", header);
+
+    let offset = buffer.len();
+    buffer.resize(offset + tail_len(&header)?, 0);
+    reader.read_exact(&mut buffer[offset..]).await?;
+    #[cfg(feature = "tracing")]
+    trace!("read record buffer: {:02X?}", buffer);
+
+    let record = T::read_le(&mut Cursor::new(buffer))?;
+    #[cfg(feature = "tracing")]
+    trace!("parsed record: {:?}", record);
+
+    Ok(record)
+}
+
 /// Writes a fixed-size header to the given writer.
 pub(crate) async fn write<T, W>(writer: &mut W, value: &T) -> Result<()>
 where

@@ -1,7 +1,38 @@
 // Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::{base::read1::opts::ZipOptions, error::Result, spec::{constructs::{CDR, LF}, headers1::EOCDRH}};
+use crate::{base::read1::opts::ZipOptions, error::Result, spec::{constructs::{CDR, EF, LF}, headers1::EOCDRH}};
+
+/// Enforces the configured maximum size of a record's extra field block.
+///
+/// Called with the length declared by the record's header, before the block is read, so that an
+/// archive can't have us buffer a block which we were never going to accept.
+pub fn validate_extra_field_size(size: u16, options: &ZipOptions) -> Result<()> {
+    if let Some(max) = options.max_extra_field_size_per_file {
+        if size > max {
+            return Err(crate::error::ZipError::ExtraFieldSizeAboveMax(size, max));
+        }
+    }
+
+    Ok(())
+}
+
+/// Enforces the configured maximum number of extra fields per record.
+///
+/// The number of fields a block holds is only known once it has been parsed, so unlike
+/// [`validate_extra_field_size`] this cannot bound what we read. What it does bound is what we
+/// retain: a block of `u16::MAX` bytes can hold ~16k four-byte fields, whose parsed
+/// representation is an order of magnitude larger than the bytes it came from, and those are
+/// held for every entry when `load_file_meta` is enabled.
+pub fn validate_extra_field_num(extra_fields: &[EF], options: &ZipOptions) -> Result<()> {
+    if let Some(max) = options.max_extra_field_num_per_file {
+        if extra_fields.len() > usize::from(max) {
+            return Err(crate::error::ZipError::ExtraFieldNumAboveMax(extra_fields.len(), max));
+        }
+    }
+
+    Ok(())
+}
 
 pub fn validate_archive(eocdrh: &EOCDRH, options: &ZipOptions) -> Result<()> {
     let multiple_disks = eocdrh.disk_num != 0;

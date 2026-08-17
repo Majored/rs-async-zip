@@ -53,9 +53,22 @@ pub struct ZipOptions {
     /// reading the file will fail if the limit is exceeded.
     pub max_uncompressed_size_per_file: Option<u64>,
 
+    /// Enforces a maximum size, in bytes, of the extra field block of each file.
+    ///
+    /// Applied to the length declared by the local file header or central directory record
+    /// before the block itself is read, so an archive cannot force us to buffer a block we
+    /// were never going to accept. Note that the format caps this at [`u16::MAX`] anyway.
+    pub max_extra_field_size_per_file: Option<u16>,
+
+    /// Enforces a maximum number of extra fields per file.
+    ///
+    /// Unlike [`Self::max_extra_field_size_per_file`], this can only be applied once the block
+    /// has been parsed, as the number of fields it holds isn't declared anywhere. Use it to
+    /// bound the fields retained per entry (see [`Self::load_file_meta`]) rather than to bound
+    /// what we read; the size limit above is the one which does that.
+    pub max_extra_field_num_per_file: Option<u16>,
+
     // TODO: max cd dize
-    // TODO: max ef size per files
-    // TODO: max ef num per file
     // TODO: max compressed size per file
     // TODO: max uncompressed size per file
 }
@@ -75,6 +88,8 @@ impl Default for ZipOptions {
             validate_crc_match_against_read: true,
             max_uncompressed_size_per_file: None,
             validate_uncompressed_size_match_against_read: true,
+            max_extra_field_size_per_file: None,
+            max_extra_field_num_per_file: None,
         }
     }
 }
@@ -117,4 +132,6 @@ impl ZipOptionsBuilder {
     builder_setter!(validate_crc_match_against_read, validate: bool);
     builder_setter!(validate_uncompressed_size_match_against_read, validate: bool);
     builder_setter!(max_uncompressed_size_per_file, max: Option<u64>);
+    builder_setter!(max_extra_field_size_per_file, max: Option<u16>);
+    builder_setter!(max_extra_field_num_per_file, max: Option<u16>);
 }
