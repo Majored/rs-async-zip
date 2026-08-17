@@ -15,6 +15,7 @@ use crate::base::read1::opts::ZipOptions;
 use crate::base::read1::seek::ZipArchiveInner;
 use crate::spec::constructs::EF;
 use crate::spec::constructs::EFData;
+use crate::spec::constructs::UCH;
 use crate::spec::constructs::Zip64ExtendedInformation;
 use crate::spec::headers1::CDRH;
 use crate::spec::constructs::{CDR, LF, EOCDR};
@@ -22,6 +23,8 @@ use crate::spec::headers1::EFH;
 use crate::spec::headers1::EOCDRH;
 use crate::spec::headers1::ExtraFieldHeaderId;
 use crate::{error::Result, spec::headers1::{LFH, Signature}};
+use crate::spec::headers1::HeaderSize;
+use crate::spec::constructs::UnicodeComment;
 
 pub(crate) struct Ops<R> {
     reader: R,
@@ -94,6 +97,14 @@ impl <R: AsyncRead + Unpin> Ops<R> {
         let data;
 
         match efh.tag {
+            ExtraFieldHeaderId::IZUC => {
+                // TODO: int casts
+                let uch = crate::spec::headers1::read::<UCH, R>(&mut self.reader).await?;
+                let length: usize = efh.data_size as usize - UCH::SIZE;
+                let mut comment = String::with_capacity(length.into());
+                (&mut self.reader).take(length as u64).read_to_string(&mut comment).await?;
+                data = Some(EFData::UnicodeComment(UnicodeComment { uch, comment }));
+            }
             ExtraFieldHeaderId::EI64 => {
                 let zip64 = crate::spec::headers1::read::<Zip64ExtendedInformation, R>(&mut self.reader).await?;
                 data = Some(EFData::Zip64ExtendedInformation(zip64));
@@ -149,6 +160,8 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         let eocdr = Ops::new(&mut self.reader).eocdr().await?;
         let pos = eocdr.eocdrh.cent_dir_offset as u64;
         self.reader.seek(SeekFrom::Start(pos)).await?;
+
+        crate::base::read1::valid::validate_archive(&eocdr.eocdrh, &opts)?;
 
         // The callee will not populate metas if load_file_meta is false.
         let (metas, offsets) = SeekOps::new(&mut self.reader).cd(&opts, &eocdr).await?;
@@ -222,7 +235,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         let mut lf = ops.lf().await?;
 
         // Run configured validations on the LF and CDR.
-        crate::base::read1::valid::validate(&lf, &cdr, opts)?;
+        crate::base::read1::valid::validate_file(&lf, &cdr, opts)?;
 
         if lf.lfh.flags.data_descriptor() {
             // Fill in LFH with known-good values from the CDR.

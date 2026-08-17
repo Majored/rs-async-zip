@@ -1,9 +1,22 @@
 // Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::{base::read1::opts::ZipOptions, error::Result, spec::constructs::{CDR, LF}};
+use crate::{base::read1::opts::ZipOptions, error::Result, spec::{constructs::{CDR, LF}, headers1::EOCDRH}};
 
-pub fn validate(lf: &LF, cdr: &CDR, options: &ZipOptions) -> Result<()> {
+pub fn validate_archive(eocdrh: &EOCDRH, options: &ZipOptions) -> Result<()> {
+    let multiple_disks = eocdrh.disk_num != 0;
+    let not_start_disk = eocdrh.disk_num != eocdrh.start_cent_dir_disk;
+    let not_matching_disk_entries = eocdrh.num_of_entries != eocdrh.num_of_entries_disk;
+
+    if multiple_disks || not_start_disk || not_matching_disk_entries {
+        return Err(crate::error::ZipError::FeatureNotSupported("disk spanning archives"));
+    }
+
+    Ok(())
+
+}
+
+pub fn validate_file(lf: &LF, cdr: &CDR, options: &ZipOptions) -> Result<()> {
     // TODO: we're still performing these checks even if disabled. Reorder.
 
     let compressed_match = lf.lfh.compressed_size == cdr.cdrh.compressed_size;

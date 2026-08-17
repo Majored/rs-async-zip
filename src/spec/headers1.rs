@@ -169,6 +169,10 @@ impl GPF {
     pub fn data_descriptor(&self) -> bool {
         self.0 & 0x08 != 0
     }
+
+    pub fn language_encoding_flag(&self) -> bool {
+        self.0 & 0x800 != 0
+    }
 }
 
 #[binrw]

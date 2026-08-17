@@ -40,7 +40,7 @@ pub struct EF {
 pub enum EFData {
     Zip64ExtendedInformation(Zip64ExtendedInformation),
     UnicodeFilename(Vec<u8>),
-    UnicodeComment(Vec<u8>),
+    UnicodeComment(UnicodeComment),
     Unknown(Vec<u8>),
 }
 
@@ -64,4 +64,32 @@ pub struct Zip64ExtendedInformation {
 
 impl HeaderSize for Zip64ExtendedInformation {
     const SIZE: usize = 0;
+}
+
+#[binrw]
+#[brw(little)]
+#[derive(Clone, Debug)]
+pub struct UCH {
+    version: u8,
+    crc32: u32,
+}
+
+impl HeaderSize for UCH {
+    const SIZE: usize = 5;
+}
+
+#[derive(Clone, Debug)]
+pub struct UnicodeComment {
+    pub(crate) uch: UCH,
+    pub(crate) comment: String,
+}
+
+#[binrw::parser(reader, endian)]
+fn custom_parser() -> BinResult<HashMap<u16, u16>> {
+    let mut map = HashMap::new();
+    map.insert(
+        <_>::read_options(reader, endian, ())?,
+        <_>::read_options(reader, endian, ())?,
+    );
+    Ok(map)
 }
