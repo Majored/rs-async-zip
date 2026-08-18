@@ -1,6 +1,8 @@
 // Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+//! 
+
 use std::io::Cursor;
 
 use binrw::{binrw, BinRead, BinWrite};
@@ -8,19 +10,14 @@ use futures_lite::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 #[cfg(feature = "tracing")]
 use tracing::{instrument, trace};
 
-use crate::error::Result;
-
-/// A trait for types that have a fixed size in bytes, such as headers.
-/// 
-/// We cannot use `std::mem::size_of::<T>()` because the types are not packed.
-pub(crate) trait HeaderSize {
-    const SIZE: usize;
-}
+use crate::{error::Result, spec::KnownSize};
 
 #[binrw]
 #[brw(little)]
 #[brw(repr = u32)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+/// A signature identifying the type of header, using their spec-module abreviations.
 pub enum Signature {
     LFH = 0x04034b50,
     CDH = 0x02014b50,
@@ -36,7 +33,7 @@ impl From<Signature> for u32 {
     }
 }
 
-impl HeaderSize for Signature {
+impl KnownSize for Signature {
     const SIZE: usize = 4;
 }
 
@@ -45,52 +42,36 @@ impl HeaderSize for Signature {
 #[brw(repr = u16)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
+/// The full set of compression methods, even though this crate does not support them all.
 pub enum Compression {
     Stored = 0,
+    Shrunk = 1,
+    Reduced1 = 2,
+    Reduced2 = 3,
+    Reduced3 = 4,
+    Reduced4 = 5,
+    Imploded = 6,
+    Tokenizing = 7,
     Deflate = 8,
     Deflate64 = 9,
+    PKImploding = 10,
+    Reserved1 = 11,
     Bz = 12,
+    Reserved2 = 13,
     Lzma = 14,
+    Reserved3 = 15,
+    ZosCmpsc = 16,
+    Reserved4 = 17,
+    IbtTerse = 18,
+    IbtLz77 = 19,
+    Deprecated = 20,
     Zstd = 93,
+    Mp3 = 94,
     Xz = 95,
-}
-
-#[binrw]
-#[brw(little)]
-#[brw(repr = u16)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum ExtraFieldHeaderId {
-    EI64,
-    IZUC,
-    IZUP,
-    Other(u16),
-}
-
-impl ExtraFieldHeaderId {
-    const KNOWN: &'static [(u16, ExtraFieldHeaderId)] = &[
-        (0x0001, Self::EI64),
-        (0x6375, Self::IZUC),
-        (0x7075, Self::IZUP),
-    ];
-}
-
-impl From<u16> for ExtraFieldHeaderId {
-    fn from(value: u16) -> Self {
-        match Self::KNOWN.iter().find(|(tag, _)| *tag == value) {
-            Some((_, id)) => *id,
-            None => Self::Other(value),
-        }
-    }
-}
-
-impl From<&ExtraFieldHeaderId> for u16 {
-    fn from(id: &ExtraFieldHeaderId) -> Self {
-        match id {
-            ExtraFieldHeaderId::Other(v) => *v,
-            known => ExtraFieldHeaderId::KNOWN.iter().find(|(_, id)| id == known).map(|(tag, _)| *tag).unwrap(),
-        }
-    }
+    Jpeg = 96,
+    WavPack = 97,
+    Ppmd = 98,
+    Aex = 99,
 }
 
 #[binrw]
@@ -110,7 +91,14 @@ pub struct LFH {
     pub extra_field_length: u16,
 }
 
-impl HeaderSize for LFH {
+impl LFH {
+    /// Returns the total length of the local file header in bytes, including the variable-length file name and extra field.
+    pub fn claimed_length_in_bytes(&self) -> usize {
+        LFH::SIZE + self.file_name_length as usize + self.extra_field_length as usize
+    }
+}
+
+impl KnownSize for LFH {
     const SIZE: usize = 26;
 }
 
@@ -137,13 +125,13 @@ pub struct CDRH {
     pub lh_offset: u32,
 }
 
-impl HeaderSize for CDRH {
+impl KnownSize for CDRH {
     const SIZE: usize = 42;
 }
 
 #[binrw]
 #[brw(little)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 // End of central directory record header
 pub struct EOCDRH {
     pub(crate) disk_num: u16,
@@ -155,7 +143,7 @@ pub struct EOCDRH {
     pub(crate) file_comm_length: u16,
 }
 
-impl HeaderSize for EOCDRH {
+impl KnownSize for EOCDRH {
     const SIZE: usize = 18;
 }
 
@@ -177,6 +165,7 @@ impl GPF {
 
 #[binrw]
 #[brw(little)]
+#[derive(Clone, Debug)]
 /// ZIP64 end of central directory record header
 pub struct EOCDR64H {
     pub size_of_zip64_end_of_cd_record: u64,
@@ -190,12 +179,13 @@ pub struct EOCDR64H {
     pub offset_of_start_of_directory: u64,
 }
 
-impl HeaderSize for EOCDR64H {
+impl KnownSize for EOCDR64H {
     const SIZE: usize = 56;
 }
 
 #[binrw]
 #[brw(little)]
+#[derive(Clone, Debug)]
 /// ZIP64 end of central directory locator header
 pub struct EOCDL64H {
     pub number_of_disk_with_start_of_zip64_end_of_central_directory: u32,
@@ -203,28 +193,15 @@ pub struct EOCDL64H {
     pub total_number_of_disks: u32,
 }
 
-impl HeaderSize for EOCDL64H {
+impl KnownSize for EOCDL64H {
     const SIZE: usize = 16;
-}
-
-#[binrw]
-#[brw(little)]
-#[derive(Clone, Debug)]
-// Extra field header - not part of the ZIP structure itself, but the spec still describes it as a 'header'.
-pub struct EFH {
-    pub tag: ExtraFieldHeaderId,
-    pub data_size: u16,
-}
-
-impl HeaderSize for EFH {
-    const SIZE: usize = 4;
 }
 
 /// Reads a fixed-size header from the given reader and returns the parsed struct.
 #[cfg_attr(feature = "tracing", instrument(skip(reader), level = "trace"))]
 pub(crate) async fn read<T, R>(reader: &mut R) -> Result<T>
 where
-    T: BinRead + HeaderSize + std::fmt::Debug,
+    T: BinRead + KnownSize + std::fmt::Debug,
     for<'a> T::Args<'a>: Default,
     R: AsyncRead + Unpin,
 {
@@ -256,7 +233,7 @@ where
 #[cfg_attr(feature = "tracing", instrument(skip(reader, tail_len), level = "trace"))]
 pub(crate) async fn read_record<H, T, R>(reader: &mut R, tail_len: impl FnOnce(&H) -> Result<usize>) -> Result<T>
 where
-    H: BinRead + HeaderSize + std::fmt::Debug,
+    H: BinRead + KnownSize + std::fmt::Debug,
     for<'a> H::Args<'a>: Default,
     T: BinRead + std::fmt::Debug,
     for<'a> T::Args<'a>: Default,

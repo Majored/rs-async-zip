@@ -80,7 +80,7 @@ use crate::error::ZipError;
 use std::{io::SeekFrom, ops::Deref, sync::Arc};
 use futures_lite::{AsyncBufRead, AsyncSeek, AsyncSeekExt};
 
-use crate::{base::read1::{file::ZipFileReader, ops::{Ops, SeekOps}, opts::ZipOptions}, error::Result, spec::constructs::{CDR, LF}};
+use crate::{base::read1::{file::ZipFileReader, ops::{Ops, SeekOps}, opts::ZipOptions}, error::Result, spec::constructs::{CDR, CombinedEOCDR, LF}};
 
 /// A ZIP archive reader which acts over a seekable source.
 pub struct ZipArchiveReader<R> {
@@ -128,7 +128,10 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> ZipArchiveReader<R> {
     /// [`ZipError::UpstreamReadError`]. 
     pub async fn file(&mut self, index: usize) -> Result<ZipFileReader<&mut R>> {
         let lf = self.file_open(index).await?;
-        ZipFileReader::new(&mut self.reader, lf, self.inner.options.clone())
+        let cdr = self.loaded_cdrs[index].clone();
+        let opts = self.inner.options.clone();
+        
+        ZipFileReader::new(&mut self.reader, lf, Some(cdr), opts)
     }
 
     /// Opens a file for reading by its index in the archive. See [`Self::file()`] for more information.
@@ -136,7 +139,10 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> ZipArchiveReader<R> {
     /// This takes an owned Self and consumes the source reader.
     pub async fn file_oneshot(mut self, index: usize) -> Result<ZipFileReader<R>> {
         let lf = self.file_open(index).await?;
-        ZipFileReader::new(self.reader, lf, self.inner.options.clone())
+        let cdr = self.loaded_cdrs[index].clone();
+        let opts = self.inner.options.clone();
+
+        ZipFileReader::new(self.reader, lf, Some(cdr), opts)
     }
 
     /// Converts this reader into a [`ZipArchiveFactory`] which can produce new readers over the same archive.
@@ -150,12 +156,12 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> ZipArchiveReader<R> {
 
     async fn cdr(&mut self, index: usize) -> Result<CDR> {
         // Cloning the CDR is going to be cheaper than seeking back and re-reading.
-        if let Some(cdr) = self.inner.cdr_metas.get(index) {
+        if let Some(cdr) = self.loaded_cdrs.get(index) {
             return Ok(cdr.clone());
         }
 
         // Seek to the CDR offset.
-        let offset = self.inner.cdr_offsets.get(index).unwrap(); // TODO
+        let offset = self.cdr_offsets.get(index).unwrap(); // TODO
         self.reader.seek(SeekFrom::Start(*offset)).await?;
 
         // Read the CDR.
@@ -180,26 +186,31 @@ impl<R> Deref for ZipArchiveReader<R> {
 }
 
 /// An inner store of metadata about a ZIP archive, which can be shared between readers.
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct ZipArchiveInner {
     pub(crate) cdr_offsets: Vec<u64>,
-    pub(crate) cdr_metas: Vec<CDR>,
+    pub(crate) loaded_cdrs: Vec<CDR>,
     pub(crate) options: ZipOptions,
+    pub(crate) combined_eocdr: CombinedEOCDR,
 }
 
 impl ZipArchiveInner {
     /// Finds all the file indexes with the given filename. An iterator is returned because the ZIP specification
     /// allows for multiple files with the same filename, and most callers only need the first match.
     pub fn find<'a>(&'a self, filename: &'a [u8]) -> impl Iterator<Item = usize> + 'a {
-        self.cdr_metas.iter().enumerate().filter_map(move |(i, cdr)| (cdr.file_name == filename).then_some(i))
+        self.loaded_cdrs.iter().enumerate().filter_map(move |(i, cdr)| (cdr.file_name == filename).then_some(i))
     }
 
-    pub fn metas(&self) -> &[CDR] {
-        &self.cdr_metas
+    pub fn cdrs(&self) -> &[CDR] {
+        &self.loaded_cdrs
     }
 
     pub fn options(&self) -> &ZipOptions {
         &self.options
+    }
+
+    pub fn eocdr(&self) -> &CombinedEOCDR {
+        &self.combined_eocdr
     }
 }
 

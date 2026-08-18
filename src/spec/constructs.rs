@@ -1,13 +1,9 @@
 // Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use std::io::{Cursor, Seek};
+use binrw::binrw;
 
-use binrw::helpers::{count, until_eof};
-use binrw::{binrw, BinRead, BinResult, BinWrite, Endian};
-
-use crate::spec::headers1::{ExtraFieldHeaderId, CDRH, EFH, EOCDL64H, EOCDR64H, EOCDRH, LFH};
-use crate::tests::read::zip64;
+use crate::spec::{extra::{EF, EFD, EFID, Zip64EI, efs}, headers1::{CDRH, EOCDL64H, EOCDR64H, EOCDRH, LFH}};
 
 // Constructing blocks from raw headers & bytes sequences (like filenames, comments, etc).
 //
@@ -19,168 +15,139 @@ use crate::tests::read::zip64;
 #[binrw]
 #[brw(little)]
 #[derive(Debug)]
-// Local file
+/// A local file. This struct provides ZIP64-aware accessors.
 pub struct LF {
     pub lfh: LFH,
     #[br(count = lfh.file_name_length)]
     pub file_name: Vec<u8>,
     #[br(parse_with = efs, args(lfh.extra_field_length.into()))]
-    pub extra_fields: Vec<EF>,
+    pub efs: Vec<EF>,
+}
+
+impl LF {
+    /// A ZIP-64-aware accessor for the uncompressed size of the file.
+    pub fn uncompressed_size(&self) -> u64 {
+        combined_size(self.lfh.uncompressed_size, &self.efs, |ei_data| ei_data.uncompressed_size)
+    }
+
+    /// A ZIP-64-aware accessor for the compressed size of the file.
+    pub fn compressed_size(&self) -> u64 {
+        combined_size(self.lfh.compressed_size, &self.efs, |ei_data| ei_data.compressed_size)
+    }
+}
+
+fn combined_size(zip32_size: u32, extra_fields: &[EF], accessor: impl Fn(&Zip64EI) -> u64) -> u64 {
+    if zip32_size != u32::MAX {
+        return zip32_size.into();
+    }
+
+    let zip64ei = extra_fields.iter().find(|field| {
+        matches!(field.efh.efid, EFID::EI64)
+    });
+
+    if let Some(EF { efh: _, efd: EFD::Zip64EI(data) }) = zip64ei {
+        return accessor(data);
+    }
+
+    unreachable!();
 }
 
 #[binrw]
 #[brw(little)]
 #[derive(Clone, Debug)]
-// Central directory record
+/// A central directory record. This struct provides ZIP64-aware accessors.
 pub struct CDR {
     pub cdrh: CDRH,
     #[br(count = cdrh.file_name_length)]
     pub file_name: Vec<u8>,
     #[br(parse_with = efs, args(cdrh.extra_field_length.into()))]
-    pub extra_fields: Vec<EF>,
+    pub efs: Vec<EF>,
     #[br(count = cdrh.file_comment_length)]
     pub file_comment: Vec<u8>,
 }
 
+impl CDR {
+    /// A ZIP-64-aware accessor for the uncompressed size of the file.
+    pub fn uncompressed_size(&self) -> u64 {
+        combined_size(self.cdrh.uncompressed_size, &self.efs, |ei_data| ei_data.uncompressed_size)
+    }
+
+    /// A ZIP-64-aware accessor for the compressed size of the file.
+    pub fn compressed_size(&self) -> u64 {
+        combined_size(self.cdrh.compressed_size, &self.efs, |ei_data| ei_data.compressed_size)
+    }
+}
+
 #[binrw]
 #[brw(little)]
-#[derive(Debug)]
-// End of central directory record
+#[derive(Debug, Clone)]
+/// An end of central directory record.
 pub struct EOCDR {
     pub eocdrh: EOCDRH,
     #[br(count = eocdrh.file_comm_length)]
     pub file_comment: Vec<u8>,
 }
 
-#[binrw]
-#[brw(little)]
+/// A combined end of central directory record. This struct provides ZIP64-aware accessors.
 #[derive(Clone, Debug)]
-// Extra field
-pub struct EF {
-    pub efh: EFH,
-    #[br(parse_with = ef_data, args(efh.tag, efh.data_size))]
-    pub data: EFData,
-}
-
-#[derive(Clone, Debug)]
-pub enum EFData {
-    Zip64EI(Zip64EI),
-    UnicodeFilename(UnicodeFilename),
-    UnicodeComment(UnicodeComment),
-    Unknown(Vec<u8>),
-}
-
-// A ZIP64 combined end of central directory record
 pub struct CombinedEOCDR {
     pub eocdr: EOCDR,
     pub eocdr64: Option<EOCDR64H>,
     pub eocdl64: Option<EOCDL64H>,
 }
 
-#[binrw]
-#[brw(little)]
-#[br(import(size: u16))]
-#[derive(Clone, Debug)]
-/// ZIP64 extended information extra field
-///
-/// Only the two sizes are mandatory; the trailing fields are present or absent depending
-/// on which of the header's 32-bit fields were saturated, so their presence is driven by
-/// the field's declared size.
-pub struct Zip64EI {
-    pub uncompressed_size: u64,
-    pub compressed_size: u64,
-    #[br(if(size >= 24))]
-    pub relative_offset: Option<u64>,
-    #[br(if(size >= 28))]
-    pub disk_number_start: Option<u32>,
-}
+impl CombinedEOCDR {
+    /// A ZIP-64-aware accessor for the offset of the start of the central directory.
+    pub fn cd_offset(&self) -> u64 {
+        if let Some(record) = &self.eocdr64 {
+            return record.offset_of_start_of_directory;
+        }
 
-#[binrw]
-#[brw(little)]
-#[derive(Clone, Debug)]
-/// Info-ZIP unicode extra field header
-pub struct UCH {
-    pub version: u8,
-    pub crc32: u32,
-}
-
-#[binrw]
-#[brw(little)]
-#[derive(Clone, Debug)]
-/// Info-ZIP unicode comment extra field
-pub struct UnicodeComment {
-    pub uch: UCH,
-    // No length arithmetic needed: `ef_data` hands us a reader bounded to this field.
-    #[br(parse_with = until_eof, try_map = String::from_utf8)]
-    #[bw(map = |comment: &String| comment.as_bytes().to_vec())]
-    pub comment: String,
-}
-
-#[binrw]
-#[brw(little)]
-#[derive(Clone, Debug)]
-/// Info-ZIP unicode path extra field
-pub struct UnicodeFilename {
-    pub uch: UCH,
-    #[br(parse_with = until_eof, try_map = String::from_utf8)]
-    #[bw(map = |file_name: &String| file_name.as_bytes().to_vec())]
-    pub file_name: String,
-}
-
-/// Reads extra fields until `len` bytes have been consumed.
-///
-/// `binrw::helpers::until_eof` is deliberately not used here as it treats an
-/// `UnexpectedEof` from the item parser as the end of the collection, which would silently
-/// truncate the list for a field which lies about its `data_size`.
-#[binrw::parser(reader, endian)]
-fn efs(len: u64) -> BinResult<Vec<EF>> {
-    let end = reader.stream_position()? + len;
-    let mut fields = Vec::new();
-
-    while reader.stream_position()? < end {
-        fields.push(EF::read_options(reader, endian, ())?);
+        return self.eocdr.eocdrh.cent_dir_offset.into();
     }
 
-    // A field whose `data_size` reaches past the end of the block would otherwise be
-    // reported as whatever the following construct failed to parse.
-    let position = reader.stream_position()?;
-    if position != end {
-        return Err(binrw::Error::AssertFail {
-            pos: position,
-            message: format!("extra field overran its block by {} byte(s)", position - end),
-        });
+    /// A ZIP-64-aware accessor for the number of entries in the central directory.
+    pub fn num_entries(&self) -> u64 {
+        if let Some(record) = &self.eocdr64 {
+            return record.num_entries_in_directory;
+        }
+
+        return self.eocdr.eocdrh.num_of_entries.into();
     }
 
-    Ok(fields)
-}
-
-#[binrw::parser(reader, endian)]
-fn ef_data(tag: ExtraFieldHeaderId, size: u16) -> BinResult<EFData> {
-    let raw: Vec<u8> = count(size.into())(reader, endian, ())?;
-
-    Ok(match tag {
-        ExtraFieldHeaderId::EI64 => {
-            EFData::Zip64EI(Zip64EI::read_options(&mut Cursor::new(&raw), endian, (size,))?)
-        },
-        ExtraFieldHeaderId::IZUC => {
-            EFData::UnicodeComment(UnicodeComment::read_options(&mut Cursor::new(&raw), endian, ())?)
+    /// A ZIP-64-aware accessor for the number of entries in the central directory on this disk.
+    pub fn num_entries_on_disk(&self) -> u64 {
+        if let Some(record) = &self.eocdr64 {
+            return record.num_entries_in_directory_on_disk;
         }
-        ExtraFieldHeaderId::IZUP => {
-            EFData::UnicodeFilename(UnicodeFilename::read_options(&mut Cursor::new(&raw), endian, ())?)
-        }
-        ExtraFieldHeaderId::Other(_) => EFData::Unknown(raw),
-    })
-}
 
-impl BinWrite for EFData {
-    type Args<'a> = ();
+        return self.eocdr.eocdrh.num_of_entries_disk.into();
+    }
 
-    fn write_options<W: binrw::io::Write + Seek>(&self, writer: &mut W, endian: Endian, _: ()) -> BinResult<()> {
-        match self {
-            Self::Zip64EI(field) => field.write_options(writer, endian, ()),
-            Self::UnicodeFilename(field) => field.write_options(writer, endian, ()),
-            Self::UnicodeComment(field) => field.write_options(writer, endian, ()),
-            Self::Unknown(raw) => raw.write_options(writer, endian, ()),
+    /// A ZIP-64-aware accessor for the size of the central directory.
+    pub fn cd_size(&self) -> u64 {
+        if let Some(record) = &self.eocdr64 {
+            return record.directory_size;
         }
+
+        return self.eocdr.eocdrh.size_cent_dir.into();
+    }
+
+    /// A ZIP-64-aware accessor for the disk number of the central directory.
+    pub fn disk_num(&self) -> u32 {
+        if let Some(record) = &self.eocdr64 {
+            return record.disk_number;
+        }
+
+        return self.eocdr.eocdrh.disk_num.into();
+    }
+
+    /// A ZIP-64-aware accessor for the disk number of the start of the central directory.
+    pub fn disk_num_start(&self) -> u32 {
+        if let Some(record) = &self.eocdr64 {
+            return record.disk_number_start_of_cd;
+        }
+
+        return self.eocdr.eocdrh.start_cent_dir_disk.into();
     }
 }

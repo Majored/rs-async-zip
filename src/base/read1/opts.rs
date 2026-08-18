@@ -6,9 +6,9 @@
 pub struct ZipOptions {
     /// Whether we load the full CDR file meta into memory on open.
     /// 
-    /// Reduces memory usage, but requries seeking to the central directory for every file read.
+    /// Reduces memory usage, but requires seeking to the central directory for every file read.
     /// Can be significantly slower as read-ahead buffers (both user and OS level) are likely discarded.
-    pub load_file_meta: bool,
+    pub load_cdrs: bool,
 
     // TODO: validate CDR vs LFH: filename, crc32, compressed size, uncompressed size, etc.
     // TODO: validate against read file.
@@ -76,7 +76,7 @@ pub struct ZipOptions {
 impl Default for ZipOptions {
     fn default() -> Self {
         Self {
-            load_file_meta: true,
+            load_cdrs: true,
             eocdr_locate_method: 0,
             validate_compressed_size_header_match: true,
             validate_uncompressed_size_header_match: true,
@@ -120,7 +120,7 @@ impl ZipOptionsBuilder {
         Self { options: ZipOptions::default() }
     }
 
-    builder_setter!(load_file_meta, load: bool);
+    builder_setter!(load_cdrs, load: bool);
     builder_setter!(eocdr_locate_method, method: u8);
     builder_setter!(validate_compressed_size_header_match, validate: bool);
     builder_setter!(validate_uncompressed_size_header_match, validate: bool);

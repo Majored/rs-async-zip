@@ -12,14 +12,19 @@ use tracing::{instrument, trace};
 
 use crate::base::read1::opts::ZipOptions;
 use crate::base::read1::seek::ZipArchiveInner;
+use crate::error::ZipError;
+use crate::spec::constructs::CombinedEOCDR;
 use crate::spec::headers1::CDRH;
 use crate::spec::constructs::{CDR, LF, EOCDR};
+use crate::spec::headers1::EOCDR64H;
 use crate::spec::headers1::EOCDRH;
+use crate::spec::KnownSize;
+use crate::spec::headers1::EOCDL64H;
 use crate::{error::Result, spec::headers1::{LFH, Signature}};
 
 pub(crate) struct Ops<'o, R> {
-    reader: R,
     options: &'o ZipOptions,
+    reader: R,
 }
 
 impl<'o, R: AsyncRead + Unpin> Ops<'o, R> {
@@ -51,7 +56,7 @@ impl<'o, R: AsyncRead + Unpin> Ops<'o, R> {
         })
         .await?;
 
-        crate::base::read1::valid::validate_extra_field_num(&lf.extra_fields, options)?;
+        crate::base::read1::valid::validate_extra_field_num(&lf.efs, options)?;
 
         Ok(lf)
     }
@@ -69,7 +74,7 @@ impl<'o, R: AsyncRead + Unpin> Ops<'o, R> {
         })
         .await?;
 
-        crate::base::read1::valid::validate_extra_field_num(&cdr.extra_fields, options)?;
+        crate::base::read1::valid::validate_extra_field_num(&cdr.efs, options)?;
 
         Ok(cdr)
     }
@@ -96,41 +101,65 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
 
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn open(&mut self, opts: ZipOptions) -> Result<ZipArchiveInner> {
-        let mut inner = ZipArchiveInner::default();
-
-        // Locate EOCDR and seek to it (erroring if not found).
         let eocdr_offset = crate::base::read::io::locator::eocdr(&mut self.reader).await?;
         self.reader.seek(SeekFrom::Start(eocdr_offset - 4)).await?;
 
-        // Read EOCDR and seek to first CDR.
         let eocdr = Ops::new(&mut self.reader, &opts).eocdr().await?;
-        let pos = eocdr.eocdrh.cent_dir_offset as u64;
-        self.reader.seek(SeekFrom::Start(pos)).await?;
+        let mut combined = CombinedEOCDR { eocdr, eocdr64: None, eocdl64: None };
 
-        crate::base::read1::valid::validate_archive(&eocdr.eocdrh, &opts)?;
+        if let Some((locator, record)) = SeekOps::new(&mut self.reader).zip64(eocdr_offset, &opts).await? {
+            combined.eocdr64 = Some(record);
+            combined.eocdl64 = Some(locator);
+        }
 
-        // The callee will not populate metas if load_file_meta is false.
-        let (metas, offsets) = SeekOps::new(&mut self.reader).cd(&opts, &eocdr).await?;
+        self.reader.seek(SeekFrom::Start(combined.cd_offset())).await?;
+        crate::base::read1::valid::validate_archive(&combined, &opts)?;
+        let (loaded_cdrs, offsets) = SeekOps::new(&mut self.reader).cd(&opts, &combined).await?;
 
-        inner.cdr_metas = metas;
-        inner.cdr_offsets = offsets;
-        inner.options = opts;
+        let inner = ZipArchiveInner {
+            loaded_cdrs,
+            cdr_offsets: offsets,
+            options: opts,
+            combined_eocdr: combined,
+        };
     
         Ok(inner)
     }
 
+    pub async fn zip64(&mut self, eocdr_offset: u64, opts: &ZipOptions) -> Result<Option<(EOCDL64H, EOCDR64H)>> {
+        // TODO: wrapping
+        let zip64_locator_pos = eocdr_offset - (Signature::SIZE as u64 * 2) - EOCDL64H::SIZE as u64;
+        self.reader.seek(SeekFrom::Start(zip64_locator_pos)).await?;
+        let signature = crate::spec::headers1::read::<Signature, R>(&mut self.reader).await;
+
+        if let Err(ZipError::BinaryParseError(_)) = signature {
+            // Invalid signature, which means there is no ZIP64 locator.
+            // TODO: Signature being a discriminant enum makes this a bit awkward.
+            return Ok(None);
+        }
+
+        // TODO: match signature
+
+        let eocdl64h = crate::spec::headers1::read::<EOCDL64H, R>(&mut self.reader).await?;
+        self.reader.seek(SeekFrom::Start(eocdl64h.relative_offset)).await?;
+        Ops::new(&mut self.reader, opts).assert_signature(Signature::EOCDR64H).await?;
+
+        let eocdr64h = crate::spec::headers1::read::<EOCDR64H, R>(&mut self.reader).await?;
+
+        Ok(Some((eocdl64h, eocdr64h)))
+    }
+
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
-    pub async fn cd(&mut self, options: &ZipOptions, eocdr: &EOCDR) -> Result<(Vec<CDR>, Vec<u64>)> {
-        // Enforce max number of files if configured
+    pub async fn cd(&mut self, options: &ZipOptions, eocdr: &CombinedEOCDR) -> Result<(Vec<CDR>, Vec<u64>)> {
         if let Some(max) = options.max_num_central_directory_files {
-            let actual = eocdr.eocdrh.num_of_entries as u64;
+            let actual = eocdr.num_entries();
 
             if actual > max {
                 return Err(crate::error::ZipError::CentralDirectoryFilesNumAboveMax(actual, max));
             }
         }
 
-        let mut offset = eocdr.eocdrh.cent_dir_offset as u64;
+        let mut offset = eocdr.cd_offset();
 
         // TODO: get size from EOCDR.
         let mut offsets = Vec::new();
@@ -149,10 +178,10 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
 
             let cdr = Ops::new(&mut self.reader, options).cdr().await?;
 
-            // TODO: don't need to read the whole cdr if we aren't loading metas.
+            // TODO: don't need to read the whole cdr if we aren't loading cdrs.
             // Seeking might be less performant than straight reads due to buffering.
 
-            if options.load_file_meta {
+            if options.load_cdrs {
                 cdrs.push(cdr);
             }
 
@@ -161,11 +190,11 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         }
 
         // Validate that the number of CDRs read matches the number of entries in the EOCDR
-        let num_matched = offsets.len() == eocdr.eocdrh.num_of_entries as usize;
+        let num_matched = offsets.len() == eocdr.num_entries() as usize;
         if options.validate_num_central_directory_files && !num_matched {
             return Err(crate::error::ZipError::InvalidNumCentralDirectoryFiles(
                 offsets.len() as u64,
-                eocdr.eocdrh.num_of_entries as u64,
+                eocdr.num_entries(),
             ));
         }
 
@@ -190,6 +219,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
             lf.lfh.crc = cdr.cdrh.crc;
             
             // TODO: should we set data_descriptor to false?
+            // TODO: copy over Zip64EI
         }
 
         Ok(lf)

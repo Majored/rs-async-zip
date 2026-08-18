@@ -38,6 +38,7 @@
 
 pub mod base;
 pub mod error;
+pub mod spec;
 
 #[cfg(feature = "tokio")]
 pub mod tokio;
@@ -45,7 +46,6 @@ pub mod tokio;
 pub(crate) mod date;
 pub(crate) mod entry;
 pub(crate) mod file;
-pub(crate) mod spec;
 pub(crate) mod string;
 pub(crate) mod utils;
 

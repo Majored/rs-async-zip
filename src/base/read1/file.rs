@@ -15,6 +15,7 @@ use futures_lite::io::Take;
 use crate::base::read1::ZipOptions;
 use crate::error::Result;
 use crate::spec::headers1::Compression;
+use crate::spec::constructs::CDR;
 use crate::spec::constructs::LF;
 use crate::base::read::io::poll_result_ok;
 
@@ -28,18 +29,33 @@ use async_compression::futures::bufread;
 pub struct ZipFileReader<R> {
     reader: CompressedReader<Take<R>>,
     opts: ZipOptions,
+    cdr: Option<CDR>,
     hasher: Hasher,
     read: usize,
     lf: LF,
 }
 
 impl<R: AsyncBufRead + Unpin> ZipFileReader<R> {
-    pub(crate) fn new(reader: R, lf: LF, opts: ZipOptions) -> Result<Self> {
-        // Build the reader stack.
-        let reader = reader.take(lf.lfh.compressed_size as u64);
+    pub(crate) fn new(reader: R, lf: LF, cdr: Option<CDR>, opts: ZipOptions) -> Result<Self> {
+        let reader = reader.take(lf.compressed_size());
         let reader = CompressedReader::new(reader, lf.lfh.compression)?;
 
-        Ok(Self { reader, hasher: Hasher::default(), read: 0, lf, opts })
+        Ok(Self { reader, hasher: Hasher::default(), read: 0, lf, cdr, opts })
+    }
+
+    /// Returns a reference to the local file header for this file.
+    /// 
+    /// Note that if produced from a seeking reader and the file used a data descriptor,
+    /// the compressed size, uncompressed size, and ZIP64 exended information extra field
+    /// would have been copied over from the central directory, and so no longer reflects
+    /// the values stored in the actual local file header.
+    pub fn lf(&self) -> &LF {
+        &self.lf
+    }
+
+    /// Returns a reference to the central directory record for this file, if available.
+    pub fn cdr(&self) -> Option<&CDR> {
+        self.cdr.as_ref()
     }
 
     /// Validates the computed CRC32 hash against the expected value.
