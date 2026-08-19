@@ -115,6 +115,18 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         self.reader.seek(SeekFrom::Start(combined.cd_offset())).await?;
         crate::base::read1::valid::validate_archive(&combined, &opts)?;
         let (loaded_cdrs, offsets) = SeekOps::new(&mut self.reader).cd(&opts, &combined).await?;
+        
+        if opts.validate_eor_is_eoa {
+            // TODO: We should be able to do this without any seeks. Though, attempting a one-byte
+            //       read might be equivalent performance wise, not sure. This is clean anyway.
+
+            let current = self.reader.seek(SeekFrom::Current(0)).await?;
+            let end = self.reader.seek(SeekFrom::End(0)).await?;
+
+            if current != end {
+                return Err(ZipError::EORIsNotEOA);
+            }
+        }
 
         let inner = ZipArchiveInner {
             loaded_cdrs,

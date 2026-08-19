@@ -64,6 +64,13 @@ pub struct ZipOptions {
     /// 
     pub validate_file_on_eof: bool,
 
+    /// Validates that the start of the reader is also the start of archive.
+    /// TODO
+    // pub validate_sor_is_soa: bool,
+
+    /// Validates that the end of the reader is also the end of archive.
+    pub validate_eor_is_eoa: bool,
+
     // LIMITS
 
     /// Enforces a maximum uncompressed size per file. Attempts to open the file for reading will
@@ -117,6 +124,8 @@ impl Default for ZipOptions {
             validate_crc_match_against_read: true,
             validate_uncompressed_size_match_against_read: true,
             validate_file_on_eof: true,
+            // validate_sor_is_soa: false,
+            validate_eor_is_eoa: false,
             max_uncompressed_size_per_file: u64::MAX,
             max_compressed_size_per_file: u64::MAX,
             max_num_cd_files: u64::MAX,
@@ -148,6 +157,8 @@ impl ZipOptions {
             validate_crc_match_against_read: true,
             validate_uncompressed_size_match_against_read: true,
             validate_file_on_eof: true,
+            // validate_sor_is_soa: true,
+            validate_eor_is_eoa: true,
 
             // 1 GiB. Bounds what a decompression bomb can expand to.
             max_uncompressed_size_per_file: 1024 * 1024 * 1024,

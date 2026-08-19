@@ -90,6 +90,10 @@ pub enum ZipError {
     NumFilesMismatch(u64, u64),
     #[error("invalid uncompressed size read ({0}), declared ({1})")]
     UncompressedSizeReadMismatch(u64, u64),
+    #[error("start of reader was not start of archive")]
+    SORIsNotSOA,
+    #[error("end of reader was not end of archive")]
+    EORIsNotEOA,
 
     // Limits
 
