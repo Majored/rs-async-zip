@@ -40,11 +40,10 @@ pub fn validate_archive(eocdrh: &CombinedEOCDR, opts: &ZipOptions) -> Result<()>
     }
 
     if eocdrh.cd_size() > opts.max_cd_size_in_bytes {
-        // TODO: error type
-        return Err(crate::error::ZipError::InvalidCompressionHeaderMatch);
+        return Err(crate::error::ZipError::CDSizeAboveMax(opts.max_cd_size_in_bytes));
     }
     if eocdrh.num_entries() > opts.max_num_cd_files {
-        return Err(crate::error::ZipError::CentralDirectoryFilesNumAboveMax(opts.max_num_cd_files));
+        return Err(crate::error::ZipError::NumFilesAboveMax(opts.max_num_cd_files));
     }
 
     Ok(())
@@ -55,29 +54,45 @@ pub fn validate_file(lf: &LF, cdr: &CDR, options: &ZipOptions) -> Result<()> {
     let dd = !cdr.cdrh.flags.data_descriptor();
 
     if options.validate_compressed_size_header_match && dd && lf.compressed_size() != cdr.compressed_size() {
-        return Err(crate::error::ZipError::InvalidCompressedSizeHeaderMatch);
+        return Err(crate::error::ZipError::CompressedSizeHeaderMismatch);
     }
     if options.validate_uncompressed_size_header_match && dd && lf.uncompressed_size() != cdr.uncompressed_size() {
-        return Err(crate::error::ZipError::InvalidUncompressedSizeHeaderMatch);
+        return Err(crate::error::ZipError::UncompressedSizeHeaderMismatch);
     }
     if options.validate_crc_header_match && dd && lf.lfh.crc != cdr.cdrh.crc {
-        return Err(crate::error::ZipError::InvalidCrcHeaderMatch);
+        return Err(crate::error::ZipError::CrcHeaderMismatch);
     }
 
     if options.validate_filename_header_match && lf.insecure_file_name != cdr.insecure_file_name {
-        return Err(crate::error::ZipError::InvalidFilenameHeaderMatch);
+        return Err(crate::error::ZipError::FilenameHeaderMismatch);
     }
-    if options.validate_compressed_size_header_match && lf.lfh.compression != cdr.cdrh.compression {
-        // TODO: option name
-        return Err(crate::error::ZipError::InvalidCompressionHeaderMatch);
+    if options.validate_compression_header_match && lf.lfh.compression != cdr.cdrh.compression {
+        return Err(crate::error::ZipError::CompressionHeaderMismatch);
     }
 
     if cdr.uncompressed_size() > options.max_uncompressed_size_per_file {
-        return Err(crate::error::ZipError::InvalidUncompressedSizeHeaderMatch); // TODO: error
+        return Err(crate::error::ZipError::UncompressedSizeAboveMax(options.max_uncompressed_size_per_file));
     }
     if cdr.compressed_size() > options.max_compressed_size_per_file {
-        return Err(crate::error::ZipError::InvalidCompressedSizeHeaderMatch); // TODO: error
+        return Err(crate::error::ZipError::CompressedSizeAboveMax(options.max_compressed_size_per_file));
     }
+
+    Ok(())
+}
+
+pub fn validate_file_eof(lf: &LF, crc: u32, read: usize, opts: &ZipOptions) -> std::io::Result<()> {
+    if opts.validate_crc_match_against_read {
+        if crc != lf.lfh.crc {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "CRC32 check failed"));
+        }
+    }
+    if opts.validate_uncompressed_size_match_against_read {
+        if read as u64 != lf.uncompressed_size() {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "Uncompressed size check failed"));
+        }
+    }
+
+    // TODO: validate compressed size, but we need to do a calculation of the source reader offsets.
 
     Ok(())
 }

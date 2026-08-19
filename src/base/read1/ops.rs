@@ -137,8 +137,11 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
             // TODO: Signature being a discriminant enum makes this a bit awkward.
             return Ok(None);
         }
-
-        // TODO: match signature
+        if !matches!(signature, Ok(Signature::EOCDL64H)) {
+            // TODO: We could reasonable assume that if we hit a known signature,
+            //       the archive is malformed, not just that it's not ZIP64.
+            return Ok(None);
+        }
 
         let eocdl64h = crate::spec::headers1::read::<EOCDL64H, R>(&mut self.reader).await?;
         self.reader.seek(SeekFrom::Start(eocdl64h.relative_offset)).await?;
@@ -186,10 +189,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         // Validate that the number of CDRs read matches the number of entries in the EOCDR
         let num_matched = offsets.len() == eocdr.num_entries() as usize;
         if options.validate_num_central_directory_files && !num_matched {
-            return Err(crate::error::ZipError::InvalidNumCentralDirectoryFiles(
-                offsets.len() as u64,
-                eocdr.num_entries(),
-            ));
+            return Err(crate::error::ZipError::NumFilesMismatch(offsets.len() as u64, eocdr.num_entries()));
         }
 
         Ok((cdrs, offsets))
@@ -197,17 +197,15 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
 
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn file(&mut self, cdr: CDR, opts: &ZipOptions) -> Result<LF> {
-        // Seek to file offset and read LF.
         // We read the LF instead of just using the CDR because the extra fields may differ (and so the data offset).
-        self.reader.seek(SeekFrom::Start(cdr.cdrh.lh_offset as u64)).await?;
+        self.reader.seek(SeekFrom::Start(cdr.lfh_offset() as u64)).await?;
         let mut ops = Ops::new(&mut self.reader, opts);
         let mut lf = ops.lf().await?;
 
-        // Run configured validations on the LF and CDR.
         crate::base::read1::valid::validate_file(&lf, &cdr, opts)?;
 
         if lf.lfh.flags.data_descriptor() {
-            // Fill in LFH with known-good values from the CDR.
+            // We know the values from the CDR are 'good', because they were written after the file finished writing.
             lf.lfh.compressed_size = cdr.cdrh.compressed_size;
             lf.lfh.uncompressed_size = cdr.cdrh.uncompressed_size;
             lf.lfh.crc = cdr.cdrh.crc;

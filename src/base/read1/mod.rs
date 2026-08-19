@@ -44,6 +44,9 @@
 //!     - CRC
 //!     - compressed size
 //!     - uncompressed size
+//! 
+//! ## Handling untrusted archives
+//! ZIP bombs, malformed archives, filename security, nested ZIP depths
 
 // We provide documentation about the differences between the two readers in this module. And then usage-level
 // information in the submodules.

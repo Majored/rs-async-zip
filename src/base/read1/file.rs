@@ -57,29 +57,6 @@ impl<R: AsyncBufRead + Unpin> ZipFileReader<R> {
     pub fn cdr(&self) -> Option<&CDR> {
         self.cdr.as_ref()
     }
-
-    /// Validates the computed CRC32 hash against the expected value.
-    /// 
-    /// Once all data has been consumed (ie. reached EOF), call this method.
-    pub fn validate(&mut self) -> Result<()> {
-        if self.opts.validate_crc_match_against_read {
-            let computed_hash = std::mem::take(&mut self.hasher).finalize();
-
-            if computed_hash != self.lf.lfh.crc {
-                return Err(crate::error::ZipError::CRC32CheckError);
-            }
-        }
-
-        if self.opts.validate_uncompressed_size_match_against_read {
-            if self.read as u64 != u64::from(self.lf.lfh.uncompressed_size) {
-                return Err(crate::error::ZipError::InvalidUncompressedSizeHeaderMatch); // TODO: new error
-            }
-        }
-
-        // TODO: compressed size validation.
-
-        Ok(())
-    }
 }
 
 impl<R: AsyncBufRead + Unpin> AsyncRead for ZipFileReader<R> {
@@ -90,6 +67,11 @@ impl<R: AsyncBufRead + Unpin> AsyncRead for ZipFileReader<R> {
 
         if self.read as u64 > self.opts.max_uncompressed_size_per_file {
             return Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, "Max uncompressed size exceeded")));
+        }
+        if written == 0 && self.opts.validate_file_on_eof {
+            // We hit EOF so we can validate the read, but we have to return a std::io::Result.
+            let crc = std::mem::take(&mut self.hasher).finalize();
+            crate::base::read1::valid::validate_file_eof(&self.lf, crc, self.read, &self.opts)?;
         }
 
         Pin::new(&mut self.hasher).update(&buf[..written]);

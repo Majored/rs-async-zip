@@ -30,18 +30,18 @@ impl LF {
 
     /// A ZIP-64-aware accessor for the uncompressed size of the file.
     pub fn uncompressed_size(&self) -> u64 {
-        combined_size(self.lfh.uncompressed_size, &self.efs, |ei_data| ei_data.uncompressed_size)
+        combined_accessor(self.lfh.uncompressed_size, &self.efs, |ei_data| ei_data.uncompressed_size)
     }
 
     /// A ZIP-64-aware accessor for the compressed size of the file.
     pub fn compressed_size(&self) -> u64 {
-        combined_size(self.lfh.compressed_size, &self.efs, |ei_data| ei_data.compressed_size)
+        combined_accessor(self.lfh.compressed_size, &self.efs, |ei_data| ei_data.compressed_size)
     }
 }
 
-fn combined_size(zip32_size: u32, extra_fields: &[EF], accessor: impl Fn(&Zip64EI) -> u64) -> u64 {
-    if zip32_size != u32::MAX {
-        return zip32_size.into();
+fn combined_accessor(zip32: u32, extra_fields: &[EF], accessor: impl Fn(&Zip64EI) -> u64) -> u64 {
+    if zip32 != u32::MAX {
+        return zip32.into();
     }
 
     let zip64ei = extra_fields.iter().find(|field| {
@@ -73,14 +73,19 @@ pub struct CDR {
 }
 
 impl CDR {
+    pub fn lfh_offset(&self) -> u64 {
+        // TODO: unwrap should be an err instead, in case it's a malformed ZIP.
+        combined_accessor(self.cdrh.lh_offset, &self.efs, |ei_data| ei_data.relative_offset.unwrap())
+    }
+
     /// A ZIP-64-aware accessor for the uncompressed size of the file.
     pub fn uncompressed_size(&self) -> u64 {
-        combined_size(self.cdrh.uncompressed_size, &self.efs, |ei_data| ei_data.uncompressed_size)
+        combined_accessor(self.cdrh.uncompressed_size, &self.efs, |ei_data| ei_data.uncompressed_size)
     }
 
     /// A ZIP-64-aware accessor for the compressed size of the file.
     pub fn compressed_size(&self) -> u64 {
-        combined_size(self.cdrh.compressed_size, &self.efs, |ei_data| ei_data.compressed_size)
+        combined_accessor(self.cdrh.compressed_size, &self.efs, |ei_data| ei_data.compressed_size)
     }
 }
 

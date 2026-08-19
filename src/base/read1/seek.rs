@@ -71,9 +71,6 @@
 //! let content = file.read_to_string().await.expect("failed to read file contents");
 //! # }
 //! ```
-//! 
-//! # Handling untrusted archives
-//! TODO
 
 #[expect(unused_imports)]
 use crate::error::ZipError;

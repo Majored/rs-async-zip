@@ -6,9 +6,14 @@
 /// 
 /// # Usage
 /// ```
+/// # use async_zip::base::read1::ZipOptions;
 /// // Use the struct update syntax to build options.
 /// // Uses the default values but caps the allowed number of files to 16.
 /// let options = ZipOptions { max_num_cd_files: 16, ..Default::default() };
+/// 
+/// // Use this to get a set of options suitable for reading untrusted ZIP archives.
+/// // You must still handle file name security issues yourself.
+/// let opts = ZipOptions { max_num_cd_files: 16, ..ZipOptions::untrusted() };
 /// ```
 /// 
 /// # Breaking changes
@@ -19,9 +24,6 @@
 /// you to pick up new fields no different than if we provided a separate builder.
 pub struct ZipOptions {
     // OPTIMIZATION
-
-    // TODO: validate CDR vs LFH: filename, crc32, compressed size, uncompressed size, etc.
-    // TODO: validate against read file.
 
     /// The method to use for locating the EOCDR.
     /// 
@@ -58,6 +60,9 @@ pub struct ZipOptions {
     /// 
     pub validate_uncompressed_size_match_against_read: bool,
 
+    /// Whether to validate the file on EOF. This is a convenience option which avoids having to call
+    /// 
+    pub validate_file_on_eof: bool,
 
     // LIMITS
 
@@ -111,6 +116,7 @@ impl Default for ZipOptions {
             validate_num_central_directory_files: true,
             validate_crc_match_against_read: true,
             validate_uncompressed_size_match_against_read: true,
+            validate_file_on_eof: true,
             max_uncompressed_size_per_file: u64::MAX,
             max_compressed_size_per_file: u64::MAX,
             max_num_cd_files: u64::MAX,
@@ -118,6 +124,52 @@ impl Default for ZipOptions {
             max_num_cd_files_load: u64::MAX,
             max_extra_field_size_per_file: u16::MAX,
             max_extra_field_num_per_file: u16::MAX,
+        }
+    }
+}
+
+impl ZipOptions {
+    /// Returns a set of options suitable for reading untrusted ZIP archives.
+    /// 
+    /// Every validation is enabled, and every limit is set to a value which comfortably fits
+    /// archives produced by ordinary tooling. They are deliberately conservative, so please
+    /// create an issue if you feel a limit should be reasonably raised.
+    /// 
+    /// Note that you _MUST_ still handle file name security issues yourself.
+    pub fn untrusted() -> Self {
+        Self {
+            eocdr_locate_method: 0,
+            validate_compressed_size_header_match: true,
+            validate_uncompressed_size_header_match: true,
+            validate_crc_header_match: true,
+            validate_filename_header_match: true,
+            validate_compression_header_match: true,
+            validate_num_central_directory_files: true,
+            validate_crc_match_against_read: true,
+            validate_uncompressed_size_match_against_read: true,
+            validate_file_on_eof: true,
+
+            // 1 GiB. Bounds what a decompression bomb can expand to.
+            max_uncompressed_size_per_file: 1024 * 1024 * 1024,
+
+            // 1 GiB. Bounds how much of the underlying reader a single entry can consume.
+            max_compressed_size_per_file: 1024 * 1024 * 1024,
+
+            // 4 KiB. The extra fields written in practice (ZIP64, timestamps, UIDs/GIDs, NTFS)
+            // total well under a few hundred bytes, so this leaves plenty of headroom.
+            max_extra_field_size_per_file: 4 * 1024,
+
+            // Typical archives carry a handful of fields per entry; 16 is well clear of that.
+            max_extra_field_num_per_file: 16,
+
+            // 64Ki entries, which is the limit of a non-ZIP64 archive.
+            max_num_cd_files: 64 * 1024,
+
+            // Load the same number as the maximum number of files set.
+            max_num_cd_files_load: 64 * 1024,
+
+            // 16 MiB, which is ~256 bytes per entry at the entry limit above.
+            max_cd_size_in_bytes: 16 * 1024 * 1024,
         }
     }
 }

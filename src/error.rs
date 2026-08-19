@@ -74,20 +74,36 @@ pub enum ZipError {
     #[error("Info-ZIP Unicode Path Extra Field was incomplete")]
     InfoZipUnicodePathFieldIncomplete,
 
+    // Validation
+
     #[error("invalid compressed size header match")]
-    InvalidCompressedSizeHeaderMatch,
+    CompressedSizeHeaderMismatch,
     #[error("invalid uncompressed size header match")]
-    InvalidUncompressedSizeHeaderMatch,
+    UncompressedSizeHeaderMismatch,
     #[error("invalid CRC header match")]
-    InvalidCrcHeaderMatch,
+    CrcHeaderMismatch,
     #[error("invalid filename header match")]
-    InvalidFilenameHeaderMatch,
+    FilenameHeaderMismatch,
     #[error("invalid compression header match")]
-    InvalidCompressionHeaderMatch,
-    #[error("invalid number of central directory files ({0}), expected ({1})")]
-    InvalidNumCentralDirectoryFiles(u64, u64),
-    #[error("number of central directory files exceeds the maximum allowed ({0})")]
-    CentralDirectoryFilesNumAboveMax(u64),
+    CompressionHeaderMismatch,
+    #[error("invalid number of files ({0}), declared ({1})")]
+    NumFilesMismatch(u64, u64),
+    #[error("invalid uncompressed size read ({0}), declared ({1})")]
+    UncompressedSizeReadMismatch(u64, u64),
+
+    // Limits
+
+    #[error("number of files exceeds the maximum allowed ({0})")]
+    NumFilesAboveMax(u64),
+
+    #[error("central directory size exceeds the maximum allowed ({0})")]
+    CDSizeAboveMax(u64),
+
+    #[error("uncompressed size exceeds the maximum allowed ({0})")]
+    UncompressedSizeAboveMax(u64),
+    #[error("compressed size exceeds the maximum allowed ({0})")]
+    CompressedSizeAboveMax(u64),
+
     #[error("extra field block size exceeds the maximum allowed ({0})")]
     ExtraFieldSizeAboveMax(u16),
     #[error("number of extra fields exceeds the maximum allowed ({0})")]

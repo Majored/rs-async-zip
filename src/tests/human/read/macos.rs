@@ -19,5 +19,4 @@ async fn single_file_deflate() {
 
     let mut read_data = String::new();
     file_reader.read_to_string(&mut read_data).await.expect("read failed");
-    file_reader.validate().expect("validation failed");
 }
