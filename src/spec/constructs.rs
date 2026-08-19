@@ -3,7 +3,7 @@
 
 use binrw::binrw;
 
-use crate::spec::{extra::{EF, EFD, EFID, Zip64EI, efs}, headers1::{CDRH, EOCDL64H, EOCDR64H, EOCDRH, LFH}};
+use crate::spec::{extra::{EF, EFD, EFID, Zip64EI, efs}, headers1::{CDRH, EOCDL64H, EOCDR64H, EOCDRH, LFH}, string::ZipString};
 
 // Constructing blocks from raw headers & bytes sequences (like filenames, comments, etc).
 //
@@ -18,13 +18,16 @@ use crate::spec::{extra::{EF, EFD, EFID, Zip64EI, efs}, headers1::{CDRH, EOCDL64
 /// A local file. This struct provides ZIP64-aware accessors.
 pub struct LF {
     pub lfh: LFH,
-    #[br(count = lfh.file_name_length)]
-    pub file_name: Vec<u8>,
+    #[br(count = lfh.file_name_length, args { utf8: lfh.flags.language_encoding_flag() })]
+    /// This filename is insecure. Untrusted values may contain path traversal sequences or similar.
+    pub insecure_file_name: ZipString,
     #[br(parse_with = efs, args(lfh.extra_field_length.into()))]
     pub efs: Vec<EF>,
 }
 
 impl LF {
+    // TODO: Add a Info-ZIP-aware filename accessor that uses the
+
     /// A ZIP-64-aware accessor for the uncompressed size of the file.
     pub fn uncompressed_size(&self) -> u64 {
         combined_size(self.lfh.uncompressed_size, &self.efs, |ei_data| ei_data.uncompressed_size)
@@ -57,13 +60,16 @@ fn combined_size(zip32_size: u32, extra_fields: &[EF], accessor: impl Fn(&Zip64E
 #[derive(Clone, Debug)]
 /// A central directory record. This struct provides ZIP64-aware accessors.
 pub struct CDR {
+    /// The central directory record header.
     pub cdrh: CDRH,
-    #[br(count = cdrh.file_name_length)]
-    pub file_name: Vec<u8>,
+    #[br(count = cdrh.file_name_length, args { utf8: cdrh.flags.language_encoding_flag() })]
+    /// This filename is insecure. Untrusted values may contain path traversal sequences or similar.
+    pub insecure_file_name: ZipString,
     #[br(parse_with = efs, args(cdrh.extra_field_length.into()))]
+    /// A list of extra fields.
     pub efs: Vec<EF>,
-    #[br(count = cdrh.file_comment_length)]
-    pub file_comment: Vec<u8>,
+    #[br(count = cdrh.file_comment_length, args { utf8: cdrh.flags.language_encoding_flag() })]
+    pub file_comment: ZipString,
 }
 
 impl CDR {
@@ -84,8 +90,10 @@ impl CDR {
 /// An end of central directory record.
 pub struct EOCDR {
     pub eocdrh: EOCDRH,
+    // The end of central directory record has no flags of its own, so its comment is never
+    // declared as UTF-8 and `ZipStringArgs::utf8` is left at its default.
     #[br(count = eocdrh.file_comm_length)]
-    pub file_comment: Vec<u8>,
+    pub file_comment: ZipString,
 }
 
 /// A combined end of central directory record. This struct provides ZIP64-aware accessors.
@@ -97,6 +105,12 @@ pub struct CombinedEOCDR {
 }
 
 impl CombinedEOCDR {
+    /// Returns whether this archive is a ZIP64 archive.
+    pub fn is_zip64(&self) -> bool {
+        // TODO: I don't think we'd ever have an XOR situation here.
+        self.eocdr64.is_some() && self.eocdl64.is_some()
+    }
+
     /// A ZIP-64-aware accessor for the offset of the start of the central directory.
     pub fn cd_offset(&self) -> u64 {
         if let Some(record) = &self.eocdr64 {

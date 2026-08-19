@@ -9,6 +9,7 @@
 //! # Opening an archive
 //! ```no_run
 //! # use async_zip::base::read1::seek::ZipArchiveReader;
+//! # use async_zip::base::read1::opts::ZipOptions;
 //! # use futures_lite::io::Cursor;
 //! # 
 //! # async fn main() {
@@ -17,7 +18,7 @@
 //! let reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
 //! 
 //! // Or with custom options; 
-//! let options = ZipOptionsBuilder::new().load_file_meta(false).into();
+//! let options = ZipOptions { max_num_cd_files: 16, ..Default::default() };
 //! let data = Cursor::new(Vec::new()); // Replace with your ZIP archive data
 //! let reader = ZipArchiveReader::open(data, options).await.expect("failed to open zip archive");
 //! 
@@ -198,7 +199,7 @@ impl ZipArchiveInner {
     /// Finds all the file indexes with the given filename. An iterator is returned because the ZIP specification
     /// allows for multiple files with the same filename, and most callers only need the first match.
     pub fn find<'a>(&'a self, filename: &'a [u8]) -> impl Iterator<Item = usize> + 'a {
-        self.loaded_cdrs.iter().enumerate().filter_map(move |(i, cdr)| (cdr.file_name == filename).then_some(i))
+        self.loaded_cdrs.iter().enumerate().filter_map(move |(i, cdr)| (cdr.insecure_file_name == filename).then_some(i))
     }
 
     pub fn cdrs(&self) -> &[CDR] {

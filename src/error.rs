@@ -86,12 +86,12 @@ pub enum ZipError {
     InvalidCompressionHeaderMatch,
     #[error("invalid number of central directory files ({0}), expected ({1})")]
     InvalidNumCentralDirectoryFiles(u64, u64),
-    #[error("number of central directory files ({0}) exceeds the maximum allowed ({1})")]
-    CentralDirectoryFilesNumAboveMax(u64, u64),
-    #[error("extra field block size ({0}) exceeds the maximum allowed ({1})")]
-    ExtraFieldSizeAboveMax(u16, u16),
-    #[error("number of extra fields ({0}) exceeds the maximum allowed ({1})")]
-    ExtraFieldNumAboveMax(usize, u16),
+    #[error("number of central directory files exceeds the maximum allowed ({0})")]
+    CentralDirectoryFilesNumAboveMax(u64),
+    #[error("extra field block size exceeds the maximum allowed ({0})")]
+    ExtraFieldSizeAboveMax(u16),
+    #[error("number of extra fields exceeds the maximum allowed ({0})")]
+    ExtraFieldNumAboveMax(u16),
 
     #[error("operation needed file meta but loading was disabled")]
     FileMetaNotLoaded,

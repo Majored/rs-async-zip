@@ -88,10 +88,8 @@ impl<R: AsyncBufRead + Unpin> AsyncRead for ZipFileReader<R> {
         let written = poll_result_ok!(ready!(written));
         self.read += written;
 
-        if let Some(max) = &self.opts.max_uncompressed_size_per_file {
-            if self.read as u64 > *max {
-                return Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, "Max uncompressed size exceeded")));
-            }
+        if self.read as u64 > self.opts.max_uncompressed_size_per_file {
+            return Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, "Max uncompressed size exceeded")));
         }
 
         Pin::new(&mut self.hasher).update(&buf[..written]);

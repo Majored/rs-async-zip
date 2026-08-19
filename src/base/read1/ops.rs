@@ -151,21 +151,14 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
 
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn cd(&mut self, options: &ZipOptions, eocdr: &CombinedEOCDR) -> Result<(Vec<CDR>, Vec<u64>)> {
-        if let Some(max) = options.max_num_central_directory_files {
-            let actual = eocdr.num_entries();
-
-            if actual > max {
-                return Err(crate::error::ZipError::CentralDirectoryFilesNumAboveMax(actual, max));
-            }
-        }
-
+        let cdrs_capacity = eocdr.num_entries().min(options.max_num_cd_files_load);
         let mut offset = eocdr.cd_offset();
 
-        // TODO: get size from EOCDR.
-        let mut offsets = Vec::new();
-        let mut cdrs = Vec::new();
+        // We load all the offsets regardless as we need to seek to the CDRs at a minimum.
+        let mut offsets = Vec::with_capacity(eocdr.num_entries() as usize);
+        let mut cdrs = Vec::with_capacity(cdrs_capacity as usize);
 
-        // TODO: validate size, validate length
+        // TODO: validate size, validate length, enforce limits
 
         loop {
             let signature = crate::spec::headers1::read::<Signature, R>(&mut self.reader).await?;
@@ -181,7 +174,8 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
             // TODO: don't need to read the whole cdr if we aren't loading cdrs.
             // Seeking might be less performant than straight reads due to buffering.
 
-            if options.load_cdrs {
+            // A non-zero capacity means we are loading CDRs into memory, and empty archives shouldn't get here.
+            if cdrs.capacity() != 0 {
                 cdrs.push(cdr);
             }
 

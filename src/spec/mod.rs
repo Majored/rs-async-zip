@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
+// Copyright (c) 2021-2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 //! A set of primitive types used to read and write ZIP archives. 
@@ -13,6 +13,7 @@ pub(crate) mod version;
 pub mod headers1;
 pub mod constructs;
 pub mod extra;
+pub mod string;
 
 pub use compression::Compression;
 

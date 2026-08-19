@@ -1,6 +1,8 @@
 // Copyright (c) 2021-2023 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+// #![forbid(unsafe_code)]
+
 // Document all features on docs.rs
 #![cfg_attr(docsrs, feature(doc_cfg))]
 

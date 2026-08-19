@@ -64,4 +64,4 @@ use futures_lite::io::BufReader;
 
 // Public API
 pub use file::ZipFileReader;
-pub use opts::{ZipOptions, ZipOptionsBuilder};
+pub use opts::ZipOptions;
