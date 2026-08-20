@@ -3,6 +3,7 @@
 
 use std::io::SeekFrom;
 
+use futures_lite::AsyncBufRead;
 use futures_lite::AsyncSeekExt;
 use futures_lite::AsyncRead;
 use futures_lite::AsyncSeek;
@@ -10,6 +11,7 @@ use futures_lite::AsyncSeek;
 #[cfg(feature = "tracing")]
 use tracing::{instrument, trace};
 
+use crate::base::read1::loc::Method0;
 use crate::base::read1::opts::ZipOptions;
 use crate::base::read1::seek::ZipArchiveInner;
 use crate::error::ZipError;
@@ -71,8 +73,7 @@ impl<'o, R: AsyncRead + Unpin> Ops<'o, R> {
             Ok(usize::from(cdrh.file_name_length)
                 + usize::from(cdrh.extra_field_length)
                 + usize::from(cdrh.file_comment_length))
-        })
-        .await?;
+        }).await?;
 
         crate::base::read1::valid::validate_extra_field_num(&cdr.efs, options)?;
 
@@ -81,12 +82,11 @@ impl<'o, R: AsyncRead + Unpin> Ops<'o, R> {
 
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn eocdr(&mut self) -> Result<EOCDR> {
-        self.assert_signature(Signature::EOCDRH).await?;
+        // We don't assert the signature, as this is verified by the locator.
 
         crate::spec::headers1::read_record::<EOCDRH, EOCDR, R>(&mut self.reader, |eocdrh| {
             Ok(usize::from(eocdrh.file_comm_length))
-        })
-        .await
+        }).await
     }
 }
 
@@ -94,28 +94,24 @@ pub(crate) struct SeekOps<R> {
     reader: R,
 }
 
-impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
+impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
     pub fn new(reader: R) -> Self {
         Self { reader }
     }
 
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn open(&mut self, opts: ZipOptions) -> Result<ZipArchiveInner> {
-        let eocdr_offset = crate::base::read::io::locator::eocdr(&mut self.reader).await?;
-        self.reader.seek(SeekFrom::Start(eocdr_offset - 4)).await?;
+        let eocdr_offset = match opts.eocdr_locate_method {
+            0 => Method0::new(&mut self.reader).locate().await?,
+            _ => return Err(ZipError::InvalidEOCDRSeekMethod),
+        };
+
+        // The locator returns the offset of the signature, which it has already matched for us.
+        self.reader.seek(SeekFrom::Start(eocdr_offset + Signature::SIZE as u64)).await?;
 
         let eocdr = Ops::new(&mut self.reader, &opts).eocdr().await?;
         let mut combined = CombinedEOCDR { eocdr, eocdr64: None, eocdl64: None };
 
-        if let Some((locator, record)) = SeekOps::new(&mut self.reader).zip64(eocdr_offset, &opts).await? {
-            combined.eocdr64 = Some(record);
-            combined.eocdl64 = Some(locator);
-        }
-
-        self.reader.seek(SeekFrom::Start(combined.cd_offset())).await?;
-        crate::base::read1::valid::validate_archive(&combined, &opts)?;
-        let (loaded_cdrs, offsets) = SeekOps::new(&mut self.reader).cd(&opts, &combined).await?;
-        
         if opts.validate_eor_is_eoa {
             // TODO: We should be able to do this without any seeks. Though, attempting a one-byte
             //       read might be equivalent performance wise, not sure. This is clean anyway.
@@ -128,6 +124,15 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
             }
         }
 
+        if let Some((locator, record)) = SeekOps::new(&mut self.reader).zip64(eocdr_offset, &opts).await? {
+            combined.eocdr64 = Some(record);
+            combined.eocdl64 = Some(locator);
+        }
+
+        self.reader.seek(SeekFrom::Start(combined.cd_offset())).await?;
+        crate::base::read1::valid::validate_archive(&combined, &opts)?;
+        let (loaded_cdrs, offsets) = SeekOps::new(&mut self.reader).cd(&opts, &combined).await?;
+
         let inner = ZipArchiveInner {
             loaded_cdrs,
             cdr_offsets: offsets,
@@ -139,8 +144,9 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
     }
 
     pub async fn zip64(&mut self, eocdr_offset: u64, opts: &ZipOptions) -> Result<Option<(EOCDL64H, EOCDR64H)>> {
-        // TODO: wrapping
-        let zip64_locator_pos = eocdr_offset - (Signature::SIZE as u64 * 2) - EOCDL64H::SIZE as u64;
+        let zip64_locator_pos = eocdr_offset.saturating_sub(Signature::SIZE as u64);
+        let zip64_locator_pos = zip64_locator_pos.saturating_sub(EOCDL64H::SIZE as u64);
+        
         self.reader.seek(SeekFrom::Start(zip64_locator_pos)).await?;
         let signature = crate::spec::headers1::read::<Signature, R>(&mut self.reader).await;
 
@@ -173,8 +179,6 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
         let mut offsets = Vec::with_capacity(eocdr.num_entries() as usize);
         let mut cdrs = Vec::with_capacity(cdrs_capacity as usize);
 
-        // TODO: validate size, validate length, enforce limits
-
         loop {
             let signature = crate::spec::headers1::read::<Signature, R>(&mut self.reader).await?;
 
@@ -185,9 +189,6 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
             offsets.push(offset);
 
             let cdr = Ops::new(&mut self.reader, options).cdr().await?;
-
-            // TODO: don't need to read the whole cdr if we aren't loading cdrs.
-            // Seeking might be less performant than straight reads due to buffering.
 
             // A non-zero capacity means we are loading CDRs into memory, and empty archives shouldn't get here.
             if cdrs.capacity() != 0 {
@@ -222,7 +223,6 @@ impl<R: AsyncRead + AsyncSeek + Unpin> SeekOps<R> {
             lf.lfh.uncompressed_size = cdr.cdrh.uncompressed_size;
             lf.lfh.crc = cdr.cdrh.crc;
             
-            // TODO: should we set data_descriptor to false?
             // TODO: copy over Zip64EI
         }
 

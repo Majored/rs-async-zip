@@ -55,6 +55,7 @@ pub(crate) mod file;
 pub(crate) mod ops;
 pub(crate) mod valid;
 pub(crate) mod opts;
+pub(crate) mod loc;
 
 pub mod seek;
 

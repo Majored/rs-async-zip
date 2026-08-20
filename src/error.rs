@@ -28,6 +28,11 @@ impl Display for Zip64ErrorCase {
 #[non_exhaustive]
 #[derive(Debug, Error)]
 pub enum ZipError {
+    // Reader
+
+    #[error("invalid seek method for locating the EOCDR")]
+    InvalidEOCDRSeekMethod,
+
     #[error("feature not supported: '{0}'")]
     FeatureNotSupported(&'static str),
     #[error("compression not supported: {0}")]

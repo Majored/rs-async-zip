@@ -27,8 +27,7 @@ pub struct ZipOptions {
 
     /// The method to use for locating the EOCDR.
     /// 
-    /// 0 = scan backwards from the end of the file, looking for the EOCDR signature.
-    /// 1 = scan backwards from the end of the file, looking for the EOCDR signature.
+    /// 0 = optimised for maximumising AsyncBufRead, OS-level read-ahead if filesystem file.
     pub eocdr_locate_method: u8,
 
     // VALIDATION
@@ -124,8 +123,8 @@ impl Default for ZipOptions {
             validate_crc_match_against_read: true,
             validate_uncompressed_size_match_against_read: true,
             validate_file_on_eof: true,
-            // validate_sor_is_soa: false,
-            validate_eor_is_eoa: false,
+            // validate_sor_is_soa: true,
+            validate_eor_is_eoa: true,
             max_uncompressed_size_per_file: u64::MAX,
             max_compressed_size_per_file: u64::MAX,
             max_num_cd_files: u64::MAX,
@@ -147,19 +146,6 @@ impl ZipOptions {
     /// Note that you _MUST_ still handle file name security issues yourself.
     pub fn untrusted() -> Self {
         Self {
-            eocdr_locate_method: 0,
-            validate_compressed_size_header_match: true,
-            validate_uncompressed_size_header_match: true,
-            validate_crc_header_match: true,
-            validate_filename_header_match: true,
-            validate_compression_header_match: true,
-            validate_num_central_directory_files: true,
-            validate_crc_match_against_read: true,
-            validate_uncompressed_size_match_against_read: true,
-            validate_file_on_eof: true,
-            // validate_sor_is_soa: true,
-            validate_eor_is_eoa: true,
-
             // 1 GiB. Bounds what a decompression bomb can expand to.
             max_uncompressed_size_per_file: 1024 * 1024 * 1024,
 
@@ -181,6 +167,8 @@ impl ZipOptions {
 
             // 16 MiB, which is ~256 bytes per entry at the entry limit above.
             max_cd_size_in_bytes: 16 * 1024 * 1024,
+
+            ..Default::default()
         }
     }
 }
