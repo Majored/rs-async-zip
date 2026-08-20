@@ -2,3 +2,5 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 pub(crate) mod macos;
+pub(crate) mod zip64;
+pub(crate) mod samplelib;

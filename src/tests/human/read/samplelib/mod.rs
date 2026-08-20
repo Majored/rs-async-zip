@@ -1,0 +1,56 @@
+// Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
+// MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
+
+// https://samplelib.com/license.html
+
+use crate::base::read1::seek::ZipArchiveReader;
+use futures_lite::AsyncReadExt;
+use futures_lite::io::Cursor;
+
+#[tokio::test]
+async fn empty() {
+    let data = Cursor::new(&include_bytes!("sample-empty.zip"));
+    let archive_reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
+
+    assert_eq!(archive_reader.eocdr().is_zip64(), false);
+    assert_eq!(archive_reader.eocdr().cd_size(), 0);
+    assert_eq!(archive_reader.cdrs().len(), 0);
+}
+
+#[tokio::test]
+async fn simple() {
+    let data = Cursor::new(&include_bytes!("sample-simple.zip"));
+    let file_data = include_bytes!("sample-simple/hello.txt");
+
+    let mut archive_reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
+   
+    assert_eq!(archive_reader.eocdr().is_zip64(), false);
+    assert_eq!(archive_reader.cdrs().len(), 1);
+    // TODO: comment
+
+    let index = archive_reader.find(b"hello.txt").next().expect("failed to find file");
+    let mut file_reader = archive_reader.file(index).await.expect("failed to get file reader");
+
+    let mut buffer = String::new();
+    file_reader.read_to_string(&mut buffer).await.expect("failed to read file");
+    assert_eq!(buffer.as_bytes(), file_data);
+}
+
+#[tokio::test]
+async fn with_html() {
+    let data = Cursor::new(&include_bytes!("sample-with-html.zip"));
+    let file_data = include_bytes!("sample-with-html/index.html");
+
+    let mut archive_reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
+   
+    assert_eq!(archive_reader.eocdr().is_zip64(), false);
+    assert_eq!(archive_reader.eocdr().num_entries(), 1);
+    assert_eq!(archive_reader.cdrs().len(), 1);
+
+    let index = archive_reader.find(b"index.html").next().expect("failed to find file");
+    let mut file_reader = archive_reader.file(index).await.expect("failed to get file reader");
+
+    let mut buffer = String::new();
+    file_reader.read_to_string(&mut buffer).await.expect("failed to read file");
+    assert_eq!(buffer.as_bytes(), file_data);
+}
