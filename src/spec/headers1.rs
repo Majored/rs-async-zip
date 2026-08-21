@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-//! 
+//! A set of primitive headers.
 
 use std::io::Cursor;
 
@@ -77,7 +77,7 @@ pub enum Compression {
 #[binrw]
 #[brw(little)]
 #[derive(Debug)]
-// Local file header
+/// A local file header.
 pub struct LFH {
     pub version: u16,
     pub flags: GPF,
@@ -105,7 +105,7 @@ impl KnownSize for LFH {
 #[binrw]
 #[brw(little)]
 #[derive(Clone, Debug)]
-// Central directory record header
+/// A central directory record header.
 pub struct CDRH {
     pub v_made_by: u16,
     pub v_needed: u16,
@@ -132,7 +132,7 @@ impl KnownSize for CDRH {
 #[binrw]
 #[brw(little)]
 #[derive(Debug, Clone)]
-// End of central directory record header
+/// An end of central directory record header.
 pub struct EOCDRH {
     pub(crate) disk_num: u16,
     pub(crate) start_cent_dir_disk: u16,
@@ -149,8 +149,8 @@ impl KnownSize for EOCDRH {
 
 #[binrw]
 #[brw(little)]
-#[derive(Clone, Debug)]
-// General purpose flags
+#[derive(Clone, Debug, PartialEq)]
+/// A general purpose flag.
 pub struct GPF(u16);
 
 impl GPF {
@@ -166,7 +166,7 @@ impl GPF {
 #[binrw]
 #[brw(little)]
 #[derive(Clone, Debug)]
-/// ZIP64 end of central directory record header
+/// A ZIP64 end of central directory record header.
 pub struct EOCDR64H {
     pub size_of_zip64_end_of_cd_record: u64,
     pub version_made_by: u16,
@@ -186,7 +186,7 @@ impl KnownSize for EOCDR64H {
 #[binrw]
 #[brw(little)]
 #[derive(Clone, Debug)]
-/// ZIP64 end of central directory locator header
+/// A ZIP64 end of central directory locator header.
 pub struct EOCDL64H {
     pub number_of_disk_with_start_of_zip64_end_of_central_directory: u32,
     pub relative_offset: u64,

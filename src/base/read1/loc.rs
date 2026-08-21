@@ -28,14 +28,12 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> Method0<R> {
     }
 
     /// Locates the EOCDR and returns the offset at which it begins.
-    pub async fn locate(&mut self) -> Result<u64> {
-        let length = self.reader.seek(SeekFrom::End(0)).await?;
-
-        if length < EOCDR_FIXED_SIZE {
+    pub async fn locate(&mut self, eor: u64) -> Result<u64> {
+        if eor < EOCDR_FIXED_SIZE {
             return Err(ZipError::UnableToLocateEOCDR);
         }
 
-        let mut offset = length.saturating_sub(EOCDR_FURTHEST_BACK);
+        let mut offset = eor.saturating_sub(EOCDR_FURTHEST_BACK);
         self.reader.seek(SeekFrom::Start(offset)).await?;
 
         let signature = u32::from(Signature::EOCDRH).to_le_bytes();
@@ -61,7 +59,7 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> Method0<R> {
         // ambiguity, we take the last whose declared comment length runs exactly to EOF.
         if matcher.candidates.len() > 1 {
             for candidate in matcher.candidates.iter().rev() {
-                if self.comment_reaches_eof(*candidate, length).await? {
+                if self.comment_reaches_eof(*candidate, eor).await? {
                     return Ok(*candidate + Signature::SIZE as u64);
                 }
             }

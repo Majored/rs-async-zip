@@ -1,6 +1,8 @@
 // Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+//! A set of extra-field specific headers and data structures.
+
 use std::io::{Cursor, Seek};
 
 use binrw::helpers::{count, until_eof};

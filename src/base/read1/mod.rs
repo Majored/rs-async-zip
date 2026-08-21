@@ -33,7 +33,7 @@
 //! stream a ZIP archive. In most cases, saving the stream to disk and using the seek reader is a better option.
 //! 
 //! ### Advantages
-//! - Operating in low-memory environments. You control buffering, we only read headers in one-by-one.
+//! - Operating in low-memory environments.
 //! 
 //! ### Limitations
 //! - The inability to read ZIP entries using the combination of a data descriptor and the Stored compression method.
@@ -46,7 +46,13 @@
 //!     - uncompressed size
 //! 
 //! ## Handling untrusted archives
-//! ZIP bombs, malformed archives, filename security, nested ZIP depths
+//! There are many footguns when reading untrusted ZIP archives including malformed archives,
+//! insecure file names, nested archives, ZIP differentials, and more. This crate provides a
+//! set of options to help mitigate *some* of these risks.
+//! 
+//! [`ZipOptions::untrusted`] is the recommended starting point, as it enables every validation and
+//! bounds everything which we are able to bound using a reasonable default. See [`ZipOptions`] for
+//! more information. File names are the one concern which we don't currently handle on your behalf.
 
 // We provide documentation about the differences between the two readers in this module. And then usage-level
 // information in the submodules.
@@ -57,15 +63,17 @@ pub(crate) mod valid;
 pub(crate) mod opts;
 pub(crate) mod loc;
 
-pub mod seek;
-
 #[allow(unused_imports)]
 use futures_lite::AsyncSeek;
 #[allow(unused_imports)]
 use futures_lite::AsyncBufRead;
 #[allow(unused_imports)]
 use futures_lite::io::BufReader;
+#[allow(unused_imports)]
+use crate::spec::string::ZipString;
 
 // Public API
+pub mod seek;
+
 pub use file::ZipFileReader;
 pub use opts::ZipOptions;

@@ -44,4 +44,7 @@ and this project adheres to [Semantic Versioning](https://doc.rust-lang.org/carg
 
 ### Security
 
+## [0.0.18] - 2025-08-09
+- Start of this changelog.
+
 [Unreleased]: https://github.com/Majored/rs-async-zip/compare/v0.0.18...HEAD

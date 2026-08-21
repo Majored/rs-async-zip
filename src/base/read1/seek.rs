@@ -9,10 +9,12 @@
 //! # Opening an archive
 //! ```no_run
 //! # use async_zip::base::read1::seek::ZipArchiveReader;
-//! # use async_zip::base::read1::opts::ZipOptions;
+//! # use async_zip::base::read1::ZipOptions;
+//! # use async_zip::error::Result;
 //! # use futures_lite::io::Cursor;
+//! # use std::sync::Arc;
 //! # 
-//! # async fn main() {
+//! # async fn main2() {
 //! // With default options
 //! let data = Cursor::new(Vec::new()); // Replace with your ZIP archive data
 //! let reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
@@ -20,10 +22,11 @@
 //! // Or with custom options; 
 //! let options = ZipOptions { max_num_cd_files: 16, ..Default::default() };
 //! let data = Cursor::new(Vec::new()); // Replace with your ZIP archive data
-//! let reader = ZipArchiveReader::open(data, options).await.expect("failed to open zip archive");
+//! let reader = ZipArchiveReader::open_with_options(data, options).await.expect("failed to open zip archive");
 //! 
 //! // Or with a known inner state (e.g. from a previous reader);
 //! let inner = reader.inner().clone();
+//! let data = Cursor::new(Vec::new()); // Replace with your ZIP archive data
 //! let reader = ZipArchiveReader::new_with_inner(data, inner);
 //! 
 //! // Or using a factory to produce new readers over the same archive concurrently/in parallel.
@@ -40,39 +43,41 @@
 //! # use async_zip::base::read1::seek::ZipArchiveReader;
 //! # use futures_lite::io::Cursor;
 //! # 
-//! # async fn main() {
+//! # async fn main2() {
 //! let data = Cursor::new(Vec::new()); // Replace with your ZIP archive data
 //! let reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
 //! 
 //! // Enumerate through the files in the archive
-//! for (i, meta) in reader.metas().iter().enumerate() {
-//!    println!("File {i}: {:?}", meta.file_name);
+//! for (i, cdr) in reader.cdrs().iter().enumerate() {
+//!    println!("File {i}: {:?}", cdr.insecure_file_name);
 //! }
 //! 
-//! // Or find a file by its filename;
-//! let index = reader.find(b"hello.txt").next().expect("failed to look up filename");
+//! // Or find a file by its file name;
+//! let index = reader.find(b"hello.txt").expect("loaded cdrs").next().expect("failed to look up file name");
+//! # }
 //! ```
 //! 
 //! # Opening a file for reading
 //! ```no_run
 //! # use async_zip::base::read1::seek::ZipArchiveReader;
-//! # use futures_lite::io::Cursor;
+//! # use futures_lite::io::{Cursor, AsyncReadExt};
 //! # 
-//! # async fn main() {
+//! # async fn main2() {
 //! let data = Cursor::new(Vec::new()); // Replace with your ZIP archive data
-//! let reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
+//! let mut reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
 //! 
 //! // Read files sequentially by index without consuming the source reader
-//! let file = reader.file(0).await.expect("failed to open file at index 0");
-//! let content = file.read_to_string().await.expect("failed to read file contents");
+//! let mut file = reader.file(0).await.expect("failed to open file at index 0");
+//! let mut content = String::new();
+//! file.read_to_string(&mut content).await.expect("failed to read file contents");
 //! 
 //! // Or start reading a file in oneshot fashion, consuming the source reader in the process
-//! let file = reader.file_oneshot(0).await.expect("failed to open file at index 0");
-//! let content = file.read_to_string().await.expect("failed to read file contents");
+//! let mut file = reader.file_oneshot(0).await.expect("failed to open file at index 0");
+//! let mut content = String::new();
+//! file.read_to_string(&mut content).await.expect("failed to read file contents");
 //! # }
 //! ```
 
-#[expect(unused_imports)]
 use crate::error::ZipError;
 
 use std::{io::SeekFrom, ops::Deref, sync::Arc};
@@ -159,11 +164,11 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> ZipArchiveReader<R> {
         }
 
         // Seek to the CDR offset.
-        let offset = self.cdr_offsets.get(index).unwrap(); // TODO
+        let offset = self.cdr_offsets.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
         self.reader.seek(SeekFrom::Start(*offset)).await?;
 
         // Read the CDR.
-        Ops::new(&mut self.reader, &self.inner.options).cdr().await
+        Ops::new(&mut self.reader, &self.inner.options).cdr(true).await
     }
 
     async fn file_open(&mut self, index: usize) -> Result<LF> {
@@ -190,13 +195,18 @@ pub struct ZipArchiveInner {
     pub(crate) loaded_cdrs: Vec<CDR>,
     pub(crate) options: ZipOptions,
     pub(crate) combined_eocdr: CombinedEOCDR,
+    pub(crate) eor: u64,
 }
 
 impl ZipArchiveInner {
-    /// Finds all the file indexes with the given filename. An iterator is returned because the ZIP specification
-    /// allows for multiple files with the same filename, and most callers only need the first match.
-    pub fn find<'a>(&'a self, filename: &'a [u8]) -> impl Iterator<Item = usize> + 'a {
-        self.loaded_cdrs.iter().enumerate().filter_map(move |(i, cdr)| (cdr.insecure_file_name == filename).then_some(i))
+    /// Finds all the file indexes with the given file name. An iterator is returned because the ZIP specification
+    /// allows for multiple files with the same file name, and most callers only need the first match.
+    pub fn find<'a>(&'a self, file_name: &'a [u8]) -> Result<impl Iterator<Item = usize> + 'a> {
+        if  self.combined_eocdr.num_entries() > self.options.max_num_cd_files_load {
+            return Err(ZipError::CDRsNotLoaded);
+        }
+
+        Ok(self.loaded_cdrs.iter().enumerate().filter_map(move |(i, cdr)| (cdr.insecure_file_name == file_name).then_some(i)))
     }
 
     pub fn cdrs(&self) -> &[CDR] {

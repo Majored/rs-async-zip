@@ -1,11 +1,13 @@
 // Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+//! A set of higher-level constructs wrapping the primitive headers & variable-length data.
+
 use binrw::binrw;
 
-use crate::spec::{extra::{EF, EFD, EFID, Zip64EI, efs}, headers1::{CDRH, EOCDL64H, EOCDR64H, EOCDRH, LFH}, string::ZipString};
+use crate::{error::{Result, ZipError}, spec::{extra::{EF, EFD, EFID, Zip64EI, efs}, headers1::{CDRH, EOCDL64H, EOCDR64H, EOCDRH, LFH}, string::ZipString}};
 
-// Constructing blocks from raw headers & bytes sequences (like filenames, comments, etc).
+// Constructing blocks from raw headers & bytes sequences (like file names, comments, etc).
 //
 // Every construct here is parsed by binrw from an in-memory buffer. The lengths of the
 // variable-length parts are always stated by the fixed-size header which precedes them,
@@ -19,40 +21,39 @@ use crate::spec::{extra::{EF, EFD, EFID, Zip64EI, efs}, headers1::{CDRH, EOCDL64
 pub struct LF {
     pub lfh: LFH,
     #[br(count = lfh.file_name_length, args { utf8: lfh.flags.language_encoding_flag() })]
-    /// This filename is insecure. Untrusted values may contain path traversal sequences or similar.
+    /// This file name is insecure. Untrusted values may contain path traversal sequences or similar.
     pub insecure_file_name: ZipString,
     #[br(parse_with = efs, args(lfh.extra_field_length.into()))]
     pub efs: Vec<EF>,
 }
 
 impl LF {
-    // TODO: Add a Info-ZIP-aware filename accessor that uses the
+    // TODO: Add a Info-ZIP-aware file name accessor that uses the
 
     /// A ZIP-64-aware accessor for the uncompressed size of the file.
-    pub fn uncompressed_size(&self) -> u64 {
+    pub fn uncompressed_size(&self) -> Result<u64> {
         combined_accessor(self.lfh.uncompressed_size, &self.efs, |ei_data| ei_data.uncompressed_size)
     }
 
     /// A ZIP-64-aware accessor for the compressed size of the file.
-    pub fn compressed_size(&self) -> u64 {
+    pub fn compressed_size(&self) -> Result<u64> {
         combined_accessor(self.lfh.compressed_size, &self.efs, |ei_data| ei_data.compressed_size)
     }
 }
 
-fn combined_accessor(zip32: u32, extra_fields: &[EF], accessor: impl Fn(&Zip64EI) -> u64) -> u64 {
+fn combined_accessor(zip32: u32, extra_fields: &[EF], accessor: impl Fn(&Zip64EI) -> u64) -> Result<u64> {
     if zip32 != u32::MAX {
-        return zip32.into();
+        return Ok(zip32.into());
     }
 
     let zip64ei = extra_fields.iter().find(|field| {
         matches!(field.efh.efid, EFID::EI64)
     });
-
     if let Some(EF { efh: _, efd: EFD::Zip64EI(data) }) = zip64ei {
-        return accessor(data);
+        return Ok(accessor(data));
     }
-
-    unreachable!();
+    
+    return Err(ZipError::NoZip64ExtendedInformation);
 }
 
 #[binrw]
@@ -63,7 +64,7 @@ pub struct CDR {
     /// The central directory record header.
     pub cdrh: CDRH,
     #[br(count = cdrh.file_name_length, args { utf8: cdrh.flags.language_encoding_flag() })]
-    /// This filename is insecure. Untrusted values may contain path traversal sequences or similar.
+    /// This file name is insecure. Untrusted values may contain path traversal sequences or similar.
     pub insecure_file_name: ZipString,
     #[br(parse_with = efs, args(cdrh.extra_field_length.into()))]
     /// A list of extra fields.
@@ -73,19 +74,23 @@ pub struct CDR {
 }
 
 impl CDR {
-    pub fn lfh_offset(&self) -> u64 {
+    pub fn lfh_offset(&self) -> Result<u64> {
         // TODO: unwrap should be an err instead, in case it's a malformed ZIP.
         combined_accessor(self.cdrh.lh_offset, &self.efs, |ei_data| ei_data.relative_offset.unwrap())
     }
 
     /// A ZIP-64-aware accessor for the uncompressed size of the file.
-    pub fn uncompressed_size(&self) -> u64 {
+    pub fn uncompressed_size(&self) -> Result<u64> {
         combined_accessor(self.cdrh.uncompressed_size, &self.efs, |ei_data| ei_data.uncompressed_size)
     }
 
     /// A ZIP-64-aware accessor for the compressed size of the file.
-    pub fn compressed_size(&self) -> u64 {
+    pub fn compressed_size(&self) -> Result<u64> {
         combined_accessor(self.cdrh.compressed_size, &self.efs, |ei_data| ei_data.compressed_size)
+    }
+
+    pub fn find_ef(&self, efid: EFID) -> Option<&EF> {
+        self.efs.iter().find(|field| field.efh.efid == efid)
     }
 }
 

@@ -32,6 +32,8 @@ pub enum ZipError {
 
     #[error("invalid seek method for locating the EOCDR")]
     InvalidEOCDRSeekMethod,
+    #[error("cannot find() when the CDRs have not been loaded")]
+    CDRsNotLoaded,
 
     #[error("feature not supported: '{0}'")]
     FeatureNotSupported(&'static str),
@@ -87,18 +89,23 @@ pub enum ZipError {
     UncompressedSizeHeaderMismatch,
     #[error("invalid CRC header match")]
     CrcHeaderMismatch,
-    #[error("invalid filename header match")]
-    FilenameHeaderMismatch,
+    #[error("invalid file name header match")]
+    FileNameHeaderMismatch,
     #[error("invalid compression header match")]
     CompressionHeaderMismatch,
     #[error("invalid number of files ({0}), declared ({1})")]
     NumFilesMismatch(u64, u64),
     #[error("invalid uncompressed size read ({0}), declared ({1})")]
     UncompressedSizeReadMismatch(u64, u64),
+    #[error("general purpose flag mismatch")]
+    GPFHeaderMismatch,
     #[error("start of reader was not start of archive")]
     SORIsNotSOA,
     #[error("end of reader was not end of archive")]
     EORIsNotEOA,
+
+    #[error("zip64 extended information field was not present when required")]
+    NoZip64ExtendedInformation,
 
     // Limits
 

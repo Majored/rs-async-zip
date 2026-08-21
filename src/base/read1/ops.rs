@@ -64,8 +64,10 @@ impl<'o, R: AsyncRead + Unpin> Ops<'o, R> {
     }
 
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
-    pub async fn cdr(&mut self) -> Result<CDR> {
-        // We don't assert the signature, as this occurs in the caller's loop.
+    pub async fn cdr(&mut self, assert_signature: bool) -> Result<CDR> {
+        if assert_signature {
+            self.assert_signature(Signature::CDH).await?;
+        }
 
         let options = self.options;
         let cdr = crate::spec::headers1::read_record::<CDRH, CDR, R>(&mut self.reader, |cdrh| {
@@ -101,8 +103,10 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
 
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn open(&mut self, opts: ZipOptions) -> Result<ZipArchiveInner> {
+        let eor = self.reader.seek(SeekFrom::End(0)).await?;
+
         let eocdr_offset = match opts.eocdr_locate_method {
-            0 => Method0::new(&mut self.reader).locate().await?,
+            0 => Method0::new(&mut self.reader).locate(eor).await?,
             _ => return Err(ZipError::InvalidEOCDRSeekMethod),
         };
 
@@ -138,8 +142,9 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
             cdr_offsets: offsets,
             options: opts,
             combined_eocdr: combined,
+            eor,
         };
-    
+
         Ok(inner)
     }
 
@@ -150,15 +155,13 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
         self.reader.seek(SeekFrom::Start(zip64_locator_pos)).await?;
         let signature = crate::spec::headers1::read::<Signature, R>(&mut self.reader).await;
 
-        if let Err(ZipError::BinaryParseError(_)) = signature {
+        match signature {
             // Invalid signature, which means there is no ZIP64 locator.
             // TODO: Signature being a discriminant enum makes this a bit awkward.
-            return Ok(None);
-        }
-        if !matches!(signature, Ok(Signature::EOCDL64H)) {
-            // TODO: We could reasonable assume that if we hit a known signature,
-            //       the archive is malformed, not just that it's not ZIP64.
-            return Ok(None);
+            Err(ZipError::BinaryParseError(_)) => return Ok(None),
+            Err(err) => return Err(err),
+            Ok(Signature::EOCDL64H) => {},
+            Ok(_) => return Ok(None),
         }
 
         let eocdl64h = crate::spec::headers1::read::<EOCDL64H, R>(&mut self.reader).await?;
@@ -173,11 +176,12 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn cd(&mut self, options: &ZipOptions, eocdr: &CombinedEOCDR) -> Result<(Vec<CDR>, Vec<u64>)> {
         let cdrs_capacity = eocdr.num_entries().min(options.max_num_cd_files_load);
-        let mut offset = eocdr.cd_offset();
+        let offsets_capacity = eocdr.num_entries().min(options.max_num_cd_files);
+        let load_cdrs = eocdr.num_entries() <= options.max_num_cd_files_load;
 
-        // We load all the offsets regardless as we need to seek to the CDRs at a minimum.
-        let mut offsets = Vec::with_capacity(eocdr.num_entries() as usize);
+        let mut offsets = Vec::with_capacity(offsets_capacity as usize);
         let mut cdrs = Vec::with_capacity(cdrs_capacity as usize);
+        let mut offset = eocdr.cd_offset();
 
         loop {
             let signature = crate::spec::headers1::read::<Signature, R>(&mut self.reader).await?;
@@ -185,13 +189,16 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
             if signature != Signature::CDH {
                 break;
             }
+            if offsets.len() >= eocdr.num_entries() as usize {
+                // Got another header, but invalid.
+                // TODO
+            }
 
             offsets.push(offset);
 
-            let cdr = Ops::new(&mut self.reader, options).cdr().await?;
+            let cdr = Ops::new(&mut self.reader, options).cdr(false).await?;
 
-            // A non-zero capacity means we are loading CDRs into memory, and empty archives shouldn't get here.
-            if cdrs.capacity() != 0 {
+            if load_cdrs {
                 cdrs.push(cdr);
             }
 
@@ -211,7 +218,7 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn file(&mut self, cdr: CDR, opts: &ZipOptions) -> Result<LF> {
         // We read the LF instead of just using the CDR because the extra fields may differ (and so the data offset).
-        self.reader.seek(SeekFrom::Start(cdr.lfh_offset() as u64)).await?;
+        self.reader.seek(SeekFrom::Start(cdr.lfh_offset()?)).await?;
         let mut ops = Ops::new(&mut self.reader, opts);
         let mut lf = ops.lf().await?;
 
@@ -219,11 +226,14 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
 
         if lf.lfh.flags.data_descriptor() {
             // We know the values from the CDR are 'good', because they were written after the file finished writing.
+            
             lf.lfh.compressed_size = cdr.cdrh.compressed_size;
             lf.lfh.uncompressed_size = cdr.cdrh.uncompressed_size;
             lf.lfh.crc = cdr.cdrh.crc;
-            
-            // TODO: copy over Zip64EI
+
+            if let Some(zip64ei) = cdr.find_ef(crate::spec::extra::EFID::EI64) {
+                lf.efs.push(zip64ei.clone());
+            }
         }
 
         Ok(lf)

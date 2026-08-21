@@ -37,7 +37,7 @@ pub struct ZipFileReader<R> {
 
 impl<R: AsyncBufRead + Unpin> ZipFileReader<R> {
     pub(crate) fn new(reader: R, lf: LF, cdr: Option<CDR>, opts: ZipOptions) -> Result<Self> {
-        let reader = reader.take(lf.compressed_size());
+        let reader = reader.take(lf.compressed_size()?);
         let reader = CompressedReader::new(reader, lf.lfh.compression)?;
 
         Ok(Self { reader, hasher: Hasher::default(), read: 0, lf, cdr, opts })
@@ -69,8 +69,7 @@ impl<R: AsyncBufRead + Unpin> AsyncRead for ZipFileReader<R> {
             return Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, "Max uncompressed size exceeded")));
         }
         if written == 0 && self.opts.validate_file_on_eof {
-            // We hit EOF so we can validate the read, but we have to return a std::io::Result.
-            let crc = std::mem::take(&mut self.hasher).finalize();
+            let crc = self.hasher.clone().finalize();
             crate::base::read1::valid::validate_file_eof(&self.lf, crc, self.read, &self.opts)?;
         }
 

@@ -10,7 +10,7 @@ async fn single_file_deflate() {
     let data = Cursor::new(&include_bytes!("macos_single_file_deflate.zip"));
 
     let mut archive_reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
-    let mut find_iter = archive_reader.find(b"hello.txt");
+    let mut find_iter = archive_reader.find(b"hello.txt").expect("we've loaded cdrs");
     let file_index = find_iter.next().expect("failed to find file");
     assert!(find_iter.next().is_none());
 

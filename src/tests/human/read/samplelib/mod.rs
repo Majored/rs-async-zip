@@ -28,7 +28,9 @@ async fn simple() {
     assert_eq!(archive_reader.cdrs().len(), 1);
     // TODO: comment
 
-    let index = archive_reader.find(b"hello.txt").next().expect("failed to find file");
+    let mut iter = archive_reader.find(b"hello.txt").expect("we've loaded cdrs");
+    let index = iter.next().expect("failed to find file");
+    drop(iter);
     let mut file_reader = archive_reader.file(index).await.expect("failed to get file reader");
 
     let mut buffer = String::new();
@@ -47,7 +49,9 @@ async fn with_html() {
     assert_eq!(archive_reader.eocdr().num_entries(), 1);
     assert_eq!(archive_reader.cdrs().len(), 1);
 
-    let index = archive_reader.find(b"index.html").next().expect("failed to find file");
+    let mut iter = archive_reader.find(b"index.html").expect("we've loaded cdrs");
+    let index = iter.next().expect("failed to find file");
+    drop(iter);
     let mut file_reader = archive_reader.file(index).await.expect("failed to get file reader");
 
     let mut buffer = String::new();

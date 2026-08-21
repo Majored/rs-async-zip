@@ -27,7 +27,7 @@ pub struct ZipOptions {
 
     /// The method to use for locating the EOCDR.
     /// 
-    /// 0 = optimised for maximumising AsyncBufRead, OS-level read-ahead if filesystem file.
+    /// 0 = optimised for buffered readers & OS-level file read-ahead.
     pub eocdr_locate_method: u8,
 
     // VALIDATION
@@ -41,13 +41,12 @@ pub struct ZipOptions {
     /// Whether to validate that the CRC in the LFH matches the CDR.
     pub validate_crc_header_match: bool,
 
-    /// Whether to validate that the filename in the LFH matches the CDR.
-    pub validate_filename_header_match: bool,
+    /// Whether to validate that the file name in the LFH matches the CDR.
+    pub validate_file_name_header_match: bool,
 
     /// Whether to validate that the compression method in the LFH matches the CDR.
     pub validate_compression_header_match: bool,
 
-    // RODO: max num of files
     pub validate_num_central_directory_files: bool,
 
     /// Validates the CRC of the actual read data matches the expected value.
@@ -63,12 +62,15 @@ pub struct ZipOptions {
     /// 
     pub validate_file_on_eof: bool,
 
-    /// Validates that the start of the reader is also the start of archive.
-    /// TODO
+    // Validates that the start of the reader is also the start of archive.
+    // TODO
     // pub validate_sor_is_soa: bool,
 
     /// Validates that the end of the reader is also the end of archive.
     pub validate_eor_is_eoa: bool,
+
+    /// Whether to validate that the GPF in the LFH matches the CDR.
+    pub validate_gpf_header_match: bool,
 
     // LIMITS
 
@@ -117,12 +119,13 @@ impl Default for ZipOptions {
             validate_compressed_size_header_match: true,
             validate_uncompressed_size_header_match: true,
             validate_crc_header_match: true,
-            validate_filename_header_match: true,
+            validate_file_name_header_match: true,
             validate_compression_header_match: true,
             validate_num_central_directory_files: true,
             validate_crc_match_against_read: true,
             validate_uncompressed_size_match_against_read: true,
             validate_file_on_eof: true,
+            validate_gpf_header_match: true,
             // validate_sor_is_soa: true,
             validate_eor_is_eoa: true,
             max_uncompressed_size_per_file: u64::MAX,

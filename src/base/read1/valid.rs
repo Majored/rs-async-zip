@@ -51,29 +51,32 @@ pub fn validate_archive(eocdrh: &CombinedEOCDR, opts: &ZipOptions) -> Result<()>
 }
 
 pub fn validate_file(lf: &LF, cdr: &CDR, options: &ZipOptions) -> Result<()> {
-    let dd = !cdr.cdrh.flags.data_descriptor();
+    let dd = cdr.cdrh.flags.data_descriptor();
 
-    if options.validate_compressed_size_header_match && dd && lf.compressed_size() != cdr.compressed_size() {
+    if options.validate_compressed_size_header_match && !dd && lf.compressed_size()? != cdr.compressed_size()? {
         return Err(crate::error::ZipError::CompressedSizeHeaderMismatch);
     }
-    if options.validate_uncompressed_size_header_match && dd && lf.uncompressed_size() != cdr.uncompressed_size() {
+    if options.validate_uncompressed_size_header_match && !dd && lf.uncompressed_size()? != cdr.uncompressed_size()? {
         return Err(crate::error::ZipError::UncompressedSizeHeaderMismatch);
     }
-    if options.validate_crc_header_match && dd && lf.lfh.crc != cdr.cdrh.crc {
+    if options.validate_crc_header_match && !dd && lf.lfh.crc != cdr.cdrh.crc {
         return Err(crate::error::ZipError::CrcHeaderMismatch);
     }
 
-    if options.validate_filename_header_match && lf.insecure_file_name != cdr.insecure_file_name {
-        return Err(crate::error::ZipError::FilenameHeaderMismatch);
+    if options.validate_file_name_header_match && lf.insecure_file_name != cdr.insecure_file_name {
+        return Err(crate::error::ZipError::FileNameHeaderMismatch);
     }
     if options.validate_compression_header_match && lf.lfh.compression != cdr.cdrh.compression {
         return Err(crate::error::ZipError::CompressionHeaderMismatch);
     }
+    if options.validate_gpf_header_match && lf.lfh.flags != cdr.cdrh.flags {
+        return Err(crate::error::ZipError::GPFHeaderMismatch);
+    }
 
-    if cdr.uncompressed_size() > options.max_uncompressed_size_per_file {
+    if cdr.uncompressed_size()? > options.max_uncompressed_size_per_file {
         return Err(crate::error::ZipError::UncompressedSizeAboveMax(options.max_uncompressed_size_per_file));
     }
-    if cdr.compressed_size() > options.max_compressed_size_per_file {
+    if cdr.compressed_size()? > options.max_compressed_size_per_file {
         return Err(crate::error::ZipError::CompressedSizeAboveMax(options.max_compressed_size_per_file));
     }
 
@@ -87,7 +90,7 @@ pub fn validate_file_eof(lf: &LF, crc: u32, read: usize, opts: &ZipOptions) -> s
         }
     }
     if opts.validate_uncompressed_size_match_against_read {
-        if read as u64 != lf.uncompressed_size() {
+        if read as u64 != lf.uncompressed_size().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))? {
             return Err(std::io::Error::new(std::io::ErrorKind::Other, "Uncompressed size check failed"));
         }
     }

@@ -14,7 +14,7 @@ async fn single() {
     let mut archive_reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
     assert!(archive_reader.eocdr().is_zip64());
 
-    let mut find_iter = archive_reader.find(b"-");
+    let mut find_iter = archive_reader.find(b"-").expect("we've loaded cdrs");
     let file_index = find_iter.next().expect("failed to find file");
     assert!(find_iter.next().is_none());
 
