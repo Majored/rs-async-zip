@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-use crate::{base::read1::opts::ZipOptions, error::Result, spec::{constructs::{CDR, CombinedEOCDR, LF}, extra::EF}};
+use crate::{base::read1::opts::ZipOptions, error::Result, spec::{constructs::{CDR, CEOCDR, LF}, extra::EF}};
 
 /// Enforces the configured maximum size of a record's extra field block.
 ///
@@ -30,19 +30,19 @@ pub fn validate_extra_field_num(extra_fields: &[EF], options: &ZipOptions) -> Re
     Ok(())
 }
 
-pub fn validate_archive(eocdrh: &CombinedEOCDR, opts: &ZipOptions) -> Result<()> {
-    let multiple_disks = eocdrh.disk_num() != 0;
-    let not_start_disk = eocdrh.disk_num() != eocdrh.disk_num_start();
-    let not_matching_disk_entries = eocdrh.num_entries() != eocdrh.num_entries_on_disk();
+pub fn validate_archive(ceocdr: &CEOCDR, opts: &ZipOptions) -> Result<()> {
+    let multiple_disks = ceocdr.disk_num()? != 0;
+    let not_start_disk = ceocdr.disk_num()? != ceocdr.disk_num_start()?;
+    let not_matching_disk_entries = ceocdr.num_entries()? != ceocdr.num_entries_on_disk()?;
 
     if multiple_disks || not_start_disk || not_matching_disk_entries {
         return Err(crate::error::ZipError::FeatureNotSupported("disk spanning archives"));
     }
 
-    if eocdrh.cd_size() > opts.max_cd_size_in_bytes {
+    if ceocdr.cd_size()? > opts.max_cd_size_in_bytes {
         return Err(crate::error::ZipError::CDSizeAboveMax(opts.max_cd_size_in_bytes));
     }
-    if eocdrh.num_entries() > opts.max_num_cd_files {
+    if ceocdr.num_entries()? > opts.max_num_cd_files {
         return Err(crate::error::ZipError::NumFilesAboveMax(opts.max_num_cd_files));
     }
 
@@ -83,19 +83,23 @@ pub fn validate_file(lf: &LF, cdr: &CDR, options: &ZipOptions) -> Result<()> {
     Ok(())
 }
 
-pub fn validate_file_eof(lf: &LF, crc: u32, read: usize, opts: &ZipOptions) -> std::io::Result<()> {
-    if opts.validate_crc_match_against_read {
-        if crc != lf.lfh.crc {
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, "CRC32 check failed"));
-        }
+pub fn validate_file_eof(lf: &LF, crc: u32, read: u64, opts: &ZipOptions) -> std::io::Result<()> {
+    if opts.validate_crc_match_against_read && crc != lf.lfh.crc {
+        return Err(std_invalid_data_err(crate::error::ZipError::CRC32CheckError));
     }
     if opts.validate_uncompressed_size_match_against_read {
-        if read as u64 != lf.uncompressed_size().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))? {
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, "Uncompressed size check failed"));
+        let declared = lf.uncompressed_size().map_err(std_invalid_data_err)?;
+
+        if read != declared {
+            return Err(std_invalid_data_err(crate::error::ZipError::UncompressedSizeReadMismatch(read, declared)));
         }
     }
 
     // TODO: validate compressed size, but we need to do a calculation of the source reader offsets.
 
     Ok(())
+}
+
+pub(crate) fn std_invalid_data_err(error: crate::error::ZipError) -> std::io::Error {
+    std::io::Error::new(std::io::ErrorKind::InvalidData, error)
 }

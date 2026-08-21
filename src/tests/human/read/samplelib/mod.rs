@@ -12,8 +12,8 @@ async fn empty() {
     let data = Cursor::new(&include_bytes!("sample-empty.zip"));
     let archive_reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
 
-    assert_eq!(archive_reader.eocdr().is_zip64(), false);
-    assert_eq!(archive_reader.eocdr().cd_size(), 0);
+    assert_eq!(archive_reader.ceocdr().is_zip64(), false);
+    assert_eq!(archive_reader.ceocdr().cd_size().expect("valid zip64-aware cd size"), 0);
     assert_eq!(archive_reader.cdrs().len(), 0);
 }
 
@@ -24,7 +24,7 @@ async fn simple() {
 
     let mut archive_reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
    
-    assert_eq!(archive_reader.eocdr().is_zip64(), false);
+    assert_eq!(archive_reader.ceocdr().is_zip64(), false);
     assert_eq!(archive_reader.cdrs().len(), 1);
     // TODO: comment
 
@@ -45,8 +45,8 @@ async fn with_html() {
 
     let mut archive_reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
    
-    assert_eq!(archive_reader.eocdr().is_zip64(), false);
-    assert_eq!(archive_reader.eocdr().num_entries(), 1);
+    assert_eq!(archive_reader.ceocdr().is_zip64(), false);
+    assert_eq!(archive_reader.ceocdr().num_entries().expect("valid zip64 aware num of entries"), 1);
     assert_eq!(archive_reader.cdrs().len(), 1);
 
     let mut iter = archive_reader.find(b"index.html").expect("we've loaded cdrs");

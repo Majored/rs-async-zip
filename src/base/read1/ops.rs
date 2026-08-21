@@ -15,7 +15,7 @@ use crate::base::read1::loc::Method0;
 use crate::base::read1::opts::ZipOptions;
 use crate::base::read1::seek::ZipArchiveInner;
 use crate::error::ZipError;
-use crate::spec::constructs::CombinedEOCDR;
+use crate::spec::constructs::CEOCDR;
 use crate::spec::headers1::CDRH;
 use crate::spec::constructs::{CDR, LF, EOCDR};
 use crate::spec::headers1::EOCDR64H;
@@ -114,7 +114,7 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
         self.reader.seek(SeekFrom::Start(eocdr_offset + Signature::SIZE as u64)).await?;
 
         let eocdr = Ops::new(&mut self.reader, &opts).eocdr().await?;
-        let mut combined = CombinedEOCDR { eocdr, eocdr64: None, eocdl64: None };
+        let mut ceocdr = CEOCDR { eocdr, eocdr64: None, eocdl64: None };
 
         if opts.validate_eor_is_eoa {
             // TODO: We should be able to do this without any seeks. Though, attempting a one-byte
@@ -129,19 +129,19 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
         }
 
         if let Some((locator, record)) = SeekOps::new(&mut self.reader).zip64(eocdr_offset, &opts).await? {
-            combined.eocdr64 = Some(record);
-            combined.eocdl64 = Some(locator);
+            ceocdr.eocdr64 = Some(record);
+            ceocdr.eocdl64 = Some(locator);
         }
 
-        self.reader.seek(SeekFrom::Start(combined.cd_offset())).await?;
-        crate::base::read1::valid::validate_archive(&combined, &opts)?;
-        let (loaded_cdrs, offsets) = SeekOps::new(&mut self.reader).cd(&opts, &combined).await?;
+        self.reader.seek(SeekFrom::Start(ceocdr.cd_offset()?)).await?;
+        crate::base::read1::valid::validate_archive(&ceocdr, &opts)?;
+        let (loaded_cdrs, offsets) = SeekOps::new(&mut self.reader).cd(&opts, &ceocdr).await?;
 
         let inner = ZipArchiveInner {
             loaded_cdrs,
             cdr_offsets: offsets,
             options: opts,
-            combined_eocdr: combined,
+            ceocdr,
             eor,
         };
 
@@ -174,14 +174,14 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
     }
 
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
-    pub async fn cd(&mut self, options: &ZipOptions, eocdr: &CombinedEOCDR) -> Result<(Vec<CDR>, Vec<u64>)> {
-        let cdrs_capacity = eocdr.num_entries().min(options.max_num_cd_files_load);
-        let offsets_capacity = eocdr.num_entries().min(options.max_num_cd_files);
-        let load_cdrs = eocdr.num_entries() <= options.max_num_cd_files_load;
+    pub async fn cd(&mut self, options: &ZipOptions, ceocdr: &CEOCDR) -> Result<(Vec<CDR>, Vec<u64>)> {
+        let cdrs_capacity = ceocdr.num_entries()?.min(options.max_num_cd_files_load);
+        let offsets_capacity = ceocdr.num_entries()?.min(options.max_num_cd_files);
+        let load_cdrs = ceocdr.num_entries()? <= options.max_num_cd_files_load;
 
         let mut offsets = Vec::with_capacity(offsets_capacity as usize);
         let mut cdrs = Vec::with_capacity(cdrs_capacity as usize);
-        let mut offset = eocdr.cd_offset();
+        let mut offset = ceocdr.cd_offset()?;
 
         loop {
             let signature = crate::spec::headers1::read::<Signature, R>(&mut self.reader).await?;
@@ -189,7 +189,7 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
             if signature != Signature::CDH {
                 break;
             }
-            if offsets.len() >= eocdr.num_entries() as usize {
+            if offsets.len() >= ceocdr.num_entries()? as usize {
                 // Got another header, but invalid.
                 // TODO
             }
@@ -207,9 +207,9 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
         }
 
         // Validate that the number of CDRs read matches the number of entries in the EOCDR
-        let num_matched = offsets.len() == eocdr.num_entries() as usize;
+        let num_matched = offsets.len() == ceocdr.num_entries()? as usize;
         if options.validate_num_central_directory_files && !num_matched {
-            return Err(crate::error::ZipError::NumFilesMismatch(offsets.len() as u64, eocdr.num_entries()));
+            return Err(crate::error::ZipError::NumFilesMismatch(offsets.len() as u64, ceocdr.num_entries()?));
         }
 
         Ok((cdrs, offsets))

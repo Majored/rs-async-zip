@@ -107,6 +107,9 @@ pub enum ZipError {
     #[error("zip64 extended information field was not present when required")]
     NoZip64ExtendedInformation,
 
+    #[error("zip64 end of central directory record was not present when required")]
+    NoZip64EOCDR,
+
     // Limits
 
     #[error("number of files exceeds the maximum allowed ({0})")]

@@ -31,7 +31,7 @@ pub struct ZipFileReader<R> {
     opts: ZipOptions,
     cdr: Option<CDR>,
     hasher: Hasher,
-    read: usize,
+    read: u64,
     lf: LF,
 }
 
@@ -63,17 +63,18 @@ impl<R: AsyncBufRead + Unpin> AsyncRead for ZipFileReader<R> {
     fn poll_read(mut self: Pin<&mut Self>,cx: &mut Context<'_>, buf: &mut [u8]) -> Poll<std::io::Result<usize>> {
         let written = Pin::new(&mut self.reader).poll_read(cx, buf);
         let written = poll_result_ok!(ready!(written));
-        self.read += written;
+        self.read += written as u64;
 
-        if self.read as u64 > self.opts.max_uncompressed_size_per_file {
-            return Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, "Max uncompressed size exceeded")));
+        if self.read > self.opts.max_uncompressed_size_per_file {
+            let error = crate::error::ZipError::UncompressedSizeAboveMax(self.opts.max_uncompressed_size_per_file);
+            return Poll::Ready(Err(crate::base::read1::valid::std_invalid_data_err(error)));
         }
         if written == 0 && self.opts.validate_file_on_eof {
             let crc = self.hasher.clone().finalize();
             crate::base::read1::valid::validate_file_eof(&self.lf, crc, self.read, &self.opts)?;
         }
 
-        Pin::new(&mut self.hasher).update(&buf[..written]);
+        self.hasher.update(&buf[..written]);
         Poll::Ready(Ok(written))
     }
 }

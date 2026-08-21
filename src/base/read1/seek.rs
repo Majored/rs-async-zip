@@ -83,7 +83,7 @@ use crate::error::ZipError;
 use std::{io::SeekFrom, ops::Deref, sync::Arc};
 use futures_lite::{AsyncBufRead, AsyncSeek, AsyncSeekExt};
 
-use crate::{base::read1::{file::ZipFileReader, ops::{Ops, SeekOps}, opts::ZipOptions}, error::Result, spec::constructs::{CDR, CombinedEOCDR, LF}};
+use crate::{base::read1::{file::ZipFileReader, ops::{Ops, SeekOps}, opts::ZipOptions}, error::Result, spec::constructs::{CDR, CEOCDR, LF}};
 
 /// A ZIP archive reader which acts over a seekable source.
 pub struct ZipArchiveReader<R> {
@@ -194,7 +194,7 @@ pub struct ZipArchiveInner {
     pub(crate) cdr_offsets: Vec<u64>,
     pub(crate) loaded_cdrs: Vec<CDR>,
     pub(crate) options: ZipOptions,
-    pub(crate) combined_eocdr: CombinedEOCDR,
+    pub(crate) ceocdr: CEOCDR,
     pub(crate) eor: u64,
 }
 
@@ -202,7 +202,7 @@ impl ZipArchiveInner {
     /// Finds all the file indexes with the given file name. An iterator is returned because the ZIP specification
     /// allows for multiple files with the same file name, and most callers only need the first match.
     pub fn find<'a>(&'a self, file_name: &'a [u8]) -> Result<impl Iterator<Item = usize> + 'a> {
-        if  self.combined_eocdr.num_entries() > self.options.max_num_cd_files_load {
+        if  self.ceocdr.num_entries()? > self.options.max_num_cd_files_load {
             return Err(ZipError::CDRsNotLoaded);
         }
 
@@ -217,8 +217,8 @@ impl ZipArchiveInner {
         &self.options
     }
 
-    pub fn eocdr(&self) -> &CombinedEOCDR {
-        &self.combined_eocdr
+    pub fn ceocdr(&self) -> &CEOCDR {
+        &self.ceocdr
     }
 }
 

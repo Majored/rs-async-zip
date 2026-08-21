@@ -56,6 +56,42 @@ fn combined_accessor(zip32: u32, extra_fields: &[EF], accessor: impl Fn(&Zip64EI
     return Err(ZipError::NoZip64ExtendedInformation);
 }
 
+fn combined_accessor_ecodr_u16(zip16: u16, ceocdr: &CEOCDR, accessor: impl Fn(&EOCDR64H) -> u64) -> Result<u64> {
+    if zip16 != u16::MAX {
+        return Ok(zip16.into());
+    }
+
+    if let Some(record) = &ceocdr.eocdr64 {
+        return Ok(accessor(record));
+    }
+    
+    return Err(ZipError::NoZip64EOCDR);
+}
+
+fn combined_accessor_ecodr_u32(zip32: u32, ceocdr: &CEOCDR, accessor: impl Fn(&EOCDR64H) -> u64) -> Result<u64> {
+    if zip32 != u32::MAX {
+        return Ok(zip32.into());
+    }
+
+    if let Some(record) = &ceocdr.eocdr64 {
+        return Ok(accessor(record));
+    }
+    
+    return Err(ZipError::NoZip64EOCDR);
+}
+
+fn combined_accessor_ecodr_disk(zip32: u16, ceocdr: &CEOCDR, accessor: impl Fn(&EOCDR64H) -> u32) -> Result<u32> {
+    if zip32 != u16::MAX {
+        return Ok(zip32.into());
+    }
+
+    if let Some(record) = &ceocdr.eocdr64 {
+        return Ok(accessor(record));
+    }
+    
+    return Err(ZipError::NoZip64EOCDR);
+}
+
 #[binrw]
 #[brw(little)]
 #[derive(Clone, Debug)]
@@ -108,70 +144,52 @@ pub struct EOCDR {
 
 /// A combined end of central directory record. This struct provides ZIP64-aware accessors.
 #[derive(Clone, Debug)]
-pub struct CombinedEOCDR {
+pub struct CEOCDR {
     pub eocdr: EOCDR,
     pub eocdr64: Option<EOCDR64H>,
     pub eocdl64: Option<EOCDL64H>,
 }
 
-impl CombinedEOCDR {
+impl CEOCDR {
     /// Returns whether this archive is a ZIP64 archive.
     pub fn is_zip64(&self) -> bool {
-        // TODO: I don't think we'd ever have an XOR situation here.
+        let xor1 = self.eocdl64.is_some() && self.eocdr64.is_none();
+        let xor2 = self.eocdl64.is_none() && self.eocdr64.is_some();
+
+        if xor1 || xor2 {
+            unreachable!("we should have returned an Err previously if we had an XOR situation");
+        }
+
         self.eocdr64.is_some() && self.eocdl64.is_some()
     }
 
     /// A ZIP-64-aware accessor for the offset of the start of the central directory.
-    pub fn cd_offset(&self) -> u64 {
-        if let Some(record) = &self.eocdr64 {
-            return record.offset_of_start_of_directory;
-        }
-
-        return self.eocdr.eocdrh.cent_dir_offset.into();
+    pub fn cd_offset(&self) -> Result<u64> {
+        combined_accessor_ecodr_u32(self.eocdr.eocdrh.cent_dir_offset, self, |record| record.offset_of_start_of_directory)
     }
 
     /// A ZIP-64-aware accessor for the number of entries in the central directory.
-    pub fn num_entries(&self) -> u64 {
-        if let Some(record) = &self.eocdr64 {
-            return record.num_entries_in_directory;
-        }
-
-        return self.eocdr.eocdrh.num_of_entries.into();
+    pub fn num_entries(&self) -> Result<u64> {
+        combined_accessor_ecodr_u16(self.eocdr.eocdrh.num_of_entries, self, |record| record.num_entries_in_directory)
     }
 
     /// A ZIP-64-aware accessor for the number of entries in the central directory on this disk.
-    pub fn num_entries_on_disk(&self) -> u64 {
-        if let Some(record) = &self.eocdr64 {
-            return record.num_entries_in_directory_on_disk;
-        }
-
-        return self.eocdr.eocdrh.num_of_entries_disk.into();
+    pub fn num_entries_on_disk(&self) -> Result<u64> {
+        combined_accessor_ecodr_u16(self.eocdr.eocdrh.num_of_entries_disk, self, |record| record.num_entries_in_directory_on_disk)
     }
 
     /// A ZIP-64-aware accessor for the size of the central directory.
-    pub fn cd_size(&self) -> u64 {
-        if let Some(record) = &self.eocdr64 {
-            return record.directory_size;
-        }
-
-        return self.eocdr.eocdrh.size_cent_dir.into();
+    pub fn cd_size(&self) -> Result<u64> {
+        combined_accessor_ecodr_u32(self.eocdr.eocdrh.size_cent_dir, self, |record| record.size_of_zip64_end_of_cd_record)
     }
 
     /// A ZIP-64-aware accessor for the disk number of the central directory.
-    pub fn disk_num(&self) -> u32 {
-        if let Some(record) = &self.eocdr64 {
-            return record.disk_number;
-        }
-
-        return self.eocdr.eocdrh.disk_num.into();
+    pub fn disk_num(&self) -> Result<u32> {
+        combined_accessor_ecodr_disk(self.eocdr.eocdrh.disk_num, self, |record| record.disk_number)
     }
 
     /// A ZIP-64-aware accessor for the disk number of the start of the central directory.
-    pub fn disk_num_start(&self) -> u32 {
-        if let Some(record) = &self.eocdr64 {
-            return record.disk_number_start_of_cd;
-        }
-
-        return self.eocdr.eocdrh.start_cent_dir_disk.into();
+    pub fn disk_num_start(&self) -> Result<u32> {
+        combined_accessor_ecodr_disk(self.eocdr.eocdrh.start_cent_dir_disk, self, |record| record.disk_number_start_of_cd)
     }
 }
