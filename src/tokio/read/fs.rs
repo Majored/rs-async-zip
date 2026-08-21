@@ -88,6 +88,7 @@ struct Inner {
 
 /// A concurrent ZIP reader which acts over a file system path.
 #[derive(Clone)]
+#[deprecated(since = "0.0.19", note = "Please use the `read1` module instead, as this module will be removed in a future release.")]
 pub struct ZipFileReader {
     inner: Arc<Inner>,
 }
