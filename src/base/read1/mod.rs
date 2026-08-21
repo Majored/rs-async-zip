@@ -69,6 +69,8 @@ use futures_lite::AsyncSeek;
 use futures_lite::AsyncBufRead;
 #[allow(unused_imports)]
 use futures_lite::io::BufReader;
+use crate::error::Result;
+use crate::error::ZipError;
 #[allow(unused_imports)]
 use crate::spec::string::ZipString;
 
@@ -77,3 +79,11 @@ pub mod seek;
 
 pub use file::ZipFileReader;
 pub use opts::ZipOptions;
+
+pub(crate) fn valid_offset(offset: u64, eor: u64) -> Result<u64> {
+    if offset > eor {
+        return Err(ZipError::InvalidOffset(offset, eor));
+    }
+
+    Ok(offset)
+}

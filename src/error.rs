@@ -35,6 +35,9 @@ pub enum ZipError {
     #[error("cannot find() when the CDRs have not been loaded")]
     CDRsNotLoaded,
 
+    #[error("invalid offset: {0} is greater than the end of the archive ({1})")]
+    InvalidOffset(u64, u64),
+
     #[error("feature not supported: '{0}'")]
     FeatureNotSupported(&'static str),
     #[error("compression not supported: {0}")]

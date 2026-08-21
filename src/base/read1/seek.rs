@@ -158,25 +158,22 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> ZipArchiveReader<R> {
     // HELPERS (not part of public API)
 
     async fn cdr(&mut self, index: usize) -> Result<CDR> {
-        // Cloning the CDR is going to be cheaper than seeking back and re-reading.
         if let Some(cdr) = self.loaded_cdrs.get(index) {
             return Ok(cdr.clone());
         }
 
-        // Seek to the CDR offset.
         let offset = self.cdr_offsets.get(index).ok_or(ZipError::EntryIndexOutOfBounds)?;
-        self.reader.seek(SeekFrom::Start(*offset)).await?;
+        let offset = crate::base::read1::valid_offset(*offset, self.eor)?;
+        self.reader.seek(SeekFrom::Start(offset)).await?;
 
-        // Read the CDR.
         Ops::new(&mut self.reader, &self.inner.options).cdr(true).await
     }
 
     async fn file_open(&mut self, index: usize) -> Result<LF> {
-        // Read the CDR first (or fetch from memory if already loaded).
         let cdr = self.cdr(index).await?;
+        let eor = self.eor;
 
-        // Read the LF and do any required validation.
-        SeekOps::new(&mut self.reader).file(cdr, &self.inner.options).await
+        SeekOps::new(&mut self.reader).file(cdr, eor, &self.inner.options).await
     }
 }
 
@@ -199,6 +196,14 @@ pub struct ZipArchiveInner {
 }
 
 impl ZipArchiveInner {
+    pub(crate) fn valid_offset(&self, offset: u64) -> Result<u64> {
+        if offset > self.eor {
+            return Err(ZipError::InvalidOffset(offset, self.eor));
+        }
+
+        Ok(offset)
+    }
+
     /// Finds all the file indexes with the given file name. An iterator is returned because the ZIP specification
     /// allows for multiple files with the same file name, and most callers only need the first match.
     pub fn find<'a>(&'a self, file_name: &'a [u8]) -> Result<impl Iterator<Item = usize> + 'a> {
