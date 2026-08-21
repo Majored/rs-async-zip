@@ -42,8 +42,8 @@ pub fn validate_archive(ceocdr: &CEOCDR, opts: &ZipOptions) -> Result<()> {
     if ceocdr.cd_size()? > opts.max_cd_size_in_bytes {
         return Err(crate::error::ZipError::CDSizeAboveMax(opts.max_cd_size_in_bytes));
     }
-    if ceocdr.num_entries()? > opts.max_num_cd_files {
-        return Err(crate::error::ZipError::NumFilesAboveMax(opts.max_num_cd_files));
+    if ceocdr.num_entries()? > opts.max_cd_num_files {
+        return Err(crate::error::ZipError::NumFilesAboveMax(opts.max_cd_num_files));
     }
 
     Ok(())
@@ -51,7 +51,7 @@ pub fn validate_archive(ceocdr: &CEOCDR, opts: &ZipOptions) -> Result<()> {
 }
 
 pub fn validate_file(lf: &LF, cdr: &CDR, options: &ZipOptions) -> Result<()> {
-    let dd = cdr.cdrh.flags.data_descriptor();
+    let dd = cdr.cdrh.gpf.data_descriptor();
 
     if options.validate_compressed_size_header_match && !dd && lf.compressed_size()? != cdr.compressed_size()? {
         return Err(crate::error::ZipError::CompressedSizeHeaderMismatch);
@@ -69,7 +69,7 @@ pub fn validate_file(lf: &LF, cdr: &CDR, options: &ZipOptions) -> Result<()> {
     if options.validate_compression_header_match && lf.lfh.compression != cdr.cdrh.compression {
         return Err(crate::error::ZipError::CompressionHeaderMismatch);
     }
-    if options.validate_gpf_header_match && lf.lfh.flags != cdr.cdrh.flags {
+    if options.validate_gpf_header_match && lf.lfh.gpf != cdr.cdrh.gpf {
         return Err(crate::error::ZipError::GPFHeaderMismatch);
     }
 

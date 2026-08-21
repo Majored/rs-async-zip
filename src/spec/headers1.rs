@@ -80,7 +80,7 @@ pub enum Compression {
 /// A local file header.
 pub struct LFH {
     pub version: u16,
-    pub flags: GPF,
+    pub gpf: GPF,
     pub compression: Compression,
     pub mod_time: u16,
     pub mod_date: u16,
@@ -109,7 +109,7 @@ impl KnownSize for LFH {
 pub struct CDRH {
     pub v_made_by: u16,
     pub v_needed: u16,
-    pub flags: GPF,
+    pub gpf: GPF,
     pub compression: Compression,
     pub mod_time: u16,
     pub mod_date: u16,
@@ -135,12 +135,12 @@ impl KnownSize for CDRH {
 /// An end of central directory record header.
 pub struct EOCDRH {
     pub(crate) disk_num: u16,
-    pub(crate) start_cent_dir_disk: u16,
-    pub(crate) num_of_entries_disk: u16,
+    pub(crate) disk_num_start_of_cd: u16,
+    pub(crate) num_of_entries_this_disk: u16,
     pub(crate) num_of_entries: u16,
-    pub(crate) size_cent_dir: u32,
-    pub(crate) cent_dir_offset: u32,
-    pub(crate) file_comm_length: u16,
+    pub(crate) cd_size: u32,
+    pub(crate) cd_offset: u32,
+    pub(crate) comment_length: u16,
 }
 
 impl KnownSize for EOCDRH {
@@ -168,15 +168,15 @@ impl GPF {
 #[derive(Clone, Debug)]
 /// A ZIP64 end of central directory record header.
 pub struct EOCDR64H {
-    pub size_of_zip64_end_of_cd_record: u64,
-    pub version_made_by: u16,
-    pub version_needed_to_extract: u16,
-    pub disk_number: u32,
-    pub disk_number_start_of_cd: u32,
-    pub num_entries_in_directory_on_disk: u64,
-    pub num_entries_in_directory: u64,
-    pub directory_size: u64,
-    pub offset_of_start_of_directory: u64,
+    pub size_of_eocdr64: u64,
+    pub v_made_by: u16,
+    pub v_needed: u16,
+    pub disk_num: u32,
+    pub disk_num_start_of_cd: u32,
+    pub num_entries_this_disk: u64,
+    pub num_entries: u64,
+    pub cd_size: u64,
+    pub cd_offset: u64,
 }
 
 impl KnownSize for EOCDR64H {
@@ -188,9 +188,9 @@ impl KnownSize for EOCDR64H {
 #[derive(Clone, Debug)]
 /// A ZIP64 end of central directory locator header.
 pub struct EOCDL64H {
-    pub number_of_disk_with_start_of_zip64_end_of_central_directory: u32,
-    pub relative_offset: u64,
-    pub total_number_of_disks: u32,
+    pub num_disk_with_eocdr64: u32,
+    pub relative_offset_of_eocdr64: u64,
+    pub total_num_of_disks: u32,
 }
 
 impl KnownSize for EOCDL64H {

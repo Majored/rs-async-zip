@@ -21,6 +21,7 @@ An asynchronous ZIP archive reading/writing crate.
 ```toml
 [dependencies]
 async_zip = { version = "0.0.17", features = ["full"] }
+tokio-util = { version = "0.7", features = ["compat"] } # if using tokio
 ```
 
 A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-zip/tree/main/examples) can be found under the `/examples` directory.
@@ -40,18 +41,26 @@ A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-
 
 ### Reading
 ```rust
+use futures_lite::AsyncReadExt;
 use tokio::{io::BufReader, fs::File};
-use async_zip::tokio::read::seek::ZipFileReader;
-...
+use tokio_util::compat::TokioAsyncReadCompatExt;
+use async_zip::base::read1::seek::ZipArchiveReader;
 
-let mut file = BufReader::new(File::open("./Archive.zip").await?);
-let mut zip = ZipFileReader::with_tokio(&mut file).await?;
+#[tokio::main]
+async fn main() -> rs_async_zip::error::Result<()> {
+    let file = BufReader::new(File::open("./Archive.zip").await?).compat();
+    let mut archive = ZipArchiveReader::open(file).await?;
 
-let mut string = String::new();
-let mut reader = zip.reader_with_entry(0).await?;
-reader.read_to_string_checked(&mut string).await?;
+    let index = archive.find(b"hello.txt")?.next().expect("has file");
+    let size = archive.cdrs().get(index).expect("valid cdr").uncompressed_size()?;
+    let mut file = archive.file(index).await?;
 
-println!("{}", string);
+    let mut contents = String::with_capacity(size as usize);
+    file.read_to_string(&mut contents).await?; // CRC32 and uncompressed size are validated here
+
+    println!("{}", contents);
+    Ok(())
+}
 ```
 
 ### Writing

@@ -12,6 +12,7 @@ use futures_lite::AsyncSeek;
 use tracing::{instrument, trace};
 
 use crate::base::read1::loc::Method0;
+use crate::base::read1::opts::ZipLocateMethod;
 use crate::base::read1::opts::ZipOptions;
 use crate::base::read1::seek::ZipArchiveInner;
 use crate::error::ZipError;
@@ -87,7 +88,7 @@ impl<'o, R: AsyncRead + Unpin> Ops<'o, R> {
         // We don't assert the signature, as this is verified by the locator.
 
         crate::spec::headers1::read_record::<EOCDRH, EOCDR, R>(&mut self.reader, |eocdrh| {
-            Ok(usize::from(eocdrh.file_comm_length))
+            Ok(usize::from(eocdrh.comment_length))
         }).await
     }
 }
@@ -106,8 +107,7 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
         let eor = self.reader.seek(SeekFrom::End(0)).await?;
 
         let eocdr_offset = match opts.eocdr_locate_method {
-            0 => Method0::new(&mut self.reader).locate(eor).await?,
-            _ => return Err(ZipError::InvalidEOCDRSeekMethod),
+            ZipLocateMethod::SeekBackReadLinearly => Method0::new(&mut self.reader).locate(eor).await?,
         };
 
         // The locator returns the offset of the signature, which it has already matched for us.
@@ -169,7 +169,7 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
         }
 
         let eocdl64h = crate::spec::headers1::read::<EOCDL64H, R>(&mut self.reader).await?;
-        let offset = crate::base::read1::valid_offset(eocdl64h.relative_offset, eor)?;
+        let offset = crate::base::read1::valid_offset(eocdl64h.relative_offset_of_eocdr64, eor)?;
         self.reader.seek(SeekFrom::Start(offset)).await?;
         Ops::new(&mut self.reader, opts).assert_signature(Signature::EOCDR64H).await?;
 
@@ -180,9 +180,9 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
 
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn cd(&mut self, options: &ZipOptions, ceocdr: &CEOCDR) -> Result<(Vec<CDR>, Vec<u64>)> {
-        let cdrs_capacity = ceocdr.num_entries()?.min(options.max_num_cd_files_load);
-        let offsets_capacity = ceocdr.num_entries()?.min(options.max_num_cd_files);
-        let load_cdrs = ceocdr.num_entries()? <= options.max_num_cd_files_load;
+        let cdrs_capacity = ceocdr.num_entries()?.min(options.max_cd_num_files_load);
+        let offsets_capacity = ceocdr.num_entries()?.min(options.max_cd_num_files);
+        let load_cdrs = ceocdr.num_entries()? <= options.max_cd_num_files_load;
 
         let mut offsets = Vec::with_capacity(offsets_capacity as usize);
         let mut cdrs = Vec::with_capacity(cdrs_capacity as usize);
@@ -230,7 +230,7 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
         let mut lf = Ops::new(&mut self.reader, opts).lf().await?;
         crate::base::read1::valid::validate_file(&lf, &cdr, opts)?;
 
-        if lf.lfh.flags.data_descriptor() {
+        if lf.lfh.gpf.data_descriptor() {
             // We know the values from the CDR are 'good', because they were written after the file finished writing.
             
             lf.lfh.compressed_size = cdr.cdrh.compressed_size;

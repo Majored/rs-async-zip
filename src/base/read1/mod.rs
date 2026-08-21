@@ -78,7 +78,7 @@ use crate::spec::string::ZipString;
 pub mod seek;
 
 pub use file::ZipFileReader;
-pub use opts::ZipOptions;
+pub use opts::{ZipOptions, ZipLocateMethod};
 
 pub(crate) fn valid_offset(offset: u64, eor: u64) -> Result<u64> {
     if offset > eor {

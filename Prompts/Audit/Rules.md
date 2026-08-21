@@ -12,6 +12,9 @@ Do not tell the user what is compliant - only flag all violations of these rules
     - For instance, do not confuse a local file (LF) with a local file header (LFH).
 - Use already established abbreviations for common ZIP concepts and structures.
 - Avoid typos.
+- All .rs files must use the standardised copyright header.
+- Code comments should only be used to document non-obvious invariants.
+- If the crate version is being bumped, it must also be bumped in the README and lib.rs module documentation.
 
 ### Read-only
 - When seeking to an offset, validate the offset is within the reader's length via [`crate::base::read1::validate_offset()`].

@@ -20,7 +20,7 @@ use crate::{error::{Result, ZipError}, spec::{extra::{EF, EFD, EFID, Zip64EI, ef
 /// A local file. This struct provides ZIP64-aware accessors.
 pub struct LF {
     pub lfh: LFH,
-    #[br(count = lfh.file_name_length, args { utf8: lfh.flags.language_encoding_flag() })]
+    #[br(count = lfh.file_name_length, args { utf8: lfh.gpf.language_encoding_flag() })]
     /// This file name is insecure. Untrusted values may contain path traversal sequences or similar.
     pub insecure_file_name: ZipString,
     #[br(parse_with = efs, args(lfh.extra_field_length.into()))]
@@ -99,13 +99,13 @@ fn combined_accessor_ecodr_disk(zip32: u16, ceocdr: &CEOCDR, accessor: impl Fn(&
 pub struct CDR {
     /// The central directory record header.
     pub cdrh: CDRH,
-    #[br(count = cdrh.file_name_length, args { utf8: cdrh.flags.language_encoding_flag() })]
+    #[br(count = cdrh.file_name_length, args { utf8: cdrh.gpf.language_encoding_flag() })]
     /// This file name is insecure. Untrusted values may contain path traversal sequences or similar.
     pub insecure_file_name: ZipString,
     #[br(parse_with = efs, args(cdrh.extra_field_length.into()))]
     /// A list of extra fields.
     pub efs: Vec<EF>,
-    #[br(count = cdrh.file_comment_length, args { utf8: cdrh.flags.language_encoding_flag() })]
+    #[br(count = cdrh.file_comment_length, args { utf8: cdrh.gpf.language_encoding_flag() })]
     pub file_comment: ZipString,
 }
 
@@ -136,9 +136,7 @@ impl CDR {
 /// An end of central directory record.
 pub struct EOCDR {
     pub eocdrh: EOCDRH,
-    // The end of central directory record has no flags of its own, so its comment is never
-    // declared as UTF-8 and `ZipStringArgs::utf8` is left at its default.
-    #[br(count = eocdrh.file_comm_length)]
+    #[br(count = eocdrh.comment_length)]
     pub file_comment: ZipString,
 }
 
@@ -165,31 +163,31 @@ impl CEOCDR {
 
     /// A ZIP-64-aware accessor for the offset of the start of the central directory.
     pub fn cd_offset(&self) -> Result<u64> {
-        combined_accessor_ecodr_u32(self.eocdr.eocdrh.cent_dir_offset, self, |record| record.offset_of_start_of_directory)
+        combined_accessor_ecodr_u32(self.eocdr.eocdrh.cd_offset, self, |record| record.cd_offset)
     }
 
     /// A ZIP-64-aware accessor for the number of entries in the central directory.
     pub fn num_entries(&self) -> Result<u64> {
-        combined_accessor_ecodr_u16(self.eocdr.eocdrh.num_of_entries, self, |record| record.num_entries_in_directory)
+        combined_accessor_ecodr_u16(self.eocdr.eocdrh.num_of_entries, self, |record| record.num_entries)
     }
 
     /// A ZIP-64-aware accessor for the number of entries in the central directory on this disk.
     pub fn num_entries_on_disk(&self) -> Result<u64> {
-        combined_accessor_ecodr_u16(self.eocdr.eocdrh.num_of_entries_disk, self, |record| record.num_entries_in_directory_on_disk)
+        combined_accessor_ecodr_u16(self.eocdr.eocdrh.num_of_entries_this_disk, self, |record| record.num_entries_this_disk)
     }
 
     /// A ZIP-64-aware accessor for the size of the central directory.
     pub fn cd_size(&self) -> Result<u64> {
-        combined_accessor_ecodr_u32(self.eocdr.eocdrh.size_cent_dir, self, |record| record.size_of_zip64_end_of_cd_record)
+        combined_accessor_ecodr_u32(self.eocdr.eocdrh.cd_size, self, |record| record.cd_size)
     }
 
     /// A ZIP-64-aware accessor for the disk number of the central directory.
     pub fn disk_num(&self) -> Result<u32> {
-        combined_accessor_ecodr_disk(self.eocdr.eocdrh.disk_num, self, |record| record.disk_number)
+        combined_accessor_ecodr_disk(self.eocdr.eocdrh.disk_num, self, |record| record.disk_num)
     }
 
     /// A ZIP-64-aware accessor for the disk number of the start of the central directory.
     pub fn disk_num_start(&self) -> Result<u32> {
-        combined_accessor_ecodr_disk(self.eocdr.eocdrh.start_cent_dir_disk, self, |record| record.disk_number_start_of_cd)
+        combined_accessor_ecodr_disk(self.eocdr.eocdrh.disk_num_start_of_cd, self, |record| record.disk_num_start_of_cd)
     }
 }

@@ -207,7 +207,7 @@ impl ZipArchiveInner {
     /// Finds all the file indexes with the given file name. An iterator is returned because the ZIP specification
     /// allows for multiple files with the same file name, and most callers only need the first match.
     pub fn find<'a>(&'a self, file_name: &'a [u8]) -> Result<impl Iterator<Item = usize> + 'a> {
-        if  self.ceocdr.num_entries()? > self.options.max_num_cd_files_load {
+        if  self.ceocdr.num_entries()? > self.options.max_cd_num_files_load {
             return Err(ZipError::CDRsNotLoaded);
         }
 
