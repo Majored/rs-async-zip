@@ -13,7 +13,7 @@ keywords = ["async", "zip", "archive", "tokio"]
 categories = ["asynchronous", "compression"]
 
 [features]
-full = ["chrono", "tokio-fs", "deflate", "bzip2", "lzma", "zstd", "xz", "deflate64"]
+full = ["chrono", "tokio-fs", "deflate", "bzip2", "lzma", "zstd", "xz", "deflate64", "tracing"]
 
 # All features that are compatible with WASM
 full-wasm = ["chrono", "deflate", "zstd"]

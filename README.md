@@ -11,10 +11,10 @@ An asynchronous ZIP archive reading/writing crate.
 - A base implementation atop `futures`'s IO traits.
 - An extended implementation atop `tokio`'s IO traits.
 - Support for Stored, Deflate, bzip2, LZMA, zstd, and xz compression methods.
-- Various different reading approaches (seek, stream, filesystem, in-memory buffer, etc).
+- Various different reading approaches (seek, seek factories, stream).
 - Support for writing complete data (u8 slices) or streams using data descriptors.
 - Initial support for ZIP64 reading and writing.
-- Aims for reasonable [specification](https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md) compliance.
+- Aims for reasonable [specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) compliance.
 
 ## Installation & Basic Usage
 
@@ -28,6 +28,7 @@ A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-
 ### Feature Flags
 - `full` - Enables all below features.
 - `full-wasm` - Enables all below features that are compatible with WASM.
+- `tracing` - Enables support for [`tracing`](https://crates.io/crates/tracing).
 - `chrono` - Enables support for parsing dates via `chrono`.
 - `tokio` - Enables support for the `tokio` implementation module.
 - `tokio-fs` - Enables support for the `tokio::fs` reading module.

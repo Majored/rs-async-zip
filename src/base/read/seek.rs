@@ -1,7 +1,7 @@
 // Copyright (c) 2022 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-//! A ZIP reader which acts over a seekable source.
+//! A ZIP reader which acts over a seekable source (now deprecated - see `read1` module).
 //!
 //! ### Example
 //! ```no_run
