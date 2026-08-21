@@ -10,12 +10,14 @@ pub(crate) mod extra_field;
 pub(crate) mod header;
 pub(crate) mod parse;
 pub(crate) mod version;
+pub(crate) mod string;
+
+// Public API
 pub mod headers1;
 pub mod constructs;
 pub mod extra;
-pub mod string;
 
-pub use compression::Compression;
+pub use string::ZipString;
 
 /// An accessor trait for types that have a fixed size in bytes, such as headers.
 /// 

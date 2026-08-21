@@ -13,7 +13,7 @@ use crate::spec::header::{InfoZipUnicodeCommentExtraField, InfoZipUnicodePathExt
 use crate::spec::{
     extra_field::ExtraFieldAsBytes,
     header::{CentralDirectoryRecord, ExtraField, GeneralPurposeFlag, LocalFileHeader},
-    Compression,
+    compression::Compression,
 };
 use crate::StringEncoding;
 #[cfg(any(feature = "deflate", feature = "bzip2", feature = "zstd", feature = "lzma", feature = "xz"))]

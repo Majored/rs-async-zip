@@ -28,7 +28,7 @@ use crate::spec::header::{
     CentralDirectoryRecord, EndOfCentralDirectoryHeader, ExtraField, LocalFileHeader,
     Zip64EndOfCentralDirectoryLocator, Zip64EndOfCentralDirectoryRecord, Zip64ExtendedInformationExtraField,
 };
-use crate::spec::Compression;
+use crate::spec::compression::Compression;
 use crate::string::StringEncoding;
 
 use crate::base::read::io::CombinedCentralDirectoryRecord;
