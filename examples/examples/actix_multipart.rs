@@ -1,0 +1,79 @@
+// Copyright (c) 2022 FL33TW00D (https://github.com/FL33TW00D)
+// Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
+// MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE
+
+use async_zip::tokio::write::ZipFileWriter;
+use async_zip::{Compression, ZipEntryBuilder};
+
+use anyhow::anyhow;
+
+use std::path::Path;
+
+use actix_multipart::Multipart;
+use actix_web::{web, App, HttpServer, Responder, ResponseError, Result};
+use derive_more::{Display, Error};
+use futures::StreamExt;
+use futures_lite::io::AsyncWriteExt;
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt as TokioAsyncWriteExt;
+use uuid::Uuid;
+
+const TMP_DIR: &str = "./tmp/";
+
+#[derive(Debug, Display, Error)]
+#[display("An error occurred during ZIP creation which was logged to stderr.")]
+struct CreationError;
+
+impl ResponseError for CreationError {}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    let tmp_path = Path::new(TMP_DIR);
+
+    if !tmp_path.exists() {
+        tokio::fs::create_dir(tmp_path).await?;
+    }
+
+    let factory = || App::new().route("/", web::post().to(handler));
+    HttpServer::new(factory).bind(("127.0.0.1", 8080))?.run().await
+}
+
+async fn handler(multipart: Multipart) -> Result<impl Responder, CreationError> {
+    match create_archive(multipart).await {
+        Ok(name) => Ok(format!("Successfully created archive: {}", name)),
+        Err(err) => {
+            eprintln!("[ERROR] {:?}", err);
+            Err(CreationError)
+        }
+    }
+}
+
+async fn create_archive(mut body: Multipart) -> Result<String, anyhow::Error> {
+    let archive_name = format!("tmp/{}", Uuid::new_v4());
+    let mut archive = File::create(archive_name.clone()).await?;
+    let mut writer = ZipFileWriter::with_tokio(&mut archive);
+
+    while let Some(item) = body.next().await {
+        let mut field = item.map_err(|err| anyhow!("Failed to read multipart field: {err}"))?;
+
+        let filename = match field.content_disposition().and_then(|cd| cd.get_filename()) {
+            Some(filename) => sanitize_filename::sanitize(filename),
+            None => Uuid::new_v4().to_string(),
+        };
+
+        let builder = ZipEntryBuilder::new(filename.into(), Compression::Deflate);
+        let mut entry_writer = writer.write_entry_stream(builder).await?;
+
+        while let Some(chunk) = field.next().await {
+            let chunk = chunk.map_err(|err| anyhow!("Failed to read multipart chunk: {err}"))?;
+            entry_writer.write_all(&chunk).await?;
+        }
+
+        entry_writer.close().await?;
+    }
+
+    writer.close().await?;
+    archive.shutdown().await?;
+
+    Ok(archive_name)
+}
