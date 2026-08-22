@@ -47,7 +47,7 @@ use tokio_util::compat::TokioAsyncReadCompatExt;
 use async_zip::base::read1::seek::ZipArchiveReader;
 
 #[tokio::main]
-async fn main() -> rs_async_zip::error::Result<()> {
+async fn main() -> async_zip::error::Result<()> {
     let file = BufReader::new(File::open("./Archive.zip").await?).compat();
     let mut archive = ZipArchiveReader::open(file).await?;
 
