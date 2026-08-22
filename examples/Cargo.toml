@@ -1,0 +1,27 @@
+[package]
+name = "async_zip-examples"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# An empty workspace table makes this crate its own workspace root, giving it a
+# lockfile and dependency resolution entirely separate from the library's. This
+# keeps heavy example-only dependencies out of the library's MSRV, minimal-versions,
+# and semver CI jobs.
+[workspace]
+
+[dependencies]
+async_zip = { path = "..", features = ["tokio", "tokio-fs", "deflate"] }
+
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["compat"] }
+futures = "0.3"
+futures-lite = "2.1"
+anyhow = "1"
+sanitize-filename = "0.6"
+
+# actix_multipart
+actix-web = "4"
+actix-multipart = "0.7"
+derive_more = { version = "2.0", features = ["display", "error"] }
+uuid = { version = "1", features = ["v4"] }
