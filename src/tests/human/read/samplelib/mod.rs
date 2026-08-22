@@ -4,7 +4,7 @@
 // https://samplelib.com/license.html
 
 use crate::base::read1::seek::ZipArchiveReader;
-use futures_lite::AsyncReadExt;
+use futures_lite::{AsyncBufRead, AsyncReadExt, AsyncSeek};
 use futures_lite::io::Cursor;
 
 #[tokio::test]
@@ -59,4 +59,91 @@ async fn with_html() {
     let mut buffer = String::new();
     file_reader.read_to_string(&mut buffer).await.expect("failed to read file");
     assert_eq!(buffer.as_bytes(), file_data);
+
+    read_all_files(&mut archive_reader).await;
+}
+
+#[cfg(feature = "deflate")]
+#[tokio::test]
+async fn nested() {
+    let data = Cursor::new(&include_bytes!("sample-nested.zip"));
+
+    let mut archive_reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
+   
+    assert_eq!(archive_reader.ceocdr().is_zip64(), false);
+    assert_eq!(archive_reader.cdrs().len(), 8);
+
+    // TODO: validate contents
+
+    read_all_files(&mut archive_reader).await;
+}
+
+#[cfg(feature = "deflate")]
+#[tokio::test]
+async fn many_files() {
+    let data = Cursor::new(&include_bytes!("sample-many-files.zip"));
+
+    let mut archive_reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
+   
+    assert_eq!(archive_reader.ceocdr().is_zip64(), false);
+    assert_eq!(archive_reader.cdrs().len(), 100);
+
+    // TODO: validate contents
+    read_all_files(&mut archive_reader).await;
+}
+
+#[cfg(feature = "deflate")]
+#[tokio::test]
+async fn project() {
+    let data = Cursor::new(&include_bytes!("sample-project.zip"));
+
+    let mut archive_reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
+   
+    assert_eq!(archive_reader.ceocdr().is_zip64(), false);
+    assert_eq!(archive_reader.cdrs().len(), 7);
+
+    // TODO: validate contents
+
+    read_all_files(&mut archive_reader).await;
+}
+
+#[cfg(feature = "deflate")]
+#[tokio::test]
+async fn mixed() {
+    let data = Cursor::new(&include_bytes!("sample-mixed.zip"));
+
+    let mut archive_reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
+   
+    assert_eq!(archive_reader.ceocdr().is_zip64(), false);
+    assert_eq!(archive_reader.cdrs().len(), 7);
+
+    // TODO: validate contents
+
+    read_all_files(&mut archive_reader).await;
+}
+
+#[cfg(feature = "deflate")]
+#[tokio::test]
+async fn size_1mb() {
+    let data = Cursor::new(&include_bytes!("sample-1mb.zip"));
+
+    let mut archive_reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
+   
+    assert_eq!(archive_reader.ceocdr().is_zip64(), false);
+    assert_eq!(archive_reader.cdrs().len(), 5);
+
+    // TODO: validate contents
+
+    read_all_files(&mut archive_reader).await;
+}
+
+/// Reads all files in the zip archive to ensure that they can be read without error.
+/// 
+/// We aren't asserting anything about the files, just that they can be read without error.
+async fn read_all_files<R: AsyncBufRead + AsyncSeek + Unpin>(reader: &mut ZipArchiveReader<R>) {
+    for i in 0..reader.cdrs().len() {
+        let mut file_reader = reader.file(i).await.expect("failed to get file reader");
+        let mut buffer = Vec::new();
+        file_reader.read_to_end(&mut buffer).await.expect("failed to read file");
+    }
 }
