@@ -178,7 +178,7 @@ pub enum ZipLocateMethod {
     /// 
     /// Specifically, we seek to the first possible place the EOCDR could be and
     /// read forward linearly, finding all candidates. This maximizes buffer use
-    /// by not seeking contiously (buffered readers will often discard their buffer
+    /// by not seeking continuously (buffered readers will often discard their buffer
     /// on a seek), and allows the OS to make any read-ahead optimizations it can.
     SeekBackReadLinearly,
 }

@@ -118,7 +118,7 @@ impl Matcher {
         }
     }
 
-    /// Returns whether the curent byte resulted in a full match.
+    /// Returns whether the current byte resulted in a full match.
     pub fn next_byte(&mut self, byte: u8) -> bool {
         if byte == self.signature[self.matched] {
             self.matched += 1;

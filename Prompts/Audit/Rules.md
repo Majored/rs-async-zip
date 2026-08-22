@@ -6,7 +6,7 @@ If the user has not specified what you're auditing against (eg. unstaged changes
 Do not tell the user what is compliant - only flag all violations of these rules.
 
 ## Rules
-### Eveywhere
+### Everywhere
 - The lib.rs module docs must match the README.md, but:
     - should excluding the usage section and onwards.
     - ignore the divergence of the installation & usage header between the two.

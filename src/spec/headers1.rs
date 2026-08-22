@@ -17,7 +17,7 @@ use crate::{error::Result, spec::KnownSize};
 #[brw(repr = u32)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
-/// A signature identifying the type of header, using their spec-module abreviations.
+/// A signature identifying the type of header, using their spec-module abbreviations.
 pub enum Signature {
     LFH = 0x04034b50,
     CDRH = 0x02014b50,

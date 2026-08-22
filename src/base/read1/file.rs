@@ -46,7 +46,7 @@ impl<R: AsyncBufRead + Unpin> ZipFileReader<R> {
     /// Returns a reference to the local file header for this file.
     /// 
     /// Note that if produced from a seeking reader and the file used a data descriptor,
-    /// the compressed size, uncompressed size, and ZIP64 exended information extra field
+    /// the compressed size, uncompressed size, and ZIP64 extended information extra field
     /// would have been copied over from the central directory, and so no longer reflects
     /// the values stored in the actual local file header.
     pub fn lf(&self) -> &LF {
