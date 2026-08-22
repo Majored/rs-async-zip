@@ -4,6 +4,14 @@ All intermediate migration steps should be applied if migrating from multiple ve
 
 ## [Unreleased]
 
+## [Unreleased - read1 -> read migration]
+
+- The [`base::read1`] module has been renamed to [`base::read`], replacing the old module which has
+  now been removed. Apply the entries above, reading `read1` as `read`.
+- The deprecated [`base::read::mem`] and [`tokio::read::fs`] modules have been removed.
+
+## [0.0.19] - 2026-08-22
+
 - A clearer definition of terminology has been used across the new API. See the [`base`] module docs.
 - The [`spec`] module is now public. Its contents were previously crate-private, so nothing has
   been removed from the public API.
@@ -28,9 +36,3 @@ All intermediate migration steps should be applied if migrating from multiple ve
   - There is no `tokio` equivalent of [`base::read1`]. Use `tokio_util::compat` to adapt a `tokio`
     reader to the `futures` IO traits.
   - See the [`base::read1::seek`] module docs for the full set of usage examples.
-
-## [Unreleased - read1 -> read migration]
-
-- The [`base::read1`] module has been renamed to [`base::read`], replacing the old module which has
-  now been removed. Apply the entries above, reading `read1` as `read`.
-- The deprecated [`base::read::mem`] and [`tokio::read::fs`] modules have been removed.

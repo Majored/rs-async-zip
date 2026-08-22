@@ -20,7 +20,7 @@ An asynchronous ZIP archive reading/writing crate.
 
 ```toml
 [dependencies]
-async_zip = { version = "0.0.17", features = ["full"] }
+async_zip = { version = "0.0.19", features = ["full"] }
 tokio-util = { version = "0.7", features = ["compat"] } # if using tokio
 ```
 

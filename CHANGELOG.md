@@ -8,6 +8,39 @@ and this project adheres to [Semantic Versioning](https://doc.rust-lang.org/carg
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [Unreleased - read1 -> read migration]
+
+### Added
+
+- The [`base::read`] module has been re-written resulting in breaking changes. See our MIGRATION.md.
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+- The old [`base::read`] module has been removed.
+- The re-write [`base::read1`] module has been moved into the [`base::read`] module.
+
+### Fixed
+
+### Security
+
+## [0.0.19] - 2026-08-22
+
+### Added
+
 - This changelog and MIGRATION.md.
 - Terminology and high-level ZIP concepts (archive, file, LF/LFH, CDR/CDRH, EOCDR, CEOCDR)
   documented in the [`base`] module, and used consistently across the new API.
@@ -54,26 +87,8 @@ and this project adheres to [Semantic Versioning](https://doc.rust-lang.org/carg
   and uncompressed sizes are all checked against configured limits before anything is allocated.
   File names remain your responsibility to sanitise.
 
-## [Unreleased - read1 -> read migration]
-
-### Added
-
-- The [`base::read`] module has been re-written resulting in breaking changes. See our MIGRATION.md.
-
-### Changed
-
-### Deprecated
-
-### Removed
-
-- The old [`base::read`] module has been removed.
-- The re-write [`base::read1`] module has been moved into the [`base::read`] module.
-
-### Fixed
-
-### Security
-
 ## [0.0.18] - 2025-08-09
+
 - Start of this changelog.
 
 [Unreleased]: https://github.com/Majored/rs-async-zip/compare/v0.0.18...HEAD
