@@ -47,5 +47,11 @@ jobs:
     - name: Test ['deflate64' feature]
       run: cargo test --verbose --features deflate64
 
+    - name: Test ['tracing' feature]
+      run: cargo test --verbose --features tracing
+
     - name: Test ['full' feature]
       run: cargo test --verbose --features full
+
+    - name: Test ['full-wasm' feature]
+      run: cargo test --verbose --features full-wasm
