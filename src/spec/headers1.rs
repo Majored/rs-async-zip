@@ -122,7 +122,7 @@ pub struct CDRH {
     pub disk_start: u16,
     pub inter_attr: u16,
     pub exter_attr: u32,
-    pub lh_offset: u32,
+    pub lfh_offset: u32,
 }
 
 impl KnownSize for CDRH {

@@ -46,7 +46,7 @@ pub struct ZipOptions {
     pub validate_compression_header_match: bool,
 
     /// Validates that the number of files in the CD matches the number declared in the CEOCDR.
-    pub validate_num_central_directory_files: bool,
+    pub validate_num_cd_files: bool,
 
     /// Validates the CRC of the actual read data matches the expected value.
     /// [`Self::validate_file_on_eof`] must be enabled for this to be enforced.
@@ -115,7 +115,7 @@ impl Default for ZipOptions {
             validate_crc_header_match: true,
             validate_file_name_header_match: true,
             validate_compression_header_match: true,
-            validate_num_central_directory_files: true,
+            validate_num_cd_files: true,
             validate_crc_match_against_read: true,
             validate_uncompressed_size_match_against_read: true,
             validate_file_on_eof: true,

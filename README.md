@@ -12,7 +12,7 @@ An asynchronous ZIP archive reading/writing crate.
 - An extended implementation atop `tokio`'s IO traits.
 - Support for Stored, Deflate, bzip2, LZMA, zstd, and xz compression methods.
 - Various different reading approaches (seek, seek factories, stream).
-- Support for writing complete data (u8 slices) or streams using data descriptors.
+- Support for writing complete data (u8 slices) or stream using data descriptors.
 - Initial support for ZIP64 reading and writing.
 - Aims for reasonable [specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) compliance.
 

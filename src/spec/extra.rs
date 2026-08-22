@@ -32,7 +32,7 @@ impl KnownSize for EFH {
 pub enum EFHID {
     EI64,
     IZUC,
-    IZUP,
+    IZUF,
     Other(u16),
 }
 
@@ -40,7 +40,7 @@ impl EFHID {
     const KNOWN: &'static [(u16, EFHID)] = &[
         (0x0001, Self::EI64),
         (0x6375, Self::IZUC),
-        (0x7075, Self::IZUP),
+        (0x7075, Self::IZUF),
     ];
 }
 
@@ -169,7 +169,7 @@ fn ef_data(tag: EFHID, size: u16) -> BinResult<EFD> {
         EFHID::IZUC => {
             EFD::IZUC(IZUC::read_options(&mut Cursor::new(&raw), endian, ())?)
         }
-        EFHID::IZUP => {
+        EFHID::IZUF => {
             EFD::IZUF(IZUF::read_options(&mut Cursor::new(&raw), endian, ())?)
         }
         EFHID::Other(_) => EFD::Unknown(raw),

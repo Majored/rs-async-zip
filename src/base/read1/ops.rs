@@ -209,7 +209,7 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
 
         // Validate that the number of CDRs read matches the number of entries in the EOCDR
         let num_matched = offsets.len() == ceocdr.num_entries()? as usize;
-        if options.validate_num_central_directory_files && !num_matched {
+        if options.validate_num_cd_files && !num_matched {
             return Err(crate::error::ZipError::NumFilesMismatch(offsets.len() as u64, ceocdr.num_entries()?));
         }
 

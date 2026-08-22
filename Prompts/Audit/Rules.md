@@ -7,7 +7,9 @@ Do not tell the user what is compliant - only flag all violations of these rules
 
 ## Rules
 ### Eveywhere
-- The lib.rs module docs must match the README.md, but should excluding the usage section and onwards.
+- The lib.rs module docs must match the README.md, but:
+    - should excluding the usage section and onwards.
+    - ignore the divergence of the installation & usage header between the two.
 - Use terminology consistent with the rest of the create (see [`crate::base`] documentation).
     - For instance, do not confuse a local file (LF) with a local file header (LFH).
 - Use already established abbreviations for common ZIP concepts and structures.

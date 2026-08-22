@@ -22,8 +22,11 @@
 //! ```toml
 //! [dependencies]
 //! async_zip = { version = "0.0.17", features = ["full"] }
+//! tokio-util = { version = "0.7", features = ["compat"] } # if using tokio
 //! ```
 //!
+//! A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-zip/tree/main/examples) can be found under the `/examples` directory.
+//! 
 //! ### Feature Flags
 //! - `full` - Enables all below features.
 //! - `full-wasm` - Enables all below features that are compatible with WASM.

@@ -112,7 +112,7 @@ pub struct CDR {
 impl CDR {
     pub fn lfh_offset(&self) -> Result<u64> {
         // TODO: unwrap should be an err instead, in case it's a malformed ZIP.
-        combined_accessor(self.cdrh.lh_offset, &self.efs, |ei_data| ei_data.relative_offset.unwrap())
+        combined_accessor(self.cdrh.lfh_offset, &self.efs, |ei_data| ei_data.relative_offset.unwrap())
     }
 
     /// A ZIP-64-aware accessor for the uncompressed size of the file.
