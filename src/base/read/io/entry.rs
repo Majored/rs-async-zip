@@ -4,7 +4,7 @@
 use crate::base::read::io::{compressed::CompressedReader, hashed::HashedReader, owned::OwnedReader};
 use crate::entry::ZipEntry;
 use crate::error::{Result, ZipError};
-use crate::spec::Compression;
+use crate::spec::compression::Compression;
 
 use std::pin::Pin;
 use std::task::{Context, Poll};

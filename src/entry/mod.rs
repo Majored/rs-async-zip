@@ -13,7 +13,7 @@ use crate::spec::{
     attribute::AttributeCompatibility,
     consts::LFH_SIGNATURE,
     header::{ExtraField, LocalFileHeader},
-    Compression,
+    compression::Compression,
 };
 use crate::{string::ZipString, ZipDateTime};
 

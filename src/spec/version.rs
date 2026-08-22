@@ -10,7 +10,7 @@ use crate::entry::ZipEntry;
     feature = "xz",
     feature = "deflate64"
 ))]
-use crate::spec::Compression;
+use crate::spec::compression::Compression;
 
 pub(crate) const SPEC_VERSION_MADE_BY: u16 = 63;
 

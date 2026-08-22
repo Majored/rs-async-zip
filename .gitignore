@@ -13,3 +13,4 @@
 
 # Ignore generated zip test file that is large
 /src/tests/read/zip64/zip64many.zip
+.DS_Store

@@ -11,16 +11,17 @@ An asynchronous ZIP archive reading/writing crate.
 - A base implementation atop `futures`'s IO traits.
 - An extended implementation atop `tokio`'s IO traits.
 - Support for Stored, Deflate, bzip2, LZMA, zstd, and xz compression methods.
-- Various different reading approaches (seek, stream, filesystem, in-memory buffer, etc).
-- Support for writing complete data (u8 slices) or streams using data descriptors.
+- Various different reading approaches (seek, seek factories, stream).
+- Support for writing complete data (u8 slices) or stream using data descriptors.
 - Initial support for ZIP64 reading and writing.
-- Aims for reasonable [specification](https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md) compliance.
+- Aims for reasonable [specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) compliance.
 
 ## Installation & Basic Usage
 
 ```toml
 [dependencies]
 async_zip = { version = "0.0.17", features = ["full"] }
+tokio-util = { version = "0.7", features = ["compat"] } # if using tokio
 ```
 
 A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-zip/tree/main/examples) can be found under the `/examples` directory.
@@ -28,6 +29,7 @@ A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-
 ### Feature Flags
 - `full` - Enables all below features.
 - `full-wasm` - Enables all below features that are compatible with WASM.
+- `tracing` - Enables support for [`tracing`](https://crates.io/crates/tracing).
 - `chrono` - Enables support for parsing dates via `chrono`.
 - `tokio` - Enables support for the `tokio` implementation module.
 - `tokio-fs` - Enables support for the `tokio::fs` reading module.
@@ -39,18 +41,26 @@ A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-
 
 ### Reading
 ```rust
+use futures_lite::AsyncReadExt;
 use tokio::{io::BufReader, fs::File};
-use async_zip::tokio::read::seek::ZipFileReader;
-...
+use tokio_util::compat::TokioAsyncReadCompatExt;
+use async_zip::base::read1::seek::ZipArchiveReader;
 
-let mut file = BufReader::new(File::open("./Archive.zip").await?);
-let mut zip = ZipFileReader::with_tokio(&mut file).await?;
+#[tokio::main]
+async fn main() -> rs_async_zip::error::Result<()> {
+    let file = BufReader::new(File::open("./Archive.zip").await?).compat();
+    let mut archive = ZipArchiveReader::open(file).await?;
 
-let mut string = String::new();
-let mut reader = zip.reader_with_entry(0).await?;
-reader.read_to_string_checked(&mut string).await?;
+    let index = archive.find(b"hello.txt")?.next().expect("has file");
+    let size = archive.cdrs().get(index).expect("valid cdr").uncompressed_size()?;
+    let mut file = archive.file(index).await?;
 
-println!("{}", string);
+    let mut contents = String::with_capacity(size as usize);
+    file.read_to_string(&mut contents).await?; // CRC32 and uncompressed size are validated here
+
+    println!("{}", contents);
+    Ok(())
+}
 ```
 
 ### Writing

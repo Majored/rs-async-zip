@@ -1,6 +1,8 @@
 // Copyright (c) 2021-2023 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+// #![forbid(unsafe_code)]
+
 // Document all features on docs.rs
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
@@ -10,21 +12,25 @@
 //! - A base implementation atop `futures`'s IO traits.
 //! - An extended implementation atop `tokio`'s IO traits.
 //! - Support for Stored, Deflate, bzip2, LZMA, zstd, and xz compression methods.
-//! - Various different reading approaches (seek, stream, filesystem, in-memory buffer).
+//! - Various different reading approaches (seek, seek factories, stream).
 //! - Support for writing complete data (u8 slices) or stream writing using data descriptors.
 //! - Initial support for ZIP64 reading and writing.
-//! - Aims for reasonable [specification](https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md) compliance.
+//! - Aims for reasonable [specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) compliance.
 //!
 //! ## Installation
 //!
 //! ```toml
 //! [dependencies]
 //! async_zip = { version = "0.0.17", features = ["full"] }
+//! tokio-util = { version = "0.7", features = ["compat"] } # if using tokio
 //! ```
 //!
+//! A (soon to be) extensive list of [examples](https://github.com/Majored/rs-async-zip/tree/main/examples) can be found under the `/examples` directory.
+//! 
 //! ### Feature Flags
 //! - `full` - Enables all below features.
 //! - `full-wasm` - Enables all below features that are compatible with WASM.
+//! - `tracing` - Enables support for [`tracing`](https://crates.io/crates/tracing).
 //! - `chrono` - Enables support for parsing dates via `chrono`.
 //! - `tokio` - Enables support for the `tokio` implementation module.
 //! - `tokio-fs` - Enables support for the `tokio::fs` reading module.
@@ -38,6 +44,7 @@
 
 pub mod base;
 pub mod error;
+pub mod spec;
 
 #[cfg(feature = "tokio")]
 pub mod tokio;
@@ -45,7 +52,6 @@ pub mod tokio;
 pub(crate) mod date;
 pub(crate) mod entry;
 pub(crate) mod file;
-pub(crate) mod spec;
 pub(crate) mod string;
 pub(crate) mod utils;
 

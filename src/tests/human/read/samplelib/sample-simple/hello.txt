@@ -1,0 +1,2 @@
+Hello from samplelib.com
+This is a single text file inside a zip archive.
