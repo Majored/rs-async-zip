@@ -45,6 +45,7 @@ pub struct EntryStreamWriter<'b, W: AsyncWrite + Unpin> {
     /// To write back to the original writer if zip64 is required.
     is_zip64: &'b mut bool,
     precompressed: bool,
+    encrypted_bytes_written: u64,
 }
 
 impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
@@ -53,7 +54,24 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         mut entry: ZipEntry,
     ) -> Result<EntryStreamWriter<'b, W>> {
         let lfh_offset = writer.writer.offset();
+
         let lfh = EntryStreamWriter::write_lfh(writer, &mut entry).await?;
+
+        // Write encryption header if password is set (after LFH, before data)
+        let encryption_header = if let Some(ref password) = entry.password {
+            use crate::crypto::crypto::ZipCrypto;
+            // For streaming, we don't know the CRC yet, so use 0 as verify byte
+            let verify_byte = 0u8;
+            let mut crypto = ZipCrypto::new(password);
+            Some(crypto.encrypt_header(verify_byte))
+        } else {
+            None
+        };
+
+        if let Some(ref header) = encryption_header {
+            writer.writer.write_all(header).await?;
+        }
+
         let data_offset = writer.writer.offset();
         let force_no_zip64 = writer.force_no_zip64;
 
@@ -73,6 +91,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             force_no_zip64,
             is_zip64,
             precompressed: false,
+            encrypted_bytes_written: encryption_header.map(|h| h.len() as u64).unwrap_or(0),
         })
     }
 
@@ -81,7 +100,23 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         mut entry: ZipEntry,
     ) -> Result<EntryStreamWriter<'b, W>> {
         let lfh_offset = writer.writer.offset();
+
         let lfh = EntryStreamWriter::write_lfh(writer, &mut entry).await?;
+
+        // Write encryption header if password is set (after LFH, before data)
+        let encryption_header = if let Some(ref password) = entry.password {
+            use crate::crypto::crypto::ZipCrypto;
+            let verify_byte = ((entry.crc32 >> 24) & 0xFF) as u8;
+            let mut crypto = ZipCrypto::new(password);
+            Some(crypto.encrypt_header(verify_byte))
+        } else {
+            None
+        };
+
+        if let Some(ref header) = encryption_header {
+            writer.writer.write_all(header).await?;
+        }
+
         let data_offset = writer.writer.offset();
         let force_no_zip64 = writer.force_no_zip64;
 
@@ -101,6 +136,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             force_no_zip64,
             is_zip64,
             precompressed: true,
+            encrypted_bytes_written: encryption_header.map(|h| h.len() as u64).unwrap_or(0),
         })
     }
 
@@ -176,7 +212,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             version: crate::spec::version::as_needed_to_extract(entry),
             flags: GeneralPurposeFlag {
                 data_descriptor: true,
-                encrypted: false,
+                encrypted: entry.password.is_some(),
                 filename_unicode: utf8_without_alternative,
             },
         };
@@ -291,6 +327,7 @@ impl<'a, W: AsyncWrite + Unpin> AsyncWrite for EntryStreamWriter<'a, W> {
 
         if let Poll::Ready(Ok(written)) = poll {
             self.hasher.update(&buf[0..written]);
+            self.encrypted_bytes_written += written as u64;
         }
 
         poll
