@@ -18,3 +18,4 @@ Do not tell the user what is compliant - only flag all violations of these rules
 
 ### Read-only
 - When seeking to an offset, validate the offset is within the reader's length via [`crate::base::read1::validate_offset()`].
+- Use the CDR values over the LF values when we have access to the CDR.

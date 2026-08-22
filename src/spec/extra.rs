@@ -13,9 +13,9 @@ use crate::spec::KnownSize;
 #[binrw]
 #[brw(little)]
 #[derive(Clone, Debug)]
-// Extra field header - not part of the ZIP structure itself, but the spec still describes it as a 'header'.
+/// An extra field header.
 pub struct EFH {
-    pub efid: EFID,
+    pub efid: EFHID,
     pub data_size: u16,
 }
 
@@ -28,22 +28,23 @@ impl KnownSize for EFH {
 #[brw(repr = u16)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum EFID {
+/// An extra field header ID.
+pub enum EFHID {
     EI64,
     IZUC,
     IZUP,
     Other(u16),
 }
 
-impl EFID {
-    const KNOWN: &'static [(u16, EFID)] = &[
+impl EFHID {
+    const KNOWN: &'static [(u16, EFHID)] = &[
         (0x0001, Self::EI64),
         (0x6375, Self::IZUC),
         (0x7075, Self::IZUP),
     ];
 }
 
-impl From<u16> for EFID {
+impl From<u16> for EFHID {
     fn from(value: u16) -> Self {
         match Self::KNOWN.iter().find(|(tag, _)| *tag == value) {
             Some((_, id)) => *id,
@@ -52,11 +53,11 @@ impl From<u16> for EFID {
     }
 }
 
-impl From<&EFID> for u16 {
-    fn from(id: &EFID) -> Self {
+impl From<&EFHID> for u16 {
+    fn from(id: &EFHID) -> Self {
         match id {
-            EFID::Other(v) => *v,
-            known => EFID::KNOWN.iter().find(|(_, id)| id == known).map(|(tag, _)| *tag).unwrap(),
+            EFHID::Other(v) => *v,
+            known => EFHID::KNOWN.iter().find(|(_, id)| id == known).map(|(tag, _)| *tag).unwrap(),
         }
     }
 }
@@ -74,9 +75,9 @@ pub struct EF {
 #[derive(Clone, Debug)]
 // An extra field's data, which may be one of several known types or an unknown type.
 pub enum EFD {
-    Zip64EI(Zip64EI),
-    UnicodeFilename(UnicodeFilename),
-    UnicodeComment(UnicodeComment),
+    EI64(EI64),
+    IZUF(IZUF),
+    IZUC(IZUC),
     Unknown(Vec<u8>),
 }
 
@@ -89,7 +90,7 @@ pub enum EFD {
 /// Only the two sizes are mandatory; the trailing fields are present or absent depending
 /// on which of the header's 32-bit fields were saturated, so their presence is driven by
 /// the field's declared size.
-pub struct Zip64EI {
+pub struct EI64 {
     pub uncompressed_size: u64,
     pub compressed_size: u64,
     #[br(if(size >= 24))]
@@ -102,7 +103,7 @@ pub struct Zip64EI {
 #[brw(little)]
 #[derive(Clone, Debug)]
 /// An Info-ZIP unicode extra field header data variant.
-pub struct UCH {
+pub struct IZUCH {
     pub version: u8,
     pub crc32: u32,
 }
@@ -111,8 +112,8 @@ pub struct UCH {
 #[brw(little)]
 #[derive(Clone, Debug)]
 /// An Info-ZIP unicode comment extra field data variant.
-pub struct UnicodeComment {
-    pub uch: UCH,
+pub struct IZUC {
+    pub izuch: IZUCH,
     // No length arithmetic needed: `ef_data` hands us a reader bounded to this field.
     #[br(parse_with = until_eof, try_map = String::from_utf8)]
     #[bw(map = |comment: &String| comment.as_bytes().to_vec())]
@@ -123,11 +124,11 @@ pub struct UnicodeComment {
 #[brw(little)]
 #[derive(Clone, Debug)]
 /// An Info-ZIP unicode path extra field data variant.
-pub struct UnicodeFilename {
-    pub uch: UCH,
+pub struct IZUF {
+    pub izuch: IZUCH,
     #[br(parse_with = until_eof, try_map = String::from_utf8)]
     #[bw(map = |file_name: &String| file_name.as_bytes().to_vec())]
-    pub file_name: String,
+    pub insecure_file_name: String,
 }
 
 /// Reads extra fields until `len` bytes have been consumed.
@@ -158,20 +159,20 @@ pub(crate) fn efs(len: u64) -> BinResult<Vec<EF>> {
 }
 
 #[binrw::parser(reader, endian)]
-fn ef_data(tag: EFID, size: u16) -> BinResult<EFD> {
+fn ef_data(tag: EFHID, size: u16) -> BinResult<EFD> {
     let raw: Vec<u8> = count(size.into())(reader, endian, ())?;
 
     Ok(match tag {
-        EFID::EI64 => {
-            EFD::Zip64EI(Zip64EI::read_options(&mut Cursor::new(&raw), endian, (size,))?)
+        EFHID::EI64 => {
+            EFD::EI64(EI64::read_options(&mut Cursor::new(&raw), endian, (size,))?)
         },
-        EFID::IZUC => {
-            EFD::UnicodeComment(UnicodeComment::read_options(&mut Cursor::new(&raw), endian, ())?)
+        EFHID::IZUC => {
+            EFD::IZUC(IZUC::read_options(&mut Cursor::new(&raw), endian, ())?)
         }
-        EFID::IZUP => {
-            EFD::UnicodeFilename(UnicodeFilename::read_options(&mut Cursor::new(&raw), endian, ())?)
+        EFHID::IZUP => {
+            EFD::IZUF(IZUF::read_options(&mut Cursor::new(&raw), endian, ())?)
         }
-        EFID::Other(_) => EFD::Unknown(raw),
+        EFHID::Other(_) => EFD::Unknown(raw),
     })
 }
 
@@ -180,9 +181,9 @@ impl BinWrite for EFD {
 
     fn write_options<W: binrw::io::Write + Seek>(&self, writer: &mut W, endian: Endian, _: ()) -> BinResult<()> {
         match self {
-            Self::Zip64EI(field) => field.write_options(writer, endian, ()),
-            Self::UnicodeFilename(field) => field.write_options(writer, endian, ()),
-            Self::UnicodeComment(field) => field.write_options(writer, endian, ()),
+            Self::EI64(field) => field.write_options(writer, endian, ()),
+            Self::IZUF(field) => field.write_options(writer, endian, ()),
+            Self::IZUC(field) => field.write_options(writer, endian, ()),
             Self::Unknown(raw) => raw.write_options(writer, endian, ()),
         }
     }

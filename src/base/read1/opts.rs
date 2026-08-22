@@ -49,11 +49,11 @@ pub struct ZipOptions {
     pub validate_num_central_directory_files: bool,
 
     /// Validates the CRC of the actual read data matches the expected value.
-    /// [`validate_file_on_eof`] must be enabled for this to be enforced.
+    /// [`Self::validate_file_on_eof`] must be enabled for this to be enforced.
     pub validate_crc_match_against_read: bool,
 
     /// Validates the uncompressed size of the actual read data matches the expected value.
-    /// [`validate_file_on_eof`] must be enabled for this to be enforced.
+    /// [`Self::validate_file_on_eof`] must be enabled for this to be enforced.
     pub validate_uncompressed_size_match_against_read: bool,
 
     /// Whether to validate the file when EOF is hit.
@@ -84,16 +84,13 @@ pub struct ZipOptions {
     /// Enforces a maximum size, in bytes, of the extra field block of each file.
     ///
     /// Applied to the length declared by the local file header or central directory record
-    /// before the block itself is read, so an archive cannot force us to buffer a block we
-    /// were never going to accept. Note that the format caps this at [`u16::MAX`] anyway.
+    /// before the block itself is read.
     pub max_extra_field_size_per_file: u16,
 
     /// Enforces a maximum number of extra fields per file.
     ///
-    /// Unlike [`Self::max_extra_field_size_per_file`], this can only be applied once the block
-    /// has been parsed, as the number of fields it holds isn't declared anywhere. Use it to
-    /// bound the fields retained per entry (see [`Self::load_file_meta`]) rather than to bound
-    /// what we read; the size limit above is the one which does that.
+    /// This can only be applied once the block has been parsed, as the number of fields it
+    /// holds isn't declared anywhere.
     pub max_extra_field_num_per_file: u16,
 
     /// The maximum number of files to load from the CD into memory.

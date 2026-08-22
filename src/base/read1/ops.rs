@@ -67,7 +67,7 @@ impl<'o, R: AsyncRead + Unpin> Ops<'o, R> {
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
     pub async fn cdr(&mut self, assert_signature: bool) -> Result<CDR> {
         if assert_signature {
-            self.assert_signature(Signature::CDH).await?;
+            self.assert_signature(Signature::CDRH).await?;
         }
 
         let options = self.options;
@@ -191,12 +191,8 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
         loop {
             let signature = crate::spec::headers1::read::<Signature, R>(&mut self.reader).await?;
 
-            if signature != Signature::CDH {
+            if signature != Signature::CDRH {
                 break;
-            }
-            if offsets.len() >= ceocdr.num_entries()? as usize {
-                // Got another header, but invalid.
-                // TODO
             }
 
             offsets.push(offset);
@@ -230,14 +226,16 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
         let mut lf = Ops::new(&mut self.reader, opts).lf().await?;
         crate::base::read1::valid::validate_file(&lf, &cdr, opts)?;
 
-        if lf.lfh.gpf.data_descriptor() {
+        if cdr.cdrh.gpf.data_descriptor() {
             // We know the values from the CDR are 'good', because they were written after the file finished writing.
             
             lf.lfh.compressed_size = cdr.cdrh.compressed_size;
             lf.lfh.uncompressed_size = cdr.cdrh.uncompressed_size;
             lf.lfh.crc = cdr.cdrh.crc;
 
-            if let Some(zip64ei) = cdr.find_ef(crate::spec::extra::EFID::EI64) {
+            // TODO: should we move this into the if branch?
+            lf.efs.retain(|ef| ef.efh.efid != crate::spec::extra::EFHID::EI64);
+            if let Some(zip64ei) = cdr.find_ef(crate::spec::extra::EFHID::EI64) {
                 lf.efs.push(zip64ei.clone());
             }
         }

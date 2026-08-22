@@ -17,11 +17,8 @@ pub fn validate_extra_field_size(size: u16, options: &ZipOptions) -> Result<()> 
 
 /// Enforces the configured maximum number of extra fields per record.
 ///
-/// The number of fields a block holds is only known once it has been parsed, so unlike
-/// [`validate_extra_field_size`] this cannot bound what we read. What it does bound is what we
-/// retain: a block of `u16::MAX` bytes can hold ~16k four-byte fields, whose parsed
-/// representation is an order of magnitude larger than the bytes it came from, and those are
-/// held for every entry when `load_file_meta` is enabled.
+/// The number of fields a block holds is only known once it has been parsed, this cannot
+/// bound what we read.
 pub fn validate_extra_field_num(extra_fields: &[EF], options: &ZipOptions) -> Result<()> {
     if extra_fields.len() > options.max_extra_field_num_per_file.into() {
         return Err(crate::error::ZipError::ExtraFieldNumAboveMax(options.max_extra_field_num_per_file));

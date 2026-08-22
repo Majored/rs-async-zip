@@ -20,7 +20,7 @@
 //! let reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
 //! 
 //! // Or with custom options; 
-//! let options = ZipOptions { max_num_cd_files: 16, ..Default::default() };
+//! let options = ZipOptions { max_cd_num_files: 16, ..Default::default() };
 //! let data = Cursor::new(Vec::new()); // Replace with your ZIP archive data
 //! let reader = ZipArchiveReader::open_with_options(data, options).await.expect("failed to open zip archive");
 //! 
@@ -130,8 +130,9 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> ZipArchiveReader<R> {
     /// [`ZipError::UnexpectedHeaderError`]  
     /// [`ZipError::UpstreamReadError`]. 
     pub async fn file(&mut self, index: usize) -> Result<ZipFileReader<&mut R>> {
+        // TODO: We shouldn't need this separate cdr fetch, because file_open() already does.
+        let cdr = self.cdr(index).await?;
         let lf = self.file_open(index).await?;
-        let cdr = self.loaded_cdrs[index].clone();
         let opts = self.inner.options.clone();
         
         ZipFileReader::new(&mut self.reader, lf, Some(cdr), opts)
@@ -141,8 +142,9 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> ZipArchiveReader<R> {
     /// 
     /// This takes an owned Self and consumes the source reader.
     pub async fn file_oneshot(mut self, index: usize) -> Result<ZipFileReader<R>> {
+        // TODO: We shouldn't need this separate cdr fetch, because file_open() already does.
+        let cdr = self.cdr(index).await?;
         let lf = self.file_open(index).await?;
-        let cdr = self.loaded_cdrs[index].clone();
         let opts = self.inner.options.clone();
 
         ZipFileReader::new(self.reader, lf, Some(cdr), opts)
@@ -248,7 +250,6 @@ impl <R: AsyncBufRead + AsyncSeek + Unpin, G: AsyncFn() -> Result<R>> ZipArchive
         &self.primary
     }
 
-    /// 
     pub async fn reader(&self) -> Result<ZipArchiveReader<R>> {
         let reader = (self.generator)().await?;
         let inner = self.primary.inner().clone();

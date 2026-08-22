@@ -20,7 +20,7 @@ use crate::{error::Result, spec::KnownSize};
 /// A signature identifying the type of header, using their spec-module abreviations.
 pub enum Signature {
     LFH = 0x04034b50,
-    CDH = 0x02014b50,
+    CDRH = 0x02014b50,
     EOCDRH = 0x06054b50,
     EOCDR64H = 0x06064b50,
     EOCDL64H = 0x07064b50,

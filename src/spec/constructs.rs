@@ -5,7 +5,7 @@
 
 use binrw::binrw;
 
-use crate::{error::{Result, ZipError}, spec::{extra::{EF, EFD, EFID, Zip64EI, efs}, headers1::{CDRH, EOCDL64H, EOCDR64H, EOCDRH, LFH}, string::ZipString}};
+use crate::{error::{Result, ZipError}, spec::{extra::{EF, EFD, EFHID, EI64, efs}, headers1::{CDRH, EOCDL64H, EOCDR64H, EOCDRH, LFH}, string::ZipString}};
 
 // Constructing blocks from raw headers & bytes sequences (like file names, comments, etc).
 //
@@ -28,7 +28,7 @@ pub struct LF {
 }
 
 impl LF {
-    // TODO: Add a Info-ZIP-aware file name accessor that uses the
+    // TODO: Add a Info-ZIP-aware file name accessor (also in CDR).
 
     /// A ZIP-64-aware accessor for the uncompressed size of the file.
     pub fn uncompressed_size(&self) -> Result<u64> {
@@ -41,15 +41,15 @@ impl LF {
     }
 }
 
-fn combined_accessor(zip32: u32, extra_fields: &[EF], accessor: impl Fn(&Zip64EI) -> u64) -> Result<u64> {
+fn combined_accessor(zip32: u32, extra_fields: &[EF], accessor: impl Fn(&EI64) -> u64) -> Result<u64> {
     if zip32 != u32::MAX {
         return Ok(zip32.into());
     }
 
     let zip64ei = extra_fields.iter().find(|field| {
-        matches!(field.efh.efid, EFID::EI64)
+        matches!(field.efh.efid, EFHID::EI64)
     });
-    if let Some(EF { efh: _, efd: EFD::Zip64EI(data) }) = zip64ei {
+    if let Some(EF { efh: _, efd: EFD::EI64(data) }) = zip64ei {
         return Ok(accessor(data));
     }
     
@@ -125,7 +125,7 @@ impl CDR {
         combined_accessor(self.cdrh.compressed_size, &self.efs, |ei_data| ei_data.compressed_size)
     }
 
-    pub fn find_ef(&self, efid: EFID) -> Option<&EF> {
+    pub fn find_ef(&self, efid: EFHID) -> Option<&EF> {
         self.efs.iter().find(|field| field.efh.efid == efid)
     }
 }

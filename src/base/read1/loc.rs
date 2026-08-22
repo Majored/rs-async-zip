@@ -1,8 +1,12 @@
 // Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use std::pin::Pin;
+use std::task::ready;
+use std::task::Poll;
+
+use futures_lite::future::poll_fn;
 use futures_lite::AsyncBufRead;
-use futures_lite::AsyncBufReadExt;
 use futures_lite::AsyncReadExt;
 use futures_lite::AsyncSeek;
 use futures_lite::io::SeekFrom;
@@ -40,18 +44,16 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> Method0<R> {
         let mut matcher = Matcher { signature, matched: 0, candidates: Vec::new() };
         
         loop {
-            let buffer = self.reader.fill_buf().await?;
+            let consumed = fill_and_consume(&mut self.reader, |buffer| matcher.next_buffer(buffer, offset)).await?;
 
-            if buffer.is_empty() {
+            if consumed == 0 {
                 break;
             }
 
-            matcher.next_buffer(buffer, offset);
-
-            let consumed = buffer.len();
-            self.reader.consume(consumed);
             offset += consumed as u64;
         }
+
+        matcher.candidates.retain(|offset| offset + EOCDR_FIXED_SIZE <= eor);
 
         // A signature is only a candidate - the same four bytes can appear within a file comment
         // (or within stored file data, if the archive declares a comment which swallows it). The
@@ -60,7 +62,7 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> Method0<R> {
         if matcher.candidates.len() > 1 {
             for candidate in matcher.candidates.iter().rev() {
                 if self.comment_reaches_eof(*candidate, eor).await? {
-                    return Ok(*candidate + Signature::SIZE as u64);
+                    return Ok(*candidate);
                 }
             }
         }
@@ -79,6 +81,25 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> Method0<R> {
 
         Ok(offset + EOCDR_FIXED_SIZE + u16::from_le_bytes(buffer) as u64 == length)
     }
+}
+
+/// Fills the reader's buffer, hands it to `handler`, consumes it, and returns how many bytes it held.
+///
+/// A workaround for: https://github.com/rust-lang/futures-rs/pull/2801 (fix not upstreamed to `futures-lite`).
+async fn fill_and_consume<R>(reader: &mut R, mut handler: impl FnMut(&[u8])) -> std::io::Result<usize>
+where
+    R: AsyncBufRead + Unpin + ?Sized,
+{
+    poll_fn(|cx| {
+        let buffer = ready!(Pin::new(&mut *reader).poll_fill_buf(cx))?;
+        let consumed = buffer.len();
+
+        handler(buffer);
+        Pin::new(&mut *reader).consume(consumed);
+
+        Poll::Ready(Ok(consumed))
+    })
+    .await
 }
 
 struct Matcher {
