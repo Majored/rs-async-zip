@@ -1,0 +1,33 @@
+name: minimal-versions (Linux)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install nightly (for -Z direct-minimal-versions)
+      run: rustup toolchain install nightly --profile minimal
+
+    - name: Install cargo-hack
+      uses: taiki-e/install-action@cargo-hack
+
+    - name: Remove dev-dependencies
+      run: cargo hack --remove-dev-deps
+
+    - name: Resolve to minimal direct dependency versions
+      run: cargo +nightly generate-lockfile -Z direct-minimal-versions
+
+    - name: Check ['full' feature]
+      run: cargo check --all-features --locked

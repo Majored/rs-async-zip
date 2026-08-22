@@ -1,0 +1,65 @@
+name: MSRV (Linux)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+  DEFLATE64_MSRV: "1.87" # `deflate64` crate uses `unbounded_shifts`
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v7
+
+    # Read the MSRV from Cargo.toml so `rust-version` stays the single source of
+    # truth and cannot silently drift away from what CI actually tests.
+    - name: Read MSRV from Cargo.toml
+      id: msrv
+      run: |
+        msrv=$(grep -m1 '^rust-version' Cargo.toml | cut -d'"' -f2)
+        if [ -z "$msrv" ]; then echo "no rust-version found in Cargo.toml" >&2; exit 1; fi
+        echo "version=$msrv" >> "$GITHUB_OUTPUT"
+        echo "MSRV is $msrv"
+
+    - name: Install toolchains
+      run: |
+        rustup toolchain install ${{ steps.msrv.outputs.version }} --profile minimal
+        rustup toolchain install ${{ env.DEFLATE64_MSRV }} --profile minimal
+
+    # Everything except `deflate64` must build on the declared MSRV. If this
+    # fails, either the code started using a newer language/library feature or a
+    # dependency raised its own MSRV - bump `rust-version` and say so in the
+    # changelog, don't just bump this workflow.
+    - name: Check on MSRV [no features]
+      run: cargo +${{ steps.msrv.outputs.version }} check --verbose
+
+    - name: Check on MSRV [each feature except 'deflate64']
+      run: |
+        for feature in chrono tokio tokio-fs deflate bzip2 lzma zstd xz tracing full-wasm; do
+          echo "::group::$feature"
+          cargo +${{ steps.msrv.outputs.version }} check --verbose --features "$feature"
+          echo "::endgroup::"
+        done
+
+    # Pins the higher `deflate64` floor. If this starts passing on the lower MSRV
+    # the dependency has relaxed its requirement and DEFLATE64_MSRV can drop.
+    - name: Check 'deflate64'/'full' on their own floor
+      run: |
+        cargo +${{ env.DEFLATE64_MSRV }} check --verbose --features deflate64
+        cargo +${{ env.DEFLATE64_MSRV }} check --verbose --features full
+
+    - name: Confirm 'deflate64' still needs the higher floor
+      run: |
+        if cargo +${{ steps.msrv.outputs.version }} check --features deflate64 >/dev/null 2>&1; then
+          echo "'deflate64' now builds on ${{ steps.msrv.outputs.version }};" \
+               "DEFLATE64_MSRV can be lowered." >&2
+          exit 1
+        fi
+        echo "'deflate64' still requires ${{ env.DEFLATE64_MSRV }}, as documented."
