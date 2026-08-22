@@ -91,4 +91,5 @@ and this project adheres to [Semantic Versioning](https://doc.rust-lang.org/carg
 
 - Start of this changelog.
 
-[Unreleased]: https://github.com/Majored/rs-async-zip/compare/v0.0.18...HEAD
+[Unreleased]: https://github.com/Majored/rs-async-zip/compare/v0.0.19...HEAD
+[0.0.19]: https://github.com/Majored/rs-async-zip/compare/v0.0.18...v0.0.19
