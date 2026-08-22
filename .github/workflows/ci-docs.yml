@@ -1,0 +1,31 @@
+name: docs (Linux)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install nightly (matches docs.rs)
+      run: rustup toolchain install nightly --profile minimal
+
+    - name: Build docs as docs.rs does
+      env:
+        RUSTDOCFLAGS: --cfg docsrs -D warnings
+      run: cargo +nightly doc --verbose --all-features --no-deps
+
+    - name: Build docs on stable
+      env:
+        RUSTDOCFLAGS: -D warnings
+      run: cargo doc --verbose --all-features --no-deps
