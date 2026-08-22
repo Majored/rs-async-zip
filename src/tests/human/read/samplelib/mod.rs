@@ -17,6 +17,7 @@ async fn empty() {
     assert_eq!(archive_reader.cdrs().len(), 0);
 }
 
+#[cfg(feature = "deflate")]
 #[tokio::test]
 async fn simple() {
     let data = Cursor::new(&include_bytes!("sample-simple.zip"));
@@ -38,6 +39,7 @@ async fn simple() {
     assert_eq!(buffer.as_bytes(), file_data);
 }
 
+#[cfg(feature = "deflate")]
 #[tokio::test]
 async fn with_html() {
     let data = Cursor::new(&include_bytes!("sample-with-html.zip"));

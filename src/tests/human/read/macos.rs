@@ -2,6 +2,7 @@
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
 #[tokio::test]
+#[cfg(feature = "deflate")]
 async fn single_file_deflate() {
     use crate::base::read1::seek::ZipArchiveReader;
     use futures_lite::io::Cursor;
