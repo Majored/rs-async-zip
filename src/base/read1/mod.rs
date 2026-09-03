@@ -76,6 +76,7 @@ use crate::spec::string::ZipString;
 
 // Public API
 pub mod seek;
+pub mod stream;
 
 pub use file::ZipFileReader;
 pub use opts::{ZipOptions, ZipLocateMethod};

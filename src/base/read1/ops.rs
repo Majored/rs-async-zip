@@ -49,8 +49,10 @@ impl<'o, R: AsyncRead + Unpin> Ops<'o, R> {
     }
 
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
-    pub async fn lf(&mut self) -> Result<LF> {
-        self.assert_signature(Signature::LFH).await?;
+    pub async fn lf(&mut self, assert_signature: bool) -> Result<LF> {
+        if assert_signature {
+            self.assert_signature(Signature::LFH).await?;
+        }
 
         let options = self.options;
         let lf = crate::spec::headers1::read_record::<LFH, LF, R>(&mut self.reader, |lfh| {
@@ -223,7 +225,7 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
         let offset = crate::base::read1::valid_offset(cdr.lfh_offset()?, eor)?;
         self.reader.seek(SeekFrom::Start(offset)).await?;
 
-        let mut lf = Ops::new(&mut self.reader, opts).lf().await?;
+        let mut lf = Ops::new(&mut self.reader, opts).lf(true).await?;
         crate::base::read1::valid::validate_file(&lf, &cdr, opts)?;
 
         if cdr.cdrh.gpf.data_descriptor() {

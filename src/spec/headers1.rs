@@ -15,7 +15,7 @@ use crate::{error::Result, spec::KnownSize};
 #[binrw]
 #[brw(little)]
 #[brw(repr = u32)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 /// A signature identifying the type of header, using their spec-module abbreviations.
 pub enum Signature {
@@ -76,7 +76,7 @@ pub enum Compression {
 
 #[binrw]
 #[brw(little)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// A local file header.
 pub struct LFH {
     pub version: u16,
