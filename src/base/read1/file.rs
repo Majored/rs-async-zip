@@ -10,6 +10,7 @@ use crc32fast::Hasher;
 use futures_lite::AsyncReadExt;
 use futures_lite::AsyncRead;
 use futures_lite::AsyncBufRead;
+use futures_lite::AsyncSeek;
 use futures_lite::io::Take;
 
 use crate::base::read1::ZipOptions;
@@ -37,7 +38,13 @@ pub struct ZipFileReader<R> {
 
 impl<R: AsyncBufRead + Unpin> ZipFileReader<R> {
     pub(crate) fn new(reader: R, lf: LF, cdr: Option<CDR>, opts: ZipOptions) -> Result<Self> {
-        let reader = reader.take(lf.compressed_size()?);
+        let mut compressed_size = lf.compressed_size()?;
+
+        if lf.lfh.gpf.data_descriptor() && cdr.is_none() {
+            compressed_size = u64::MAX;
+        }
+
+        let reader = reader.take(compressed_size);
         let reader = CompressedReader::new(reader, lf.lfh.compression)?;
 
         Ok(Self { reader, hasher: Hasher::default(), read: 0, lf, cdr, opts })
@@ -57,6 +64,28 @@ impl<R: AsyncBufRead + Unpin> ZipFileReader<R> {
     pub fn cdr(&self) -> Option<&CDR> {
         self.cdr.as_ref()
     }
+
+    pub async fn skip(&mut self) -> Result<()> {
+        // TODO: We can seek the underlying reader if we know the size.
+        //       Is that acutally more efficient than just reading and discarding the data (due to read aheads/buffering)?
+
+        let sink = futures_lite::io::sink();
+        futures_lite::io::copy(&mut self.reader, sink).await?;
+        Ok(())
+    }
+
+    /// Reclaims the underlying reader. Only sound to call once the entry has been fully drained.
+    pub(crate) fn into_inner(self) -> R {
+        self.reader.into_inner().into_inner()
+    }
+
+    pub async fn validate(&mut self) -> Result<()> {
+        if self.lf.lfh.gpf.data_descriptor() {
+
+        }
+
+        todo!()
+    }
 }
 
 impl<R: AsyncBufRead + Unpin> AsyncRead for ZipFileReader<R> {
@@ -69,7 +98,7 @@ impl<R: AsyncBufRead + Unpin> AsyncRead for ZipFileReader<R> {
             let error = crate::error::ZipError::UncompressedSizeAboveMax(self.opts.max_uncompressed_size_per_file);
             return Poll::Ready(Err(crate::base::read1::valid::std_invalid_data_err(error)));
         }
-        if written == 0 && self.opts.validate_file_on_eof {
+        if written == 0 && self.opts.validate_file_on_eof && !self.lf.lfh.gpf.data_descriptor() {
             let crc = self.hasher.clone().finalize();
             crate::base::read1::valid::validate_file_eof(&self.lf, crc, self.read, &self.opts)?;
         }
@@ -112,6 +141,25 @@ impl<R: AsyncBufRead + Unpin> CompressedReader<R> {
             #[cfg(feature = "xz")]
             Compression::Xz => Ok(Self::Xz(bufread::XzDecoder::new(reader))),
             _ => Err(crate::error::ZipError::CompressionNotSupported(compression as u16)),
+        }
+    }
+
+    /// Reclaims the underlying reader, discarding any in-progress decompressor state.
+    pub(crate) fn into_inner(self) -> R {
+        match self {
+            CompressedReader::Stored(reader) => reader,
+            #[cfg(feature = "deflate")]
+            CompressedReader::Deflated(reader) => reader.into_inner(),
+            #[cfg(feature = "deflate64")]
+            CompressedReader::Deflate64(reader) => reader.into_inner(),
+            #[cfg(feature = "bzip2")]
+            CompressedReader::Bz(reader) => reader.into_inner(),
+            #[cfg(feature = "lzma")]
+            CompressedReader::Lzma(reader) => reader.into_inner(),
+            #[cfg(feature = "zstd")]
+            CompressedReader::Zstd(reader) => reader.into_inner(),
+            #[cfg(feature = "xz")]
+            CompressedReader::Xz(reader) => reader.into_inner(),
         }
     }
 }

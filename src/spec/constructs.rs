@@ -16,7 +16,7 @@ use crate::{error::{Result, ZipError}, spec::{extra::{EF, EFD, EFHID, EI64, efs}
 
 #[binrw]
 #[brw(little)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// A local file. This struct provides ZIP64-aware accessors.
 pub struct LF {
     pub lfh: LFH,
