@@ -96,8 +96,8 @@ impl<'o, R: AsyncRead + Unpin> Ops<'o, R> {
     }
 
     #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
-    pub async fn validate_eor_is_eoa(&mut self) -> Result<()> {
-        if self.options.validate_eor_is_eoa {
+    pub async fn validate_eoa_is_eor(&mut self) -> Result<()> {
+        if self.options.validate_eoa_is_eor {
             if self.reader.read(&mut [0u8; 1]).await? != 0 {
                 return Err(ZipError::EORIsNotEOA);
             }
@@ -129,9 +129,9 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
         self.reader.seek(SeekFrom::Start(offset)).await?;
 
         let eocdr = Ops::new(&mut self.reader, &opts).eocdr().await?;
-        let mut ceocdr = CEOCDR { eocdr, eocdr64: None, eocdl64: None };
+        let mut ceocdr = CEOCDR { eocdr, eocdr64h: None, eocdl64h: None };
 
-        if opts.validate_eor_is_eoa {
+        if opts.validate_eoa_is_eor {
             // TODO: We should be able to do this without any seeks. Though, attempting a one-byte
             //       read might be equivalent performance wise, not sure. This is clean anyway.
 
@@ -144,8 +144,8 @@ impl<R: AsyncBufRead + AsyncSeek + Unpin> SeekOps<R> {
         }
 
         if let Some((locator, record)) = SeekOps::new(&mut self.reader).zip64(eocdr_offset, eor, &opts).await? {
-            ceocdr.eocdr64 = Some(record);
-            ceocdr.eocdl64 = Some(locator);
+            ceocdr.eocdr64h = Some(record);
+            ceocdr.eocdl64h = Some(locator);
         }
 
         let offset = crate::base::read1::valid_offset(ceocdr.cd_offset()?, eor)?;
