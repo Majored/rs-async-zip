@@ -247,16 +247,16 @@ impl<R: AsyncBufRead + Unpin> ZipArchiveReader<R> {
         }
 
         let mut cdrs = Vec::with_capacity(self.lfs.len());
-        let mut seen_eocdr64 = None;
-        let mut seen_eocdl64 = None;
+        let mut seen_eocdr64h = None;
+        let mut seen_eocdl64h = None;
 
         loop {
             match self.raw_next_header().await? {
                 ZipStreamHeader::CDR(cdr) => cdrs.push(cdr),
-                ZipStreamHeader::EOCDR64H(eocdr64h) => seen_eocdr64 = Some(eocdr64h),
-                ZipStreamHeader::EOCDL64H(eocdl64h) => seen_eocdl64 = Some(eocdl64h),
+                ZipStreamHeader::EOCDR64H(eocdr64h) => seen_eocdr64h = Some(eocdr64h),
+                ZipStreamHeader::EOCDL64H(eocdl64h) => seen_eocdl64h = Some(eocdl64h),
                 ZipStreamHeader::EOCDR(eocdr) => {
-                    self.ceocdr = Some(CEOCDR { eocdr, eocdr64: seen_eocdr64, eocdl64: seen_eocdl64 });
+                    self.ceocdr = Some(CEOCDR { eocdr, eocdr64h: seen_eocdr64h, eocdl64h: seen_eocdl64h });
                     self.cdrs = Some(cdrs);
                     return self.validate_eoa().await;
                 },
@@ -280,7 +280,8 @@ impl<R: AsyncBufRead + Unpin> ZipArchiveReader<R> {
             }
         }
 
-        Ops::new(self.mut_ready_reader(), &options).validate_eor_is_eoa().await?;
+        // TODO: can this be moved into eocdr() helper.
+        Ops::new(self.mut_ready_reader(), &options).validate_eoa_is_eor().await?;
         crate::base::read1::valid::validate_archive(self.ceocdr().unwrap(), &options)?;
 
         // TODO: To validate lfh offsets, we'd need an AsyncOffsetReader. 

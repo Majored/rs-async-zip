@@ -67,8 +67,8 @@ pub struct ZipOptions {
     // TODO
     // pub validate_sor_is_soa: bool,
 
-    /// Validates that the end of the reader is also the end of archive.
-    pub validate_eor_is_eoa: bool,
+    /// Validates that the end of archive is also the end of the reader.
+    pub validate_eoa_is_eor: bool,
 
     /// Whether to validate that the GPF in the LFH matches the CDR.
     pub validate_gpf_header_match: bool,
@@ -129,7 +129,7 @@ impl Default for ZipOptions {
             validate_file_on_eof: true,
             validate_gpf_header_match: true,
             // validate_sor_is_soa: true,
-            validate_eor_is_eoa: true,
+            validate_eoa_is_eor: true,
             validate_cd_against_seen_when_streaming: true,
             max_uncompressed_size_per_file: u64::MAX,
             max_compressed_size_per_file: u64::MAX,
