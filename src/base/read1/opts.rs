@@ -28,6 +28,10 @@ pub struct ZipOptions {
     /// The method to use for locating the EOCDR. See [`ZipLocateMethod`].
     pub eocdr_locate_method: ZipLocateMethod,
 
+    /// Whether we fully consume the archive when streaming.
+    /// If disabled, next() will return None after the last local file (also preventing validation).
+    pub stream_fully_consume_archive: bool,
+
     // VALIDATION
 
     /// Whether to validate that the compressed size in the LFH matches the CDR.
@@ -68,6 +72,9 @@ pub struct ZipOptions {
 
     /// Whether to validate that the GPF in the LFH matches the CDR.
     pub validate_gpf_header_match: bool,
+
+    /// Whether we validate the central directory against the seen entries when streaming.
+    pub validate_cd_against_seen_when_streaming: bool,
 
     // LIMITS
 
@@ -110,6 +117,7 @@ impl Default for ZipOptions {
     fn default() -> Self {
         Self {
             eocdr_locate_method: ZipLocateMethod::SeekBackReadLinearly,
+            stream_fully_consume_archive: true,
             validate_compressed_size_header_match: true,
             validate_uncompressed_size_header_match: true,
             validate_crc_header_match: true,
@@ -122,6 +130,7 @@ impl Default for ZipOptions {
             validate_gpf_header_match: true,
             // validate_sor_is_soa: true,
             validate_eor_is_eoa: true,
+            validate_cd_against_seen_when_streaming: true,
             max_uncompressed_size_per_file: u64::MAX,
             max_compressed_size_per_file: u64::MAX,
             max_cd_num_files: u64::MAX,

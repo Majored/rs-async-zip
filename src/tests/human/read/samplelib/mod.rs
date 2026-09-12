@@ -8,13 +8,24 @@ use futures_lite::{AsyncBufRead, AsyncReadExt, AsyncSeek};
 use futures_lite::io::Cursor;
 
 #[tokio::test]
-async fn empty() {
+async fn empty_seek() {
     let data = Cursor::new(&include_bytes!("sample-empty.zip"));
     let archive_reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
 
     assert_eq!(archive_reader.ceocdr().is_zip64(), false);
     assert_eq!(archive_reader.ceocdr().cd_size().expect("valid zip64-aware cd size"), 0);
-    assert_eq!(archive_reader.cdrs().len(), 0);
+    assert!(archive_reader.cdrs().is_empty());
+}
+
+#[tokio::test]
+async fn empty_stream() {
+    use crate::base::read1::stream::ZipArchiveReader as StreamZipFileReader;
+    let data = Cursor::new(&include_bytes!("sample-empty.zip"));
+    let mut archive_reader = StreamZipFileReader::new(data);
+
+    assert!(archive_reader.next().await.expect("no read error").is_none());
+    assert!(archive_reader.lfs().is_empty());
+    assert!(archive_reader.cdrs().expect("read cd").is_empty());
 }
 
 #[cfg(feature = "deflate")]
@@ -37,6 +48,30 @@ async fn simple() {
     let mut buffer = String::new();
     file_reader.read_to_string(&mut buffer).await.expect("failed to read file");
     assert_eq!(buffer.as_bytes(), file_data);
+}
+
+#[cfg(feature = "deflate")]
+#[tokio::test]
+async fn simple_stream() {
+    use crate::base::read1::stream::ZipArchiveReader as StreamZipFileReader;
+
+    let data = Cursor::new(&include_bytes!("sample-simple.zip"));
+    let file_data = include_bytes!("sample-simple/hello.txt");
+
+    let mut archive_reader = StreamZipFileReader::new(data);
+    let file_reader = archive_reader.next().await.expect("read next file").expect("next file exists");
+
+    assert_eq!(file_reader.lf().insecure_file_name.as_bytes(), b"hello.txt");
+
+    let mut buffer = String::new();
+    file_reader.read_to_string(&mut buffer).await.expect("failed to read file");
+    assert_eq!(buffer.as_bytes(), file_data);
+
+    assert!(archive_reader.next().await.expect("read next file").is_none());
+
+    assert_eq!(archive_reader.ceocdr().expect("has ceocdr").is_zip64(), false);
+    assert_eq!(archive_reader.cdrs().expect("has cdrs").len(), 1);
+    // TODO: comment
 }
 
 #[cfg(feature = "deflate")]

@@ -146,6 +146,7 @@ pub struct CEOCDR {
     pub eocdr: EOCDR,
     pub eocdr64: Option<EOCDR64H>,
     pub eocdl64: Option<EOCDL64H>,
+    // TODO: these should be have h suffixes
 }
 
 impl CEOCDR {

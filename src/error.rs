@@ -6,6 +6,8 @@
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
+use crate::spec::headers1::Signature;
+
 /// A Result type alias over ZipError to minimise repetition.
 pub type Result<V> = std::result::Result<V, ZipError>;
 
@@ -34,6 +36,8 @@ pub enum ZipError {
     InvalidEOCDRSeekMethod,
     #[error("cannot find() when the CDRs have not been loaded")]
     CDRsNotLoaded,
+    #[error("more local file headers than central directory records")]
+    MoreLFHsThanCDRs,
 
     #[error("invalid offset: {0} is greater than the end of the archive ({1})")]
     InvalidOffset(u64, u64),
@@ -79,6 +83,9 @@ pub enum ZipError {
     /// Encountered an unexpected header
     UnexpectedHeaderError(u32, u32),
 
+    #[error("Encountered an unexpected header {0:?} when {1:?}")]
+    UnexpectedHeaderError1(Signature, Vec<Signature>),
+
     #[error("Info-ZIP Unicode Comment Extra Field was incomplete")]
     InfoZipUnicodeCommentFieldIncomplete,
     #[error("Info-ZIP Unicode Path Extra Field was incomplete")]
@@ -105,7 +112,7 @@ pub enum ZipError {
     #[error("start of reader was not start of archive")]
     SORIsNotSOA,
     #[error("end of reader was not end of archive")]
-    EORIsNotEOA,
+    EORIsNotEOA, // TODO: end of archive is not end of reader
 
     #[error("zip64 extended information field was not present when required")]
     NoZip64ExtendedInformation,
