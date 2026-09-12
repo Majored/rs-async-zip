@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
-//! A ZIP archive reader which acts over a seekable source.
+//! A ZIP archive seeking reader which acts over a seekable source.
 //! 
 //! # Overview
 //! A seeking reader provides many advantages over a streaming reader. See the parent [`super`] module for a comparison of the two.
@@ -38,25 +38,6 @@
 //! # }
 //! ```
 //! 
-//! # Accessing archive metadata
-//! ```no_run
-//! # use async_zip::base::read1::seek::ZipArchiveReader;
-//! # use futures_lite::io::Cursor;
-//! # 
-//! # async fn main2() {
-//! let data = Cursor::new(Vec::new()); // Replace with your ZIP archive data
-//! let reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
-//! 
-//! // Enumerate through the files in the archive
-//! for (i, cdr) in reader.cdrs().iter().enumerate() {
-//!    println!("File {i}: {:?}", cdr.insecure_file_name);
-//! }
-//! 
-//! // Or find a file by its file name;
-//! let index = reader.find(b"hello.txt").expect("loaded cdrs").next().expect("failed to look up file name");
-//! # }
-//! ```
-//! 
 //! # Opening a file for reading
 //! ```no_run
 //! # use async_zip::base::read1::seek::ZipArchiveReader;
@@ -77,6 +58,25 @@
 //! file.read_to_string(&mut content).await.expect("failed to read file contents");
 //! # }
 //! ```
+//! 
+//! # Accessing archive metadata
+//! ```no_run
+//! # use async_zip::base::read1::seek::ZipArchiveReader;
+//! # use futures_lite::io::Cursor;
+//! # 
+//! # async fn main2() {
+//! let data = Cursor::new(Vec::new()); // Replace with your ZIP archive data
+//! let reader = ZipArchiveReader::open(data).await.expect("failed to open zip archive");
+//! 
+//! // Enumerate through the files in the archive
+//! for (i, cdr) in reader.cdrs().iter().enumerate() {
+//!    println!("File {i}: {:?}", cdr.insecure_file_name);
+//! }
+//! 
+//! // Or find a file by its file name;
+//! let index = reader.find(b"hello.txt").expect("loaded cdrs").next().expect("failed to look up file name");
+//! # }
+//! ```
 
 use crate::error::ZipError;
 
@@ -85,7 +85,7 @@ use futures_lite::{AsyncBufRead, AsyncSeek, AsyncSeekExt};
 
 use crate::{base::read1::{file::ZipFileReader, ops::{Ops, SeekOps}, opts::ZipOptions}, error::Result, spec::constructs::{CDR, CEOCDR, LF}};
 
-/// A ZIP archive reader which acts over a seekable source.
+/// A ZIP archive seeking reader which acts over a seekable source.
 pub struct ZipArchiveReader<R> {
     inner: Arc<ZipArchiveInner>,
     reader: R,

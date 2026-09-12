@@ -70,6 +70,7 @@ pub fn validate_file(lf: &LF, cdr: &CDR, options: &ZipOptions) -> Result<()> {
         return Err(crate::error::ZipError::GPFHeaderMismatch);
     }
 
+    // TODO: also run against LF
     if cdr.uncompressed_size()? > options.max_uncompressed_size_per_file {
         return Err(crate::error::ZipError::UncompressedSizeAboveMax(options.max_uncompressed_size_per_file));
     }

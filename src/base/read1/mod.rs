@@ -14,15 +14,12 @@
 //! The seek reader acts over a single [`AsyncSeek`] reader. See [`seek`] for usage information.
 //! 
 //! ### Advantages
-//! - Can perform out-of-order file reads.
-//! - Reads and uses the central directory as the source of truth for file metadata.
-//! - Can perform validation of local file headers against the central directory.
-//! - Can perform validation of the central directory itself.
+//! - Can perform out-of-order file reads and re-read the same file.
+//! - Uses the central directory as the source of truth for file metadata.
 //! - Can perform concurrent/parallel file reads when using a factory.
 //! 
 //! ### Limitations
 //! - The underlying reader must implement [`AsyncSeek`] (or the tokio equivalent).
-//! - File reads must be sequential (ie. one at a time) unless using a factory.
 //! - [`ZipFileReader`] does not support seeking, so nested ZIPs must be opened with [`stream`].
 //! 
 //! ## Streaming module
@@ -34,13 +31,19 @@
 //! 
 //! ### Advantages
 //! - Operating in low-memory environments.
+//! - No requirement on [`AsyncSeek`] (such as a TCP streams).
 //! 
 //! ### Limitations
-//! - The inability to read ZIP entries using the combination of a data descriptor and the Stored compression method.
-//! - No file comment being available (defaults to an empty string).
-//! - No internal or external file attributes being available (defaults to 0).
-//! - The extra field data potentially being inconsistent with what’s stored in the central directory.
-//! - None of the following being available when the entry was written with a data descriptor (defaults to 0):
+//! - None of the seeking reader's advantages.
+//! - The inability to read ZIP files using the combination of a data descriptor and the Stored compression method.
+//! - The inability to perform some validation steps until the archive has been full consumed. See below.
+//! - The inability to access the following information until the archive has been fully consumed:
+//!     - central directory records
+//!     - ZIP64 end of central directory record, if it exists
+//!     - ZIP64 end of central directory locator, if it exists
+//!     - end of central directory record
+//!     - archive comment
+//! - When a file was written with a data descriptor, none of the following until the file has been fully consumed:
 //!     - CRC
 //!     - compressed size
 //!     - uncompressed size

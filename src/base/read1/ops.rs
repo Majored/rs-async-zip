@@ -7,6 +7,7 @@ use futures_lite::AsyncBufRead;
 use futures_lite::AsyncSeekExt;
 use futures_lite::AsyncRead;
 use futures_lite::AsyncSeek;
+use futures_lite::AsyncReadExt;
 
 #[cfg(feature = "tracing")]
 use tracing::{instrument, trace};
@@ -92,6 +93,17 @@ impl<'o, R: AsyncRead + Unpin> Ops<'o, R> {
         crate::spec::headers1::read_record::<EOCDRH, EOCDR, R>(&mut self.reader, |eocdrh| {
             Ok(usize::from(eocdrh.comment_length))
         }).await
+    }
+
+    #[cfg_attr(feature = "tracing", instrument(skip(self), level = "trace"))]
+    pub async fn validate_eor_is_eoa(&mut self) -> Result<()> {
+        if self.options.validate_eor_is_eoa {
+            if self.reader.read(&mut [0u8; 1]).await? != 0 {
+                return Err(ZipError::EORIsNotEOA);
+            }
+        }
+
+        Ok(())
     }
 }
 
