@@ -108,6 +108,10 @@ impl<R: AsyncBufRead + Unpin> ZipArchiveReader<R> {
     ///     - the archive comment
     /// - all configured validations have been performed
     pub async fn next(&mut self) -> Result<Option<&mut ZipFileReader<R>>> {
+        if self.ceocdr().is_some() {
+            return Ok(None);
+        }
+        
         let next = self.raw_next_header().await?;
 
         if let ZipStreamHeader::LF(lf) = next {
