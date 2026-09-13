@@ -39,6 +39,11 @@ pub enum ZipError {
     #[error("more local file headers than central directory records")]
     MoreLFHsThanCDRs,
 
+    #[error("archive was malformed - out of order header")]
+    MalformedOutOfOrderHeader,
+    #[error("archive was malformed - missing a required header")]
+    MalformedMissingHeader,
+
     #[error("invalid offset: {0} is greater than the end of the archive ({1})")]
     InvalidOffset(u64, u64),
 

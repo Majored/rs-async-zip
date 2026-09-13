@@ -190,20 +190,24 @@ impl<R: AsyncBufRead + Unpin> ZipArchiveReader<R> {
     /// Paired with [`Self::raw_next_header()`].
     pub async fn raw_assume_lf(&mut self, lf: LF) -> Result<&mut ZipFileReader<R>> {
         self.finish_current().await?;
-        let reader = self.take_ready_reader();
+
+        let options = self.options.clone();
+        let mut reader = self.mut_ready_reader();
 
         if lf.lfh.gpf.data_descriptor() {
             // TODO: add support back
-            self.state = Some(State::Ready(reader));
             return Err(ZipError::FeatureNotSupported("stream reading data descriptors"));
         }
         if lf.lfh.gpf.data_descriptor() && lf.lfh.compression == Compression::Stored {
-            self.state = Some(State::Ready(reader));
             return Err(ZipError::FeatureNotSupported("stream reading data descriptors with stored compression"));
         }
 
+        // TODO: Needed to ensure that creating a ZipFileReader does not error before taking ownership of the reader.
+        let _ = ZipFileReader::new(&mut reader, lf.clone(), None, options.clone())?;
+        let reader = self.take_ready_reader();
+
         self.lfs.push(lf.clone());
-        self.state = Some(State::Reading(ZipFileReader::new(reader, lf, None, self.options.clone())?));
+        self.state = Some(State::Reading(ZipFileReader::new(reader, lf, None, options.clone())?));
 
         match &mut self.state {
             Some(State::Reading(entry)) => Ok(entry),
@@ -215,16 +219,17 @@ impl<R: AsyncBufRead + Unpin> ZipArchiveReader<R> {
     async fn finish_current(&mut self) -> Result<()> {
         let state = self.state.take().expect("ZipArchiveReader state invariant violated");
 
-        let reader = match state {
-            State::Ready(reader) => reader,
+        match state {
+            State::Ready(reader) => {
+                self.state = Some(State::Ready(reader));
+                Ok(())
+            },
             State::Reading(mut entry) => {
-                entry.skip().await?;
-                entry.into_inner()
+                let result = entry.skip().await;
+                self.state = Some(State::Ready(entry.into_inner()));
+                result
             }
-        };
-
-        self.state = Some(State::Ready(reader));
-        Ok(())
+        }
     }
 
     fn take_ready_reader(&mut self) -> R {
@@ -247,26 +252,47 @@ impl<R: AsyncBufRead + Unpin> ZipArchiveReader<R> {
         }
 
         let mut cdrs = Vec::with_capacity(self.lfs.len());
-        let mut seen_eocdr64h = None;
-        let mut seen_eocdl64h = None;
+        let mut eocdr64h = None;
+        let mut eocdl64h = None;
 
         loop {
             match self.raw_next_header().await? {
-                ZipStreamHeader::CDR(cdr) => cdrs.push(cdr),
-                ZipStreamHeader::EOCDR64H(eocdr64h) => seen_eocdr64h = Some(eocdr64h),
-                ZipStreamHeader::EOCDL64H(eocdl64h) => seen_eocdl64h = Some(eocdl64h),
-                ZipStreamHeader::EOCDR(eocdr) => {
-                    self.ceocdr = Some(CEOCDR { eocdr, eocdr64h: seen_eocdr64h, eocdl64h: seen_eocdl64h });
-                    self.cdrs = Some(cdrs);
-                    return self.validate_eoa().await;
+                ZipStreamHeader::LF(_) => return Err(ZipError::MalformedOutOfOrderHeader),
+                ZipStreamHeader::CDR(cdr) => {
+                    if eocdl64h.is_some() || eocdr64h.is_some() {
+                        return Err(ZipError::MalformedOutOfOrderHeader);
+                    }
+
+                    cdrs.push(cdr);
                 },
-                ZipStreamHeader::LF(_) => {
-                    let actual = Signature::LFH;
-                    let expected = vec![Signature::CDRH, Signature::EOCDRH, Signature::EOCDR64H, Signature::EOCDL64H];
-                    return Err(ZipError::UnexpectedHeaderError1(actual, expected));
+                ZipStreamHeader::EOCDR64H(actual_eocdr64h) => {
+                    if eocdl64h.is_some() || eocdr64h.is_some() {
+                        return Err(ZipError::MalformedOutOfOrderHeader);
+                    }
+
+                    eocdr64h = Some(actual_eocdr64h);
+                },
+                ZipStreamHeader::EOCDL64H(actual_eocdl64h) => {
+                    if eocdl64h.is_some() || eocdr64h.is_none() {
+                        return Err(ZipError::MalformedOutOfOrderHeader);
+                    }
+
+                    eocdl64h = Some(actual_eocdl64h);
+                },
+                ZipStreamHeader::EOCDR(eocdr) => {
+                    self.ceocdr = Some(CEOCDR { eocdr, eocdr64h: eocdr64h, eocdl64h: eocdl64h });
+                    self.cdrs = Some(cdrs);
+
+                    if self.ceocdr.as_ref().unwrap().has_xor_headers() {
+                        return Err(ZipError::MalformedMissingHeader);
+                    }
+
+                    break;
                 },
             }
         }
+
+        self.validate_eoa().await
     }
 
     async fn validate_eoa(&mut self,) -> Result<()> {
@@ -290,11 +316,6 @@ impl<R: AsyncBufRead + Unpin> ZipArchiveReader<R> {
     }
 }
 
-enum State<R> {
-    Ready(R),
-    Reading(ZipFileReader<R>),
-}
-
 /// A set of possible headers that can be encountered in a ZIP stream.
 pub enum ZipStreamHeader {
     LF(LF),
@@ -302,4 +323,9 @@ pub enum ZipStreamHeader {
     EOCDR(EOCDR),
     EOCDR64H(EOCDR64H),
     EOCDL64H(EOCDL64H),
+}
+
+enum State<R> {
+    Ready(R),
+    Reading(ZipFileReader<R>),
 }

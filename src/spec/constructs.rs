@@ -149,12 +149,16 @@ pub struct CEOCDR {
 }
 
 impl CEOCDR {
-    /// Returns whether this archive is a ZIP64 archive.
-    pub fn is_zip64(&self) -> bool {
+    pub(crate) fn has_xor_headers(&self) -> bool {
         let xor1 = self.eocdl64h.is_some() && self.eocdr64h.is_none();
         let xor2 = self.eocdl64h.is_none() && self.eocdr64h.is_some();
 
-        if xor1 || xor2 {
+        xor1 || xor2
+    }
+
+    /// Returns whether this archive is a ZIP64 archive.
+    pub fn is_zip64(&self) -> bool {
+        if self.has_xor_headers() {
             unreachable!("we should have returned an Err previously if we had an XOR situation");
         }
 
