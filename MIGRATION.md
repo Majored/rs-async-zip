@@ -4,6 +4,18 @@ All intermediate migration steps should be applied if migrating from multiple ve
 
 ## [Unreleased]
 
+- [`ZipOptions::validate_eor_is_eoa`] has been renamed to [`ZipOptions::validate_eoa_is_eor`].
+  Its behaviour is unchanged; only the name was the wrong way around.
+- [`CEOCDR::eocdr64`] and [`CEOCDR::eocdl64`] have been renamed to [`CEOCDR::eocdr64h`] and
+  [`CEOCDR::eocdl64h`] to match the header types they hold. Both are still `Option`s, and
+  [`CEOCDR::is_zip64()`] remains the way to test for a ZIP64 archive.
+- [`spec::headers1::EOCDR64H`]'s [`KnownSize::SIZE`] is now 52 rather than 56. If you were
+  relying on that constant to size your own reads, you now need to account for the 4-byte
+  signature separately.
+- The streaming reader lives at [`base::read1::stream::ZipArchiveReader`], alongside the seeking
+  reader at [`base::read1::seek::ZipArchiveReader`]. It is not yet a replacement for the old
+  [`base::read::stream`], which is unaffected and still handles data descriptors.
+
 ## [Unreleased - read1 -> read migration]
 
 - The [`base::read1`] module has been renamed to [`base::read`], replacing the old module which has
