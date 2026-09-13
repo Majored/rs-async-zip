@@ -8,13 +8,52 @@ and this project adheres to [Semantic Versioning](https://doc.rust-lang.org/carg
 
 ### Added
 
+- A streaming reader for the re-written read module at [`base::read1::stream::ZipArchiveReader`],
+  which reads an archive front-to-back over any [`AsyncBufRead`] source without requiring
+  [`AsyncSeek`]. It provides:
+  - [`next()`], which yields a [`base::read1::ZipFileReader`] per local file. Returning `None`
+    means the whole end of archive (every CDR, the ZIP64 EOCDR/EOCDL if present, the EOCDR and
+    the archive comment) has been read and all configured validations have run.
+  - [`lfs()`], [`cdrs()`] and [`ceocdr()`] accessors. The latter two are only populated once
+    [`next()`] has returned `None`, as the central directory trails the local files.
+  - [`raw_next_header()`] and [`raw_assume_lf()`], a lower-level pair for driving the stream
+    header-by-header via [`base::read1::stream::ZipStreamHeader`].
+  - Reading a file no longer needs to be finished before moving on; the reader drains whatever is
+    left of the current file when the next one is requested.
+  - This is still in active development. Files written with a data descriptor are not yet
+    supported and currently fail with [`ZipError::FeatureNotSupported`].
+- [`base::read1::ZipFileReader::skip()`], which reads and discards the remainder of a file.
+- New [`ZipOptions`] fields:
+  - [`stream_fully_consume_archive`], whether the streaming reader reads the end of the archive
+    after the last local file. Disabling it also skips the validations which depend on it.
+  - [`validate_cd_against_seen_when_streaming`], whether each CDR is validated against the local
+    file header seen for it earlier in the stream.
+- New [`ZipError`] variants for malformed streams: `MoreLFHsThanCDRs`,
+  `MalformedOutOfOrderHeader` and `MalformedMissingHeader`.
+- An `examples/validate.rs` example, which uses the seeking reader to check that every file in an
+  archive reads without error.
+- Further sample archives (nested, many files, project, mixed, 1MB) and tests which read every
+  file within them, plus streaming variants of the existing empty and simple tests.
+
 ### Changed
+
+- [`ZipOptions::validate_eor_is_eoa`] has been renamed to
+  [`ZipOptions::validate_eoa_is_eor`], matching what it actually asserts.
+- [`CEOCDR::eocdr64`] and [`CEOCDR::eocdl64`] have been renamed to
+  [`CEOCDR::eocdr64h`] and [`CEOCDR::eocdl64h`], as they hold the header structures.
+- [`spec::headers1::Signature`] now derives [`Hash`], and [`spec::headers1::LFH`] and
+  [`spec::constructs::LF`] now derive [`Clone`].
+- The [`base::read1`] module docs now compare the seeking and streaming readers accurately, now
+  that both exist.
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
+- [`spec::headers1::EOCDR64H`]'s [`KnownSize::SIZE`] was 56 rather than 52, as it incorrectly
+  counted the 4-byte signature which is read separately.
 
 ### Security
 
