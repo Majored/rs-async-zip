@@ -2,7 +2,7 @@
 
 use crate::base::write::ZipFileWriter;
 use crate::error::{Zip64ErrorCase, ZipError};
-use crate::spec::consts::NON_ZIP64_MAX_SIZE;
+use crate::spec::consts::{DATA_DESCRIPTOR_SIGNATURE, NON_ZIP64_MAX_SIZE};
 use crate::tests::init_logger;
 use crate::tests::write::AsyncSink;
 use crate::{Compression, ZipEntryBuilder};
@@ -241,4 +241,68 @@ async fn test_force_no_zip64_errors_with_too_large_file_stream() {
     let result = entrywriter.close().await;
 
     assert!(matches!(result, Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile))));
+}
+
+#[tokio::test]
+async fn test_streaming_zip64_data_descriptor_uses_64_bit_sizes() {
+    init_logger();
+
+    let mut buff = Vec::new();
+    let mut writer = ZipFileWriter::new(&mut buff);
+    let writer_entry = ZipEntryBuilder::new("file1".into(), Compression::Stored);
+    let mut entry_writer = writer.write_entry_stream(writer_entry).await.unwrap();
+
+    entry_writer.write(b"hello").await.unwrap();
+    entry_writer.close().await.unwrap();
+    writer.close().await.unwrap();
+
+    assert_eq!(u16::from_le_bytes(buff[4..6].try_into().unwrap()), 45);
+    assert_eq!(u32::from_le_bytes(buff[18..22].try_into().unwrap()), NON_ZIP64_MAX_SIZE);
+    assert_eq!(u32::from_le_bytes(buff[22..26].try_into().unwrap()), NON_ZIP64_MAX_SIZE);
+
+    let data_descriptor = DATA_DESCRIPTOR_SIGNATURE.to_le_bytes();
+    let data_signature_offset =
+        buff.windows(data_descriptor.len()).position(|window| window == data_descriptor).unwrap();
+
+    assert_eq!(u64::from_le_bytes(buff[data_signature_offset + 8..data_signature_offset + 16].try_into().unwrap()), 5);
+    assert_eq!(u64::from_le_bytes(buff[data_signature_offset + 16..data_signature_offset + 24].try_into().unwrap()), 5);
+}
+
+#[tokio::test]
+async fn test_streaming_zip32_data_descriptor_uses_32_bit_sizes() {
+    init_logger();
+
+    let mut buff = Vec::new();
+    let mut writer = ZipFileWriter::new(&mut buff).force_no_zip64();
+    let writer_entry = ZipEntryBuilder::new("file1".into(), Compression::Stored);
+    let mut entry_writer = writer.write_entry_stream(writer_entry).await.unwrap();
+
+    entry_writer.write(b"hello").await.unwrap();
+    entry_writer.close().await.unwrap();
+    writer.close().await.unwrap();
+
+    assert_eq!(u16::from_le_bytes(buff[4..6].try_into().unwrap()), 10);
+    assert_eq!(u32::from_le_bytes(buff[18..22].try_into().unwrap()), 0);
+    assert_eq!(u32::from_le_bytes(buff[22..26].try_into().unwrap()), 0);
+
+    let data_descriptor = DATA_DESCRIPTOR_SIGNATURE.to_le_bytes();
+    let data_signature_offset =
+        buff.windows(data_descriptor.len()).position(|window| window == data_descriptor).unwrap();
+
+    assert_eq!(u32::from_le_bytes(buff[data_signature_offset + 8..data_signature_offset + 12].try_into().unwrap()), 5);
+    assert_eq!(u32::from_le_bytes(buff[data_signature_offset + 12..data_signature_offset + 16].try_into().unwrap()), 5);
+}
+
+#[tokio::test]
+async fn test_whole_entry_without_zip64_keeps_base_version_needed() {
+    init_logger();
+
+    let mut buff = Vec::new();
+    let mut writer = ZipFileWriter::new(&mut buff);
+    let writer_entry = ZipEntryBuilder::new("file1".into(), Compression::Stored);
+
+    writer.write_entry_whole(writer_entry, b"hello").await.unwrap();
+    writer.close().await.unwrap();
+
+    assert_eq!(u16::from_le_bytes(buff[4..6].try_into().unwrap()), 10);
 }

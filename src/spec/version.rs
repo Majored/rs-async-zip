@@ -15,7 +15,7 @@ use crate::spec::compression::Compression;
 pub(crate) const SPEC_VERSION_MADE_BY: u16 = 63;
 
 // https://github.com/Majored/rs-async-zip/blob/main/SPECIFICATION.md#443
-pub fn as_needed_to_extract(entry: &ZipEntry) -> u16 {
+pub fn as_needed_to_extract(entry: &ZipEntry, uses_zip_64: bool) -> u16 {
     let mut version = match entry.compression() {
         #[cfg(feature = "deflate")]
         Compression::Deflate => 20,
@@ -30,6 +30,10 @@ pub fn as_needed_to_extract(entry: &ZipEntry) -> u16 {
 
     if let Ok(true) = entry.dir() {
         version = std::cmp::max(version, 20);
+    }
+
+    if uses_zip_64 {
+        version = version.max(45);
     }
 
     version

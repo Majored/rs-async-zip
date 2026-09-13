@@ -173,7 +173,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             file_name_length: filename_basic.len().try_into().map_err(|_| ZipError::FileNameTooLarge)?,
             mod_time: entry.last_modification_date().time,
             mod_date: entry.last_modification_date().date,
-            version: crate::spec::version::as_needed_to_extract(entry),
+            version: crate::spec::version::as_needed_to_extract(entry, !writer.force_no_zip64),
             flags: GeneralPurposeFlag {
                 data_descriptor: true,
                 encrypted: false,
@@ -246,8 +246,14 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
 
         inner_writer.write_all(&crate::spec::consts::DATA_DESCRIPTOR_SIGNATURE.to_le_bytes()).await?;
         inner_writer.write_all(&self.entry.crc32.to_le_bytes()).await?;
-        inner_writer.write_all(&cdr_compressed_size.to_le_bytes()).await?;
-        inner_writer.write_all(&cdr_uncompressed_size.to_le_bytes()).await?;
+
+        if self.force_no_zip64 {
+            inner_writer.write_all(&cdr_compressed_size.to_le_bytes()).await?;
+            inner_writer.write_all(&cdr_uncompressed_size.to_le_bytes()).await?;
+        } else {
+            inner_writer.write_all(&compressed_size.to_le_bytes()).await?;
+            inner_writer.write_all(&self.entry.uncompressed_size.to_le_bytes()).await?;
+        }
 
         let comment_basic = self.entry.comment().alternative().unwrap_or_else(|| self.entry.comment().as_bytes());
 
