@@ -12,9 +12,27 @@ All intermediate migration steps should be applied if migrating from multiple ve
 - [`spec::headers1::EOCDR64H`]'s [`KnownSize::SIZE`] is now 52 rather than 56. If you were
   relying on that constant to size your own reads, you now need to account for the 4-byte
   signature separately.
-- The streaming reader lives at [`base::read1::stream::ZipArchiveReader`], alongside the seeking
-  reader at [`base::read1::seek::ZipArchiveReader`]. It is not yet a replacement for the old
-  [`base::read::stream`], which is unaffected and still handles data descriptors.
+- [`base::read::stream::ZipFileReader`] is now deprecated in favour of
+  [`base::read1::stream::ZipArchiveReader`], completing the deprecation of the old read module
+  which began in 0.0.19. It still works as before. To move across ahead of the eventual removal:
+  - The `Ready`/`Reading` type states have gone. A single [`ZipArchiveReader`] is borrowed
+    mutably for each file rather than consumed and handed back, so there is no state to thread
+    through your loop.
+  - `new()` -> `new()` or `new_with_options()`. There is no `with_tokio()` equivalent; use
+    `tokio_util::compat` to adapt a `tokio` reader to the `futures` IO traits.
+  - `next_without_entry()` and `next_with_entry()` -> `next()`, which yields a borrowed
+    [`base::read1::ZipFileReader`]. Its metadata comes from the local file ([`LF`]) via `lf()`
+    rather than [`ZipEntry`], and the central directory is available from `cdrs()` once `next()`
+    has returned `None`.
+  - `reader()` and `reader_mut()` -> what `next()` hands you is the file reader itself.
+  - `done()` -> nothing. Validation which it performed (EOF reached, CRC and sizes) is now
+    configured through [`ZipOptions`] and applied automatically, and the next call to `next()`
+    reclaims the reader.
+  - `skip()` -> [`base::read1::ZipFileReader::skip()`], though calling `next()` drains whatever
+    is left of the current file for you.
+  - `into_inner()` has no equivalent; the archive reader does not give the source back.
+  - Files written with a data descriptor are not yet supported by [`base::read1::stream`]. If you
+    depend on those, stay on the deprecated reader until support lands.
 
 ## [Unreleased - read1 -> read migration]
 

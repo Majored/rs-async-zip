@@ -48,6 +48,10 @@ and this project adheres to [Semantic Versioning](https://doc.rust-lang.org/carg
 
 ### Deprecated
 
+- [`base::read::stream::ZipFileReader`] in favour of [`base::read1::stream::ZipArchiveReader`].
+  This completes the deprecation of the old read module, whose seek, mem and `tokio` fs readers
+  were deprecated in 0.0.19.
+
 ### Removed
 
 ### Fixed
