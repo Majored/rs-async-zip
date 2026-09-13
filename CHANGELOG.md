@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://doc.rust-lang.org/carg
   [`AsyncSeek`]. It provides:
   - [`next()`], which yields a [`base::read1::ZipFileReader`] per local file. Returning `None`
     means the whole end of archive (every CDR, the ZIP64 EOCDR/EOCDL if present, the EOCDR and
-    the archive comment) has been read and all configured validations have run.
+    the archive comment) has been read and all configured validations have run. Any further calls
+    keep returning `None` rather than reading past the end of the archive.
   - [`lfs()`], [`cdrs()`] and [`ceocdr()`] accessors. The latter two are only populated once
     [`next()`] has returned `None`, as the central directory trails the local files.
   - [`raw_next_header()`] and [`raw_assume_lf()`], a lower-level pair for driving the stream
@@ -33,7 +34,8 @@ and this project adheres to [Semantic Versioning](https://doc.rust-lang.org/carg
 - An `examples/validate.rs` example, which uses the seeking reader to check that every file in an
   archive reads without error.
 - Further sample archives (nested, many files, project, mixed, 1MB) and tests which read every
-  file within them, plus streaming variants of the existing empty and simple tests.
+  file within them. The read tests now describe each archive once and exercise it through both the
+  seeking and the streaming reader.
 
 ### Changed
 
