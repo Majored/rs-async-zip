@@ -180,7 +180,7 @@ pub struct EOCDR64H {
 }
 
 impl KnownSize for EOCDR64H {
-    const SIZE: usize = 56;
+    const SIZE: usize = 52;
 }
 
 #[binrw]
