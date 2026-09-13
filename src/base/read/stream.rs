@@ -75,6 +75,7 @@ pub struct Reading<'a, R, E>(ZipEntryReader<'a, R, E>, bool);
 ///
 /// See the [module-level docs](.) for more information.
 #[derive(Clone)]
+#[deprecated(since = "0.0.20", note = "Please use the `read1` module instead, as this module will be removed in a future release.")]
 pub struct ZipFileReader<S>(S);
 
 impl<'a, R> ZipFileReader<Ready<R>>
