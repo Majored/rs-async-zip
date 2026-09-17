@@ -5,7 +5,7 @@
 
 use binrw::binrw;
 
-use crate::{error::{Result, ZipError}, spec::{extra::{EF, EFD, EFHID, EI64, efs}, headers1::{CDRH, EOCDL64H, EOCDR64H, EOCDRH, LFH}, string::ZipString}};
+use crate::{error::{Result, ZipError}, spec::{extra::{EF, EFD, EFHID, EI64, efs, Zip64ExtraFieldFlags}, headers1::{CDRH, EOCDL64H, EOCDR64H, EOCDRH, LFH}, string::ZipString}};
 
 // Constructing blocks from raw headers & bytes sequences (like file names, comments, etc).
 //
@@ -23,7 +23,12 @@ pub struct LF {
     #[br(count = lfh.file_name_length, args { utf8: lfh.gpf.language_encoding_flag() })]
     /// This file name is insecure. Untrusted values may contain path traversal sequences or similar.
     pub insecure_file_name: ZipString,
-    #[br(parse_with = efs, args(lfh.extra_field_length.into()))]
+    #[br(parse_with = efs, args(lfh.extra_field_length.into(), Zip64ExtraFieldFlags {
+        uncompressed_size: lfh.uncompressed_size == u32::MAX,
+        compressed_size: lfh.compressed_size == u32::MAX,
+        relative_offset: false,
+        disk_number_start: false,
+    }))]
     pub efs: Vec<EF>,
 }
 
@@ -41,7 +46,7 @@ impl LF {
     }
 }
 
-fn combined_accessor(zip32: u32, extra_fields: &[EF], accessor: impl Fn(&EI64) -> u64) -> Result<u64> {
+fn combined_accessor(zip32: u32, extra_fields: &[EF], accessor: impl Fn(&EI64) -> Option<u64>) -> Result<u64> {
     if zip32 != u32::MAX {
         return Ok(zip32.into());
     }
@@ -50,9 +55,9 @@ fn combined_accessor(zip32: u32, extra_fields: &[EF], accessor: impl Fn(&EI64) -
         matches!(field.efh.efid, EFHID::EI64)
     });
     if let Some(EF { efh: _, efd: EFD::EI64(data) }) = zip64ei {
-        return Ok(accessor(data));
+        return accessor(data).ok_or(ZipError::NoZip64ExtendedInformation);
     }
-    
+
     return Err(ZipError::NoZip64ExtendedInformation);
 }
 
@@ -64,7 +69,7 @@ fn combined_accessor_ecodr_u16(zip16: u16, ceocdr: &CEOCDR, accessor: impl Fn(&E
     if let Some(record) = &ceocdr.eocdr64h {
         return Ok(accessor(record));
     }
-    
+
     return Err(ZipError::NoZip64EOCDR);
 }
 
@@ -76,7 +81,7 @@ fn combined_accessor_ecodr_u32(zip32: u32, ceocdr: &CEOCDR, accessor: impl Fn(&E
     if let Some(record) = &ceocdr.eocdr64h {
         return Ok(accessor(record));
     }
-    
+
     return Err(ZipError::NoZip64EOCDR);
 }
 
@@ -88,7 +93,7 @@ fn combined_accessor_ecodr_disk(zip32: u16, ceocdr: &CEOCDR, accessor: impl Fn(&
     if let Some(record) = &ceocdr.eocdr64h {
         return Ok(accessor(record));
     }
-    
+
     return Err(ZipError::NoZip64EOCDR);
 }
 
@@ -102,7 +107,12 @@ pub struct CDR {
     #[br(count = cdrh.file_name_length, args { utf8: cdrh.gpf.language_encoding_flag() })]
     /// This file name is insecure. Untrusted values may contain path traversal sequences or similar.
     pub insecure_file_name: ZipString,
-    #[br(parse_with = efs, args(cdrh.extra_field_length.into()))]
+    #[br(parse_with = efs, args(cdrh.extra_field_length.into(), Zip64ExtraFieldFlags {
+        uncompressed_size: cdrh.uncompressed_size == u32::MAX,
+        compressed_size: cdrh.compressed_size == u32::MAX,
+        relative_offset: cdrh.lfh_offset == u32::MAX,
+        disk_number_start: cdrh.disk_start == u16::MAX,
+    }))]
     /// A list of extra fields.
     pub efs: Vec<EF>,
     #[br(count = cdrh.file_comment_length, args { utf8: cdrh.gpf.language_encoding_flag() })]
@@ -111,8 +121,7 @@ pub struct CDR {
 
 impl CDR {
     pub fn lfh_offset(&self) -> Result<u64> {
-        // TODO: unwrap should be an err instead, in case it's a malformed ZIP.
-        combined_accessor(self.cdrh.lfh_offset, &self.efs, |ei_data| ei_data.relative_offset.unwrap())
+        combined_accessor(self.cdrh.lfh_offset, &self.efs, |ei_data| ei_data.relative_offset)
     }
 
     /// A ZIP-64-aware accessor for the uncompressed size of the file.

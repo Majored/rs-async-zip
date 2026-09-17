@@ -53,6 +53,36 @@ async fn test_read_zip64_archive_stream() {
     assert_eq!(read_data, ZIP64_ZIP_CONTENTS);
 }
 
+#[tokio::test]
+async fn test_read_partial_zip64_archive_seek() {
+    use futures_lite::io::Cursor;
+    use crate::base::read1::seek::ZipArchiveReader;
+
+    let data = Cursor::new(include_bytes!("partial-zip64.zip"));
+    let mut reader = ZipArchiveReader::open(data)
+        .await
+        .expect("failed to open partial ZIP64 archive");
+
+    assert_eq!(reader.cdrs().len(), 1);
+    assert_eq!(reader.cdrs()[0].compressed_size().unwrap(), 13);
+
+    let mut file = reader.file(0)
+        .await
+        .expect("failed to open archive entry");
+
+    let mut read_data = String::new();
+    file.read_to_string(&mut read_data)
+        .await
+        .expect("failed to read archive entry");
+
+    assert_eq!(
+        read_data.chars().count(),
+        ZIP64_ZIP_CONTENTS.chars().count(),
+        "{read_data:?} != {ZIP64_ZIP_CONTENTS:?}"
+    );
+    assert_eq!(read_data, ZIP64_ZIP_CONTENTS);
+}
+
 /// Generate an example file only if it doesn't exist already.
 /// The file is placed adjacent to this rs file.
 #[cfg(feature = "tokio")]
