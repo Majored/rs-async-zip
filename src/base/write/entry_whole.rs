@@ -172,6 +172,9 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
         let utf8_without_alternative = self.utf8_without_alternative();
         let filename_basic = self.entry.filename().alternative().unwrap_or_else(|| self.entry.filename().as_bytes());
         let comment_basic = self.entry.comment().alternative().unwrap_or_else(|| self.entry.comment().as_bytes());
+        let uses_zip64 =
+            self.entry.extra_fields().iter().any(|field| matches!(field, ExtraField::Zip64ExtendedInformation(_)))
+                || self.builder.is_some();
 
         let lf_header = LocalFileHeader {
             compressed_size: self.entry.compressed_size() as u32,
@@ -187,7 +190,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             file_name_length: filename_basic.len().try_into().map_err(|_| ZipError::FileNameTooLarge)?,
             mod_time: self.entry.last_modification_date().time,
             mod_date: self.entry.last_modification_date().date,
-            version: crate::spec::version::as_needed_to_extract(&self.entry),
+            version: crate::spec::version::as_needed_to_extract(&self.entry, uses_zip64),
             flags: GeneralPurposeFlag {
                 data_descriptor: false,
                 encrypted: false,
