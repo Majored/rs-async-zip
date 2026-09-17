@@ -64,12 +64,21 @@ impl From<&EFHID> for u16 {
 
 #[binrw]
 #[brw(little)]
+#[br(import(flags: Zip64ExtraFieldFlags))]
 #[derive(Clone, Debug)]
 /// An extra field.
 pub struct EF {
     pub efh: EFH,
-    #[br(parse_with = ef_data, args(efh.efid, efh.data_size))]
+    #[br(parse_with = ef_data, args(efh.efid, efh.data_size, flags))]
     pub efd: EFD,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Zip64ExtraFieldFlags {
+    pub uncompressed_size: bool,
+    pub compressed_size: bool,
+    pub relative_offset: bool,
+    pub disk_number_start: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -83,7 +92,7 @@ pub enum EFD {
 
 #[binrw]
 #[brw(little)]
-#[br(import(size: u16))]
+#[br(import(size: u16, flags: Zip64ExtraFieldFlags))]
 #[derive(Clone, Debug)]
 /// A ZIP64 extended information extra field data variant.
 ///
@@ -91,11 +100,13 @@ pub enum EFD {
 /// on which of the header's 32-bit fields were saturated, so their presence is driven by
 /// the field's declared size.
 pub struct EI64 {
-    pub uncompressed_size: u64,
-    pub compressed_size: u64,
-    #[br(if(size >= 24))]
+    #[br(if(flags.uncompressed_size))]
+    pub uncompressed_size: Option<u64>,
+    #[br(if(flags.compressed_size))]
+    pub compressed_size: Option<u64>,
+    #[br(if(flags.relative_offset))]
     pub relative_offset: Option<u64>,
-    #[br(if(size >= 28))]
+    #[br(if(flags.disk_number_start))]
     pub disk_number_start: Option<u32>,
 }
 
@@ -137,12 +148,12 @@ pub struct IZUF {
 /// `UnexpectedEof` from the item parser as the end of the collection, which would silently
 /// truncate the list for a field which lies about its `data_size`.
 #[binrw::parser(reader, endian)]
-pub(crate) fn efs(len: u64) -> BinResult<Vec<EF>> {
+pub(crate) fn efs(len: u64, flags: Zip64ExtraFieldFlags) -> BinResult<Vec<EF>> {
     let end = reader.stream_position()? + len;
     let mut fields = Vec::new();
 
     while reader.stream_position()? < end {
-        fields.push(EF::read_options(reader, endian, ())?);
+        fields.push(EF::read_options(reader, endian, (flags,))?);
     }
 
     // A field whose `data_size` reaches past the end of the block would otherwise be
@@ -159,12 +170,12 @@ pub(crate) fn efs(len: u64) -> BinResult<Vec<EF>> {
 }
 
 #[binrw::parser(reader, endian)]
-fn ef_data(tag: EFHID, size: u16) -> BinResult<EFD> {
+fn ef_data(tag: EFHID, size: u16, flags: Zip64ExtraFieldFlags) -> BinResult<EFD> {
     let raw: Vec<u8> = count(size.into())(reader, endian, ())?;
 
     Ok(match tag {
         EFHID::EI64 => {
-            EFD::EI64(EI64::read_options(&mut Cursor::new(&raw), endian, (size,))?)
+            EFD::EI64(EI64::read_options(&mut Cursor::new(&raw), endian, (size,flags))?)
         },
         EFHID::IZUC => {
             EFD::IZUC(IZUC::read_options(&mut Cursor::new(&raw), endian, ())?)
