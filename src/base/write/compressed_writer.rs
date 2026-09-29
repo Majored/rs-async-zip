@@ -1,7 +1,9 @@
 // Copyright (c) 2021 Harry [Majored] [hello@majored.pw]
 // MIT License (https://github.com/Majored/rs-async-zip/blob/main/LICENSE)
 
+use crate::base::write::encrypting_writer::EncryptingWriter;
 use crate::base::write::io::offset::AsyncOffsetWriter;
+use crate::crypto::crypto::ZipCrypto;
 use crate::spec::compression::Compression;
 
 use std::io::Error;
@@ -13,21 +15,29 @@ use async_compression::futures::write;
 use futures_lite::io::AsyncWrite;
 
 pub enum CompressedAsyncWriter<'b, W: AsyncWrite + Unpin> {
-    Stored(ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>),
+    Stored(ShutdownIgnoredWriter<EncryptingWriter<&'b mut AsyncOffsetWriter<W>>>),
     #[cfg(feature = "deflate")]
-    Deflate(write::DeflateEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
+    Deflate(write::DeflateEncoder<ShutdownIgnoredWriter<EncryptingWriter<&'b mut AsyncOffsetWriter<W>>>>),
     #[cfg(feature = "bzip2")]
-    Bz(write::BzEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
+    Bz(write::BzEncoder<ShutdownIgnoredWriter<EncryptingWriter<&'b mut AsyncOffsetWriter<W>>>>),
     #[cfg(feature = "lzma")]
-    Lzma(write::LzmaEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
+    Lzma(write::LzmaEncoder<ShutdownIgnoredWriter<EncryptingWriter<&'b mut AsyncOffsetWriter<W>>>>),
     #[cfg(feature = "zstd")]
-    Zstd(write::ZstdEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
+    Zstd(write::ZstdEncoder<ShutdownIgnoredWriter<EncryptingWriter<&'b mut AsyncOffsetWriter<W>>>>),
     #[cfg(feature = "xz")]
-    Xz(write::XzEncoder<ShutdownIgnoredWriter<&'b mut AsyncOffsetWriter<W>>>),
+    Xz(write::XzEncoder<ShutdownIgnoredWriter<EncryptingWriter<&'b mut AsyncOffsetWriter<W>>>>),
 }
 
 impl<'b, W: AsyncWrite + Unpin> CompressedAsyncWriter<'b, W> {
-    pub fn from_raw(writer: &'b mut AsyncOffsetWriter<W>, compression: Compression, precompressed: bool) -> Self {
+    pub fn from_raw(
+        writer: &'b mut AsyncOffsetWriter<W>,
+        compression: Compression,
+        precompressed: bool,
+        crypto: Option<ZipCrypto>,
+    ) -> Self {
+        // Encryption is applied to the compressor's output (ie. to already-compressed data).
+        let writer = EncryptingWriter::new(writer, crypto);
+
         if precompressed {
             return CompressedAsyncWriter::Stored(ShutdownIgnoredWriter(writer));
         }
@@ -53,17 +63,17 @@ impl<'b, W: AsyncWrite + Unpin> CompressedAsyncWriter<'b, W> {
 
     pub fn into_inner(self) -> &'b mut AsyncOffsetWriter<W> {
         match self {
-            CompressedAsyncWriter::Stored(inner) => inner.into_inner(),
+            CompressedAsyncWriter::Stored(inner) => inner.into_inner().into_inner(),
             #[cfg(feature = "deflate")]
-            CompressedAsyncWriter::Deflate(inner) => inner.into_inner().into_inner(),
+            CompressedAsyncWriter::Deflate(inner) => inner.into_inner().into_inner().into_inner(),
             #[cfg(feature = "bzip2")]
-            CompressedAsyncWriter::Bz(inner) => inner.into_inner().into_inner(),
+            CompressedAsyncWriter::Bz(inner) => inner.into_inner().into_inner().into_inner(),
             #[cfg(feature = "lzma")]
-            CompressedAsyncWriter::Lzma(inner) => inner.into_inner().into_inner(),
+            CompressedAsyncWriter::Lzma(inner) => inner.into_inner().into_inner().into_inner(),
             #[cfg(feature = "zstd")]
-            CompressedAsyncWriter::Zstd(inner) => inner.into_inner().into_inner(),
+            CompressedAsyncWriter::Zstd(inner) => inner.into_inner().into_inner().into_inner(),
             #[cfg(feature = "xz")]
-            CompressedAsyncWriter::Xz(inner) => inner.into_inner().into_inner(),
+            CompressedAsyncWriter::Xz(inner) => inner.into_inner().into_inner().into_inner(),
         }
     }
 }

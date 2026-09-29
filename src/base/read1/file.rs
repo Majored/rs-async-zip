@@ -14,6 +14,7 @@ use futures_lite::AsyncSeek;
 use futures_lite::io::Take;
 
 use crate::base::read1::ZipOptions;
+use crate::crypto::DecryptingReader;
 use crate::error::Result;
 use crate::spec::headers1::Compression;
 use crate::spec::constructs::CDR;
@@ -28,7 +29,7 @@ use async_compression::futures::bufread;
 
 /// A reader for a single file in a ZIP archive.
 pub struct ZipFileReader<R> {
-    reader: CompressedReader<Take<R>>,
+    reader: CompressedReader<DecryptingReader<Take<R>>>,
     opts: ZipOptions,
     cdr: Option<CDR>,
     hasher: Hasher,
@@ -45,6 +46,26 @@ impl<R: AsyncBufRead + Unpin> ZipFileReader<R> {
         }
 
         let reader = reader.take(compressed_size);
+
+        // ZipCrypto encryption wraps the (optionally compressed) file data in a 12-byte encryption
+        // header, which is included in the declared compressed size. Decryption therefore happens
+        // inside the size limit, and before any decompression.
+        let reader = if lf.lfh.gpf.encrypted() {
+            let password = opts.password.as_deref().ok_or(crate::error::ZipError::PasswordRequired)?;
+
+            // The check byte is the high byte of the CRC32, except for files written with a data
+            // descriptor where it is the high byte of the last modification time (APPNOTE.TXT).
+            let check_byte = if lf.lfh.gpf.data_descriptor() {
+                (lf.lfh.mod_time >> 8) as u8
+            } else {
+                (lf.lfh.crc >> 24) as u8
+            };
+
+            DecryptingReader::new(reader, password, check_byte)
+        } else {
+            DecryptingReader::passthrough(reader)
+        };
+
         let reader = CompressedReader::new(reader, lf.lfh.compression)?;
 
         Ok(Self { reader, hasher: Hasher::default(), read: 0, lf, cdr, opts })
@@ -76,7 +97,7 @@ impl<R: AsyncBufRead + Unpin> ZipFileReader<R> {
 
     /// Reclaims the underlying reader. Only sound to call once the entry has been fully drained.
     pub(crate) fn into_inner(self) -> R {
-        self.reader.into_inner().into_inner()
+        self.reader.into_inner().into_inner().into_inner()
     }
 
     pub async fn validate(&mut self) -> Result<()> {

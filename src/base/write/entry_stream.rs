@@ -7,6 +7,7 @@ use crate::base::write::get_or_put_info_zip_unicode_path_extra_field_mut;
 use crate::base::write::io::offset::AsyncOffsetWriter;
 use crate::base::write::CentralDirectoryEntry;
 use crate::base::write::ZipFileWriter;
+use crate::crypto::crypto::ZipCrypto;
 use crate::entry::ZipEntry;
 use crate::error::{Result, Zip64ErrorCase, ZipError};
 use crate::spec::extra_field::ExtraFieldAsBytes;
@@ -53,14 +54,33 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         mut entry: ZipEntry,
     ) -> Result<EntryStreamWriter<'b, W>> {
         let lfh_offset = writer.writer.offset();
+
         let lfh = EntryStreamWriter::write_lfh(writer, &mut entry).await?;
+
+        // The data region accounted by compressed_size starts before the encryption header,
+        // matching the whole-entry writer where the 12-byte header is part of the stored data.
         let data_offset = writer.writer.offset();
         let force_no_zip64 = writer.force_no_zip64;
 
+        // A single cipher instance covers both the encryption header and the data body so
+        // that the key state stays continuous between them.
+        let mut crypto = entry.password.as_ref().map(|p| ZipCrypto::new(p));
+        if let Some(c) = crypto.as_mut() {
+            // Streaming entries always set the data-descriptor flag, so the check byte is the
+            // high byte of the DOS time rather than of the CRC (APPNOTE.TXT).
+            let check_byte = (entry.last_modification_date().time >> 8) as u8;
+            let header = c.encrypt_header(check_byte);
+            writer.writer.write_all(&header).await?;
+        }
+
         let cd_entries = &mut writer.cd_entries;
         let is_zip64 = &mut writer.is_zip64;
-        let writer =
-            AsyncOffsetWriter::new(CompressedAsyncWriter::from_raw(&mut writer.writer, entry.compression(), false));
+        let writer = AsyncOffsetWriter::new(CompressedAsyncWriter::from_raw(
+            &mut writer.writer,
+            entry.compression(),
+            false,
+            crypto,
+        ));
 
         Ok(EntryStreamWriter {
             writer,
@@ -81,14 +101,33 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
         mut entry: ZipEntry,
     ) -> Result<EntryStreamWriter<'b, W>> {
         let lfh_offset = writer.writer.offset();
+
         let lfh = EntryStreamWriter::write_lfh(writer, &mut entry).await?;
+
+        // The data region accounted by compressed_size starts before the encryption header,
+        // matching the whole-entry writer where the 12-byte header is part of the stored data.
         let data_offset = writer.writer.offset();
         let force_no_zip64 = writer.force_no_zip64;
 
+        // A single cipher instance covers both the encryption header and the data body so
+        // that the key state stays continuous between them.
+        let mut crypto = entry.password.as_ref().map(|p| ZipCrypto::new(p));
+        if let Some(c) = crypto.as_mut() {
+            // Streaming entries always set the data-descriptor flag, so the check byte is the
+            // high byte of the DOS time rather than of the CRC (APPNOTE.TXT).
+            let check_byte = (entry.last_modification_date().time >> 8) as u8;
+            let header = c.encrypt_header(check_byte);
+            writer.writer.write_all(&header).await?;
+        }
+
         let cd_entries = &mut writer.cd_entries;
         let is_zip64 = &mut writer.is_zip64;
-        let writer =
-            AsyncOffsetWriter::new(CompressedAsyncWriter::from_raw(&mut writer.writer, entry.compression(), true));
+        let writer = AsyncOffsetWriter::new(CompressedAsyncWriter::from_raw(
+            &mut writer.writer,
+            entry.compression(),
+            true,
+            crypto,
+        ));
 
         Ok(EntryStreamWriter {
             writer,
@@ -176,7 +215,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             version: crate::spec::version::as_needed_to_extract(entry),
             flags: GeneralPurposeFlag {
                 data_descriptor: true,
-                encrypted: false,
+                encrypted: entry.password.is_some(),
                 filename_unicode: utf8_without_alternative,
             },
         };

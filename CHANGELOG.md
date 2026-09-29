@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://doc.rust-lang.org/carg
 
 ### Added
 
+- Support for reading and writing files encrypted with traditional PKZIP (ZipCrypto) encryption,
+  considered weak by modern standards but kept for compatibility:
+  - [`base::write`] encrypts a file when a password is set on its [`ZipEntryBuilder`] via
+    [`password()`], for both the whole-entry and the streaming writers.
+  - The `read1` readers decrypt files when a password is provided via the new
+    [`ZipOptions::password`] field. The password is verified against the encryption header check
+    byte, failing early with [`ZipError::InvalidPassword`], and encrypted files opened without a
+    password fail with [`ZipError::PasswordRequired`].
+  - [`spec::headers1::GPF::encrypted()`] reports whether a file is encrypted.
 - A streaming reader for the re-written read module at [`base::read1::stream::ZipArchiveReader`],
   which reads an archive front-to-back over any [`AsyncBufRead`] source without requiring
   [`AsyncSeek`]. It provides:

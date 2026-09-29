@@ -154,6 +154,10 @@ impl KnownSize for EOCDRH {
 pub struct GPF(u16);
 
 impl GPF {
+    pub fn encrypted(&self) -> bool {
+        self.0 & 0x1 != 0
+    }
+
     pub fn data_descriptor(&self) -> bool {
         self.0 & 0x08 != 0
     }

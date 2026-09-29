@@ -107,6 +107,15 @@ impl ZipEntryBuilder {
         self
     }
 
+    /// Sets the entry's password for encryption.
+    ///
+    /// When a password is set, the entry will be encrypted using ZipCrypto (traditional PKZIP encryption).
+    /// Note: ZipCrypto is considered weak by modern standards. Use AES encryption if available.
+    pub fn password(mut self, password: impl Into<Vec<u8>>) -> Self {
+        self.0.password = Some(password.into());
+        self
+    }
+
     /// Returns a reference to the currently built entry.
     pub fn current(&self) -> &ZipEntry {
         &self.0

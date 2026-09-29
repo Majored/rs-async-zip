@@ -43,6 +43,7 @@
 //! [Read more.](https://github.com/Majored/rs-async-zip)
 
 pub mod base;
+pub mod crypto;
 pub mod error;
 pub mod spec;
 

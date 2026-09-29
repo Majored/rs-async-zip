@@ -170,11 +170,37 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
         }
 
         let utf8_without_alternative = self.utf8_without_alternative();
-        let filename_basic = self.entry.filename().alternative().unwrap_or_else(|| self.entry.filename().as_bytes());
-        let comment_basic = self.entry.comment().alternative().unwrap_or_else(|| self.entry.comment().as_bytes());
+        let filename_basic =
+            self.entry.filename().alternative().unwrap_or_else(|| self.entry.filename().as_bytes()).to_vec();
+        let comment_basic =
+            self.entry.comment().alternative().unwrap_or_else(|| self.entry.comment().as_bytes()).to_vec();
+
+        // Check if encryption is needed
+        let (encrypted_data, new_compressed_size) = if let Some(ref password) = self.entry.password {
+            use crate::crypto::crypto::ZipCrypto;
+            // Use high byte of CRC as verify byte
+            let verify_byte = ((self.entry.crc32 >> 24) & 0xFF) as u8;
+            let mut crypto = ZipCrypto::new(password);
+            let header = crypto.encrypt_header(verify_byte);
+            let mut encrypted = header;
+            encrypted.extend_from_slice(&self.data);
+            crypto.encrypt_data(&mut encrypted[12..]);
+            let new_size = encrypted.len() as u64;
+            (Some(encrypted), new_size)
+        } else {
+            (None, self.data.len() as u64)
+        };
+
+        // Update compressed size if encrypted
+        if encrypted_data.is_some() {
+            self.entry.compressed_size = new_compressed_size;
+        }
+
+        let final_data = encrypted_data.as_deref().unwrap_or(&self.data);
+        let final_compressed_size = new_compressed_size;
 
         let lf_header = LocalFileHeader {
-            compressed_size: self.entry.compressed_size() as u32,
+            compressed_size: final_compressed_size as u32,
             uncompressed_size: self.entry.uncompressed_size() as u32,
             compression: self.entry.compression().into(),
             crc: self.entry.crc32(),
@@ -190,7 +216,7 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
             version: crate::spec::version::as_needed_to_extract(&self.entry),
             flags: GeneralPurposeFlag {
                 data_descriptor: false,
-                encrypted: false,
+                encrypted: self.entry.password.is_some(),
                 filename_unicode: utf8_without_alternative,
             },
         };
@@ -216,9 +242,9 @@ impl<'b, 'c, W: AsyncWrite + Unpin> EntryWholeWriter<'b, 'c, W> {
 
         self.writer.writer.write_all(&crate::spec::consts::LFH_SIGNATURE.to_le_bytes()).await?;
         self.writer.writer.write_all(&lf_header.as_slice()).await?;
-        self.writer.writer.write_all(filename_basic).await?;
+        self.writer.writer.write_all(&filename_basic).await?;
         self.writer.writer.write_all(&self.entry.extra_fields().as_bytes()).await?;
-        self.writer.writer.write_all(&self.data).await?;
+        self.writer.writer.write_all(final_data).await?;
 
         if let Some(builder1) = self.builder {
             self.entry.extra_fields.push(ExtraField::Zip64ExtendedInformation(builder1.build()?));

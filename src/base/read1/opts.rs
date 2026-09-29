@@ -111,6 +111,17 @@ pub struct ZipOptions {
 
     /// The maximum size of the central directory in bytes.
     pub max_cd_size_in_bytes: u64,
+
+    // DECRYPTION
+
+    /// The password used to decrypt encrypted files, using traditional PKZIP (ZipCrypto)
+    /// encryption. Files which are not encrypted are unaffected by this field.
+    ///
+    /// Individual files within an archive may each use a different password, in which case only
+    /// the files encrypted with this password are readable. Attempting to open an encrypted file
+    /// without a matching password fails with [`crate::error::ZipError::PasswordRequired`] or
+    /// [`crate::error::ZipError::InvalidPassword`].
+    pub password: Option<Vec<u8>>,
 }
 
 impl Default for ZipOptions {
@@ -138,6 +149,7 @@ impl Default for ZipOptions {
             max_cd_num_files_load: u64::MAX,
             max_extra_field_size_per_file: u16::MAX,
             max_extra_field_num_per_file: u16::MAX,
+            password: None,
         }
     }
 }

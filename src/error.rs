@@ -96,6 +96,11 @@ pub enum ZipError {
     #[error("Info-ZIP Unicode Path Extra Field was incomplete")]
     InfoZipUnicodePathFieldIncomplete,
 
+    #[error("file is encrypted but no password was provided")]
+    PasswordRequired,
+    #[error("incorrect password (encryption header check byte mismatch)")]
+    InvalidPassword,
+
     // Validation
 
     #[error("invalid compressed size header match")]
