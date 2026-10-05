@@ -37,11 +37,7 @@ pub enum EFHID {
 }
 
 impl EFHID {
-    const KNOWN: &'static [(u16, EFHID)] = &[
-        (0x0001, Self::EI64),
-        (0x6375, Self::IZUC),
-        (0x7075, Self::IZUF),
-    ];
+    const KNOWN: &'static [(u16, EFHID)] = &[(0x0001, Self::EI64), (0x6375, Self::IZUC), (0x7075, Self::IZUF)];
 }
 
 impl From<u16> for EFHID {
@@ -142,16 +138,25 @@ pub(crate) fn efs(len: u64) -> BinResult<Vec<EF>> {
     let mut fields = Vec::new();
 
     while reader.stream_position()? < end {
+        // Extra-field blocks are often padded to an even size. One to three trailing
+        // bytes cannot be another header (id + size) and are ignored, matching UnZip,
+        // 7-Zip and Python's zipfile. A header that claims more data than remains
+        // still fails below.
+        let remaining = end - reader.stream_position()?;
+        if remaining < EFH::SIZE as u64 {
+            break;
+        }
         fields.push(EF::read_options(reader, endian, ())?);
     }
 
     // A field whose `data_size` reaches past the end of the block would otherwise be
-    // reported as whatever the following construct failed to parse.
+    // reported as whatever the following construct failed to parse. Fewer than four
+    // leftover bytes are padding, not another field.
     let position = reader.stream_position()?;
-    if position != end {
+    if position > end || end - position >= EFH::SIZE as u64 {
         return Err(binrw::Error::AssertFail {
             pos: position,
-            message: format!("extra field overran its block by {} byte(s)", position - end),
+            message: format!("extra field overran its block by {} byte(s)", position.abs_diff(end)),
         });
     }
 
@@ -163,17 +168,31 @@ fn ef_data(tag: EFHID, size: u16) -> BinResult<EFD> {
     let raw: Vec<u8> = count(size.into())(reader, endian, ())?;
 
     Ok(match tag {
-        EFHID::EI64 => {
-            EFD::EI64(EI64::read_options(&mut Cursor::new(&raw), endian, (size,))?)
-        },
+        EFHID::EI64 => EFD::EI64(EI64::read_options(&mut Cursor::new(&raw), endian, (size,))?),
         EFHID::IZUC => {
-            EFD::IZUC(IZUC::read_options(&mut Cursor::new(&raw), endian, ())?)
+            info_zip_unicode_field(&raw, |field| EFD::IZUC(field), |reader| IZUC::read_options(reader, endian, ()))?
         }
         EFHID::IZUF => {
-            EFD::IZUF(IZUF::read_options(&mut Cursor::new(&raw), endian, ())?)
+            info_zip_unicode_field(&raw, |field| EFD::IZUF(field), |reader| IZUF::read_options(reader, endian, ()))?
         }
         EFHID::Other(_) => EFD::Unknown(raw),
     })
+}
+
+/// Parses an Info-ZIP Unicode Path/Comment field.
+///
+/// Version 1 requires a UTF-8 name. A version-1 payload that is not UTF-8 is kept as an
+/// unknown field so one bad name cannot make the whole archive unreadable. Incomplete
+/// payloads still fail.
+fn info_zip_unicode_field<T>(
+    raw: &[u8],
+    typed: impl FnOnce(T) -> EFD,
+    parse: impl FnOnce(&mut Cursor<&[u8]>) -> BinResult<T>,
+) -> BinResult<EFD> {
+    if raw.first().copied() == Some(1) && raw.len() >= 5 && std::str::from_utf8(&raw[5..]).is_err() {
+        return Ok(EFD::Unknown(raw.to_vec()));
+    }
+    Ok(typed(parse(&mut Cursor::new(raw))?))
 }
 
 impl BinWrite for EFD {
