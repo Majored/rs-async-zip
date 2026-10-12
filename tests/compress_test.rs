@@ -20,6 +20,45 @@ async fn zip_decompress_in_out() {
     common::check_decompress_mem(zip_data).await
 }
 
+#[cfg(feature = "deflate")]
+#[tokio::test]
+async fn zip32_stream_deflate_sizes() {
+    use async_zip::base::write::ZipFileWriter;
+    use std::io::{Cursor, Read};
+
+    let content = b"async_zip ZIP32 streaming size regression\n".repeat(100);
+    let mut writer = ZipFileWriter::new(Vec::new()).force_no_zip64();
+    let opts = ZipEntryBuilder::new("payload.txt".into(), Compression::Deflate);
+    let mut entry_writer = writer.write_entry_stream(opts).await.unwrap();
+    for chunk in content.chunks(512) {
+        entry_writer.write_all(chunk).await.unwrap();
+    }
+    entry_writer.close().await.unwrap();
+    let zip_bytes = writer.close().await.unwrap();
+
+    let mut archive = zip::ZipArchive::new(Cursor::new(&zip_bytes)).unwrap();
+    // The single ZIP32 entry's 16-byte data descriptor immediately precedes the central directory.
+    let descriptor_offset = archive.central_directory_start() as usize - 16;
+    let mut file = archive.by_name("payload.txt").unwrap();
+    let compressed_size = descriptor_offset as u64 - file.data_start();
+    assert!(compressed_size < content.len() as u64);
+    assert_eq!(file.compressed_size(), compressed_size);
+    assert_eq!(file.size(), content.len() as u64);
+    assert_eq!(file.crc32(), crc32fast::hash(&content));
+
+    // ZIP32 data descriptors store CRC-32, compressed size, then uncompressed size.
+    let mut descriptor = Vec::new();
+    descriptor.extend_from_slice(&0x08074b50u32.to_le_bytes());
+    descriptor.extend_from_slice(&crc32fast::hash(&content).to_le_bytes());
+    descriptor.extend_from_slice(&(compressed_size as u32).to_le_bytes());
+    descriptor.extend_from_slice(&(content.len() as u32).to_le_bytes());
+    assert_eq!(&zip_bytes[descriptor_offset..descriptor_offset + descriptor.len()], descriptor.as_slice());
+
+    let mut extracted = Vec::new();
+    file.read_to_end(&mut extracted).unwrap();
+    assert_eq!(extracted, content);
+}
+
 #[tokio::test]
 async fn zip_store_in_out() {
     let zip_data = common::compress_to_mem(Compression::Stored).await;

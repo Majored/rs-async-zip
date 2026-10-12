@@ -216,7 +216,7 @@ impl<'b, W: AsyncWrite + Unpin> EntryStreamWriter<'b, W> {
             {
                 return Err(ZipError::Zip64Needed(Zip64ErrorCase::LargeFile));
             }
-            (self.entry.uncompressed_size as u32, compressed_size as u32, self.lfh_offset as u32)
+            (compressed_size as u32, self.entry.uncompressed_size as u32, self.lfh_offset as u32)
         } else {
             // When streaming an entry, we are always using a zip64 field.
             match get_zip64_extra_field_mut(&mut self.entry.extra_fields) {
